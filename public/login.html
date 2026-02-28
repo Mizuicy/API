@@ -235,10 +235,11 @@
     <div class="container">
         <!-- Lado Esquerdo -->
         <div class="left-side">
-            <h1>📚</h1>
-            <h1>Sistema de<br>Devolução</h1>
+            <h1>Cadastre-se<br>Aqui</h1>
             <p>Gerenciamento de livros e empréstimos</p>
-            <button class="btn-outline" onclick="location.href='index.html'">← Voltar</button>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+                <button class="btn-outline" onclick="location.href='cadastro.html'">Cadastre-se →</button>
+            </div>
         </div>
 
         <!-- Lado Direito -->
@@ -273,13 +274,8 @@
                 <div class="forgot-link">
                     <a href="#">Esqueci minha senha</a>
                 </div>
-
-                <div class="back-link" style="margin-top: 30px;">
-                    Sem conta? <a href="cadastro.html">Cadastre-se</a>
-                </div>
             </div>
 
-            <!-- Login Admin -->
             <div id="admin" class="tab-content">
                 <div id="adminAlert"></div>
                 <form id="adminForm">
