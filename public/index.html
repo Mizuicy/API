@@ -1,433 +1,156 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Devolução - Gestão de Usuários</title>
+    <title>Tela de Cadastro</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: Arial, sans-serif;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
             min-height: 100vh;
-            padding: 20px;
+            background-color: #f0f0f0;
         }
 
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        header {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .header-subtitle {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .panel {
-            background: white;
-            border-radius: 8px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .panel h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #333;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        input, textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 14px;
-        }
-
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
-        }
-
-        button {
-            background: #667eea;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: background 0.3s ease;
-        }
-
-        button:hover {
-            background: #764ba2;
-        }
-
-        button.danger {
-            background: #e74c3c;
-        }
-
-        button.danger:hover {
-            background: #c0392b;
-        }
-
-        button.success {
-            background: #27ae60;
-        }
-
-        button.success:hover {
-            background: #229954;
-        }
-
-        .users-list {
-            grid-column: 1 / -1;
-        }
-
-        .user-item {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 12px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: transform 0.2s ease;
+            width: 800px;
+            height: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
         }
 
-        .user-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .user-info {
+        /* Lado Esquerdo - Azul */
+        .left-side {
             flex: 1;
-        }
-
-        .user-name {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .user-email {
-            color: #666;
-            font-size: 13px;
-            margin-bottom: 3px;
-        }
-
-        .user-details {
-            color: #999;
-            font-size: 12px;
-        }
-
-        .user-actions {
+            background-color: #4b19e6; /* Cor aproximada da imagem */
             display: flex;
-            gap: 8px;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 40px;
         }
 
-        .user-actions button {
-            padding: 6px 12px;
-            font-size: 12px;
+        .left-side h2 {
+            font-size: 2.5rem;
+            margin-bottom: 40px;
+            text-align: center;
         }
 
-        .alert {
+        .btn-login-outline {
+            background: transparent;
+            border: 2px solid white;
+            color: white;
+            padding: 10px 35px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-login-outline:hover {
+            background: white;
+            color: #4b19e6;
+        }
+
+        /* Lado Direito - Cinza/Branco */
+        .right-side {
+            flex: 1.2;
+            background-color: #e9e9e9;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .right-side h2 {
+            font-size: 2.2rem;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            width: 100%;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-group input {
+            width: 100%;
             padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            font-size: 14px;
+            border: none;
+            border-bottom: 3px solid #ccc6f2; /* Sombra roxa sutil da imagem */
+            border-radius: 5px;
+            outline: none;
         }
 
-        .alert.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        .btn-register {
+            margin-top: 40px;
+            background-color: white;
+            color: #333;
+            border: 1px solid #333;
+            padding: 12px 60px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: 0.3s;
         }
 
-        .alert.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+        .btn-register:hover {
+            background-color: #333;
+            color: white;
         }
 
-        .alert.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .loading {
-            text-align: center;
-            color: #999;
-            padding: 20px;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .empty-state {
-            text-align: center;
-            color: #999;
-            padding: 40px 20px;
-        }
-
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
-        }
-
+        /* Responsividade básica */
         @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-
-            .user-item {
+            .container {
                 flex-direction: column;
-                align-items: flex-start;
+                width: 90%;
+                height: auto;
             }
-
-            .user-actions {
-                width: 100%;
-                margin-top: 10px;
-            }
-
-            .user-actions button {
-                flex: 1;
+            .left-side, .right-side {
+                padding: 40px 20px;
             }
         }
     </style>
 </head>
 <body>
+
     <div class="container">
-        <header>
-            <h1>📚 Sistema de Devolução</h1>
-            <p class="header-subtitle">Gestão de Usuários - API integrada</p>
-        </header>
+        <div class="left-side">
+            <h2>Faça seu Login</h2>
+            <button class="btn-login-outline">
+                <span style="font-size: 1.2rem;">👤</span> Login
+            </button>
+        </div>
 
-        <main class="main-content">
-            <!-- Formulário de Cadastro -->
-            <div class="panel">
-                <h2>➕ Novo Usuário</h2>
-                <div id="formAlert"></div>
-                <form id="usuarioForm">
-                    <div class="form-group">
-                        <label for="nome">Nome *</label>
-                        <input type="text" id="nome" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="email">Email *</label>
-                        <input type="email" id="email" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="senha">Senha *</label>
-                        <input type="password" id="senha" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="telefone">Telefone *</label>
-                        <input type="tel" id="telefone" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="cpf">CPF *</label>
-                        <input type="text" id="cpf" placeholder="123.456.789-00" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="dataNascimento">Data de Nascimento *</label>
-                        <input type="date" id="dataNascimento" required>
-                    </div>
-
-                    <button type="submit" class="success">Cadastrar Usuário</button>
-                </form>
+        <div class="right-side">
+            <h2>Cadastro</h2>
+            <div class="input-group">
+                <input type="text" placeholder="Nome">
+                <input type="email" placeholder="E-mail">
+                <input type="password" placeholder="Senha">
             </div>
-
-            <!-- Lista de Usuários -->
-            <div class="panel">
-                <h2>👥 Usuários Cadastrados</h2>
-                <div id="usuariosAlert"></div>
-                <div id="usuariosList" class="loading">
-                    <div class="spinner"></div>
-                    <p>Carregando usuários...</p>
-                </div>
-            </div>
-        </main>
+            <button class="btn-register">Registrar</button>
+        </div>
     </div>
 
-    <script>
-        const API_URL = 'http://localhost:3000';
-
-        // Carregar usuários
-        async function carregarUsuarios() {
-            try {
-                const response = await fetch(`${API_URL}/usuario`);
-                if (!response.ok) throw new Error('Erro ao carregar usuários');
-
-                const usuarios = await response.json();
-                exibirUsuarios(usuarios);
-            } catch (error) {
-                mostrarAlerta('usuariosAlert', `Erro: ${error.message}`, 'error');
-                document.getElementById('usuariosList').innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">⚠️</div>
-                        <p>Erro ao carregar usuários</p>
-                        <p style="font-size: 12px; margin-top: 5px;">Verifique se o servidor está rodando</p>
-                    </div>
-                `;
-            }
-        }
-
-        // Exibir usuários
-        function exibirUsuarios(usuarios) {
-            const container = document.getElementById('usuariosList');
-
-            if (!usuarios || usuarios.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📭</div>
-                        <p>Nenhum usuário cadastrado</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = usuarios.map(usuario => `
-                <div class="user-item">
-                    <div class="user-info">
-                        <div class="user-name">${usuario.Nome}</div>
-                        <div class="user-email">📧 ${usuario.Email}</div>
-                        <div class="user-details">📱 ${usuario.Telefone} | 🆔 ${usuario.CPF}</div>
-                    </div>
-                    <div class="user-actions">
-                        <button onclick="editarUsuario(${usuario.Usuario_id})">Editar</button>
-                        <button class="danger" onclick="deletarUsuario(${usuario.Usuario_id})">Deletar</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Cadastrar usuário
-        document.getElementById('usuarioForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const dados = {
-                Nome: document.getElementById('nome').value,
-                Email: document.getElementById('email').value,
-                Senha: document.getElementById('senha').value,
-                Telefone: document.getElementById('telefone').value,
-                CPF: document.getElementById('cpf').value,
-                DataNascimento: document.getElementById('dataNascimento').value
-            };
-
-            try {
-                const response = await fetch(`${API_URL}/usuario`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dados)
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Erro ao cadastrar usuário');
-                }
-
-                mostrarAlerta('formAlert', 'Usuário cadastrado com sucesso!', 'success');
-                document.getElementById('usuarioForm').reset();
-                carregarUsuarios();
-            } catch (error) {
-                mostrarAlerta('formAlert', `Erro: ${error.message}`, 'error');
-            }
-        });
-
-        // Deletar usuário
-        async function deletarUsuario(id) {
-            if (!confirm('Tem certeza que deseja deletar este usuário?')) return;
-
-            try {
-                const response = await fetch(`${API_URL}/usuario/${id}`, {
-                    method: 'DELETE'
-                });
-
-                if (!response.ok) throw new Error('Erro ao deletar');
-
-                mostrarAlerta('usuariosAlert', 'Usuário deletado com sucesso!', 'success');
-                carregarUsuarios();
-            } catch (error) {
-                mostrarAlerta('usuariosAlert', `Erro: ${error.message}`, 'error');
-            }
-        }
-
-        // Editar usuário (placeholder)
-        function editarUsuario(id) {
-            alert('Funcionalidade de edição em desenvolvimento!');
-        }
-
-        // Mostrar alerta
-        function mostrarAlerta(elementId, mensagem, tipo) {
-            const elemento = document.getElementById(elementId);
-            elemento.innerHTML = `<div class="alert ${tipo}">${mensagem}</div>`;
-            setTimeout(() => {
-                elemento.innerHTML = '';
-            }, 5000);
-        }
-
-        // Carregar usuários ao iniciar
-        carregarUsuarios();
-        setInterval(carregarUsuarios, 10000); // Recarregar a cada 10 segundos
-    </script>
 </body>
 </html>

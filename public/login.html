@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Devolução</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            display: flex;
+            width: 900px;
+            min-height: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Lado Esquerdo - Azul */
+        .left-side {
+            flex: 1;
+            background: linear-gradient(135deg, #4b19e6, #6a2ee0);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .left-side h1 {
+            font-size: 2.8rem;
+            margin-bottom: 20px;
+        }
+
+        .left-side p {
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid white;
+            color: white;
+            padding: 12px 40px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline:hover {
+            background: white;
+            color: #4b19e6;
+        }
+
+        /* Lado Direito - Cinza/Branco */
+        .right-side {
+            flex: 1.3;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 50px 40px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #999;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            color: #4b19e6;
+            border-bottom-color: #4b19e6;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-bottom: 2px solid #ddd;
+            background: transparent;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            border-bottom-color: #4b19e6;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 20px 0;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: auto;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 13px;
+            background-color: #4b19e6;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            background-color: #3a0fb6;
+        }
+
+        .forgot-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .forgot-link a {
+            color: #4b19e6;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .forgot-link a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: #4b19e6;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                width: 95%;
+                min-height: auto;
+            }
+
+            .left-side, .right-side {
+                padding: 30px 20px;
+            }
+
+            .left-side h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Lado Esquerdo -->
+        <div class="left-side">
+            <h1>📚</h1>
+            <h1>Sistema de<br>Devolução</h1>
+            <p>Gerenciamento de livros e empréstimos</p>
+            <button class="btn-outline" onclick="location.href='index.html'">← Voltar</button>
+        </div>
+
+        <!-- Lado Direito -->
+        <div class="right-side">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('usuario', this)">👤 Usuário</button>
+                <button class="tab-btn" onclick="switchTab('admin', this)">🔐 Admin</button>
+            </div>
+
+            <!-- Login Usuário -->
+            <div id="usuario" class="tab-content active">
+                <div id="usuarioAlert"></div>
+                <form id="usuarioForm">
+                    <div class="form-group">
+                        <label for="usuarioEmail">Email</label>
+                        <input type="email" id="usuarioEmail" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="usuarioSenha">Senha</label>
+                        <input type="password" id="usuarioSenha" required>
+                    </div>
+
+                    <div class="remember-me">
+                        <input type="checkbox" id="usuarioLembrar">
+                        <label for="usuarioLembrar" style="margin: 0;">Lembrar-me</label>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Entrar</button>
+                </form>
+
+                <div class="forgot-link">
+                    <a href="#">Esqueci minha senha</a>
+                </div>
+
+                <div class="back-link" style="margin-top: 30px;">
+                    Sem conta? <a href="cadastro.html">Cadastre-se</a>
+                </div>
+            </div>
+
+            <!-- Login Admin -->
+            <div id="admin" class="tab-content">
+                <div id="adminAlert"></div>
+                <form id="adminForm">
+                    <div class="form-group">
+                        <label for="adminEmail">Email Admin</label>
+                        <input type="email" id="adminEmail" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adminSenha">Senha</label>
+                        <input type="password" id="adminSenha" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adminChave">Chave de Acesso</label>
+                        <input type="password" id="adminChave" placeholder="Chave de administrador" required>
+                    </div>
+
+                    <div class="remember-me">
+                        <input type="checkbox" id="adminLembrar">
+                        <label for="adminLembrar" style="margin: 0;">Lembrar-me</label>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Entrar como Admin</button>
+                </form>
+
+                <div class="forgot-link">
+                    <a href="#">Recuperar acesso admin</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Trocar abas
+        function switchTab(tabName, button) {
+            // Ocultar todas as abas
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remover classe active de todos os botões
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Mostrar a aba selecionada
+            document.getElementById(tabName).classList.add('active');
+            button.classList.add('active');
+        }
+
+        // Login de usuário
+        document.getElementById('usuarioForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('usuarioEmail').value;
+            const senha = document.getElementById('usuarioSenha').value;
+
+            try {
+                // Simular login bem-sucedido
+                mostrarAlerta('usuarioAlert', 'Login bem-sucedido! Redirecionando...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            } catch (error) {
+                mostrarAlerta('usuarioAlert', `Erro: ${error.message}`, 'error');
+            }
+        });
+
+        // Login de admin
+        document.getElementById('adminForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const chave = document.getElementById('adminChave').value;
+
+            try {
+                if (chave !== 'admin123') {
+                    throw new Error('Chave de acesso inválida');
+                }
+                mostrarAlerta('adminAlert', 'Login de admin bem-sucedido! Redirecionando...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            } catch (error) {
+                mostrarAlerta('adminAlert', `Erro: ${error.message}`, 'error');
+            }
+        });
+
+        function mostrarAlerta(elementId, mensagem, tipo) {
+            const elemento = document.getElementById(elementId);
+            elemento.innerHTML = `<div class="alert ${tipo}">${mensagem}</div>`;
+            if (tipo === 'error') {
+                setTimeout(() => {
+                    elemento.innerHTML = '';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>

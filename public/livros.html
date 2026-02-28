@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Livros - Sistema de Devolução</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, #4b19e6, #6a2ee0);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(75, 25, 230, 0.2);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        nav {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        nav > div {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.3s ease;
+            border-bottom: 2px solid transparent;
+            padding-bottom: 5px;
+        }
+
+        nav a:hover {
+            opacity: 0.8;
+            border-bottom-color: white;
+        }
+
+        .panel {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel h2 {
+            color: #4b19e6;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 60px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            nav {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            nav > div {
+                width: 100%;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>📖 Livros</h1>
+            <p>Cadastro e gerenciamento de livros</p>
+            <nav>
+                <div>
+                    <a href="index.html">🏠 Usuários</a>
+                    <a href="livros.html">📖 Livros</a>
+                    <a href="autores.html">✍️ Autores</a>
+                    <a href="exemplares.html">📦 Exemplares</a>
+                    <a href="emprestimos.html">🔄 Empréstimos</a>
+                </div>
+                <div>
+                    <a href="login.html">🔐 Login</a>
+                    <a href="cadastro.html">✏️ Cadastro</a>
+                </div>
+            </nav>
+        </header>
+
+        <div class="panel">
+            <h2>📖 Livros</h2>
+            <div class="empty-state">
+                <div class="empty-state-icon">📚</div>
+                <p>Em desenvolvimento...</p>
+                <p style="font-size: 0.9rem; margin-top: 10px;">Funcionalidade de livros em breve</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
