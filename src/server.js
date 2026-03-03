@@ -4,18 +4,16 @@ import dbconfig from './db/dbconfig.js';
 const app = express();
 app.use(express.json());
 
-// Simple request logger to help debugging
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} -> ${req.method} ${req.url}`);
     next();
 });
 
-// Enable CORS for all routes (allow common headers used in browser requests)
+
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
-    // Optionally expose headers
     res.header('Access-Control-Expose-Headers', 'Content-Length, X-Kuma-Revision');
 
     if (req.method === 'OPTIONS') {
@@ -48,14 +46,11 @@ app.post('/usuario', (req, res) => {
 
     dbconfig.query(sql, [Nome, Email, Senha, Telefone, CPF, DataNascimento], (err, result) => {
         if (err) {
-            // Verifica se o erro é de entrada duplicada (Código 1062)
             if (err.errno === 1062) {
                 return res.status(400).json({ 
                     error: "Este CPF ou Email já está cadastrado em nosso sistema." 
                 });
             }
-            
-            // Outros erros genéricos
             return res.status(500).json({ error: "Erro interno no servidor." });
         }
 
