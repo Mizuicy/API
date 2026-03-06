@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Devolução</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Lado Esquerdo -->
+        <div class="left-side">
+            <h1>Cadastre-se<br>Aqui</h1>
+            <p>Gerenciamento de livros e empréstimos</p>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+                <button class="btn-outline" onclick="location.href='cadastro.html'">Cadastre-se →</button>
+            </div>
+        </div>
+
+        <!-- Lado Direito -->
+        <div class="right-side">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('usuario', this)">👤 Usuário</button>
+                <button class="tab-btn" onclick="switchTab('admin', this)">🔐 Admin</button>
+            </div>
+
+            <!-- Login Usuário -->
+            <div id="usuario" class="tab-content active">
+                <div id="usuarioAlert"></div>
+                <form id="usuarioForm">
+                    <div class="form-group">
+                        <label for="usuarioEmail">Email</label>
+                        <input type="email" id="usuarioEmail" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="usuarioSenha">Senha</label>
+                        <input type="password" id="usuarioSenha" required>
+                    </div>
+
+                    <div class="remember-me">
+                        <input type="checkbox" id="usuarioLembrar">
+                        <label for="usuarioLembrar" style="margin: 0;">Lembrar-me</label>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Entrar</button>
+                </form>
+
+                <div class="forgot-link">
+                    <a href="#">Esqueci minha senha</a>
+                </div>
+            </div>
+
+            <div id="admin" class="tab-content">
+                <div id="adminAlert"></div>
+                <form id="adminForm">
+                    <div class="form-group">
+                        <label for="adminEmail">Email Admin</label>
+                        <input type="email" id="adminEmail" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adminSenha">Senha</label>
+                        <input type="password" id="adminSenha" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adminChave">Chave de Acesso</label>
+                        <input type="password" id="adminChave" placeholder="Chave de administrador" required>
+                    </div>
+
+                    <div class="remember-me">
+                        <input type="checkbox" id="adminLembrar">
+                        <label for="adminLembrar" style="margin: 0;">Lembrar-me</label>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Entrar como Admin</button>
+                </form>
+
+                <div class="forgot-link">
+                    <a href="#">Recuperar acesso admin</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Trocar abas
+        function switchTab(tabName, button) {
+            // Ocultar todas as abas
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remover classe active de todos os botões
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Mostrar a aba selecionada
+            document.getElementById(tabName).classList.add('active');
+            button.classList.add('active');
+        }
+
+        // Login de usuário
+        document.getElementById('usuarioForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('usuarioEmail').value;
+            const senha = document.getElementById('usuarioSenha').value;
+
+            try {
+                // Simular login bem-sucedido
+                mostrarAlerta('usuarioAlert', 'Login bem-sucedido! Redirecionando...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            } catch (error) {
+                mostrarAlerta('usuarioAlert', `Erro: ${error.message}`, 'error');
+            }
+        });
+
+        // Login de admin
+        document.getElementById('adminForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const chave = document.getElementById('adminChave').value;
+
+            try {
+                if (chave !== 'admin123') {
+                    throw new Error('Chave de acesso inválida');
+                }
+                mostrarAlerta('adminAlert', 'Login de admin bem-sucedido! Redirecionando...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            } catch (error) {
+                mostrarAlerta('adminAlert', `Erro: ${error.message}`, 'error');
+            }
+        });
+
+        function mostrarAlerta(elementId, mensagem, tipo) {
+            const elemento = document.getElementById(elementId);
+            elemento.innerHTML = `<div class="alert ${tipo}">${mensagem}</div>`;
+            if (tipo === 'error') {
+                setTimeout(() => {
+                    elemento.innerHTML = '';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>
