@@ -3,38 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Livros - Sistema de Devolução</title>
-    <link rel="stylesheet" href="css/global.css">
-    <link rel="stylesheet" href="css/modulos.css">
+    <title>BiblioTech - Gestão de Livros</title>
+    <link rel="stylesheet" href="css/livros.css">
 </head>
 <body>
-    <div class="app-container">
-        <header>
-            <h1>📖 Livros</h1>
-            <p>Cadastro e gerenciamento de livros</p>
-            <nav>
-                <div>
-                    <a href="index.html">🏠 Usuários</a>
-                    <a href="livros.html">📖 Livros</a>
-                    <a href="autores.html">✍️ Autores</a>
-                    <a href="exemplares.html">📦 Exemplares</a>
-                    <a href="emprestimos.html">🔄 Empréstimos</a>
-                </div>
-                <div>
-                    <a href="index.html">🔐 Login</a>
-                    <a href="cadastro.html">✏️ Cadastro</a>
-                </div>
-            </nav>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">📚 BiblioTech</h1>
+                <nav class="nav">
+                    <a href="index.html" class="nav-link">Início</a>
+                    <a href="livros.html" class="nav-link active">Livros</a>
+                    <a href="cadastro.html" class="nav-link">Cadastro</a>
+                    <a href="emprestimos.html" class="nav-link">Empréstimos</a>
+                </nav>
+                <div class="user-icon">👤</div>
+            </div>
         </header>
 
-        <div class="panel">
-            <h2>📖 Livros</h2>
-            <div class="empty-state">
-                <div class="empty-state-icon">📚</div>
-                <p>Em desenvolvimento...</p>
-                <p style="font-size: 0.9rem; margin-top: 10px;">Funcionalidade de livros em breve</p>
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Seção de Formulário -->
+            <section class="form-section">
+                <h2>Adicionar Novo Livro</h2>
+                <form id="livroForm" class="form-livro">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="titulo">Título do Livro *</label>
+                            <input type="text" id="titulo" name="titulo" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="autor">Autor *</label>
+                            <input type="text" id="autor" name="autor" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editora">Editora *</label>
+                            <input type="text" id="editora" name="editora" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ano_publicacao">Ano de Publicação *</label>
+                            <input type="number" id="ano_publicacao" name="ano_publicacao" min="1000" max="2099" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="idioma">Idioma *</label>
+                            <select id="idioma" name="idioma" required>
+                                <option value="">Selecione um idioma</option>
+                                <option value="Português">Português</option>
+                                <option value="Inglês">Inglês</option>
+                                <option value="Espanhol">Espanhol</option>
+                                <option value="Francês">Francês</option>
+                                <option value="Alemão">Alemão</option>
+                                <option value="Italiano">Italiano</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="numero_paginas">Número de Páginas *</label>
+                            <input type="number" id="numero_paginas" name="numero_paginas" min="1" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="classificacao_etaria">Classificação Etária *</label>
+                            <select id="classificacao_etaria" name="classificacao_etaria" required>
+                                <option value="">Selecione uma classificação</option>
+                                <option value="Livre">Livre</option>
+                                <option value="6+">6+</option>
+                                <option value="10+">10+</option>
+                                <option value="12+">12+</option>
+                                <option value="14+">14+</option>
+                                <option value="16+">16+</option>
+                                <option value="18+">18+</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="genero">Gênero *</label>
+                            <select id="genero" name="genero" required>
+                                <option value="">Selecione um gênero</option>
+                                <option value="Ficção">Ficção</option>
+                                <option value="Não-Ficção">Não-Ficção</option>
+                                <option value="Ficção Científica">Ficção Científica</option>
+                                <option value="Fantasia">Fantasia</option>
+                                <option value="Romance">Romance</option>
+                                <option value="Mistério">Mistério</option>
+                                <option value="História">História</option>
+                                <option value="Autobiografia">Autobiografia</option>
+                                <option value="Educativo">Educativo</option>
+                                <option value="Infantil">Infantil</option>
+                                <option value="Conto">Conto</option>
+                                <option value="Poesia">Poesia</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="resumo">Resumo do Livro *</label>
+                        <textarea id="resumo" name="resumo" rows="4" required placeholder="Digite um breve resumo do livro..."></textarea>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="capa">URL da Imagem da Capa *</label>
+                        <input type="url" id="capa" name="capa" required placeholder="https://exemplo.com/imagem.jpg">
+                    </div>
+
+                    <button type="submit" class="btn-submit">Adicionar Livro</button>
+                </form>
+            </section>
+
+            <!-- Seção de Exibição dos Livros -->
+            <section class="catalogo-section">
+                <h2>Catálogo Completo</h2>
+                
+                <!-- Filtros -->
+                <div class="filtros">
+                    <input type="text" id="searchInput" class="search-input" placeholder="🔍 Pesquisar livros...">
+                    <select id="generoFilter" class="filter-select">
+                        <option value="">Todos os Gêneros</option>
+                        <option value="Ficção">Ficção</option>
+                        <option value="Não-Ficção">Não-Ficção</option>
+                        <option value="Ficção Científica">Ficção Científica</option>
+                        <option value="Fantasia">Fantasia</option>
+                        <option value="Romance">Romance</option>
+                        <option value="Mistério">Mistério</option>
+                        <option value="História">História</option>
+                        <option value="Infantil">Infantil</option>
+                    </select>
+                </div>
+
+                <!-- Grid de Livros -->
+                <div id="livrosGrid" class="livros-grid">
+                    <div class="loading">Carregando livros...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal para Detalhes do Livro -->
+    <div id="modalDetalhes" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="detalhesConteudo" class="detalhes-conteudo">
+                <!-- Conteúdo dinâmico -->
             </div>
         </div>
     </div>
+
+    <script src="js/livros.js"></script>
 </body>
 </html>
