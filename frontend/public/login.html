@@ -3,150 +3,472 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Sistema de Devolução</title>
-    <link rel="stylesheet" href="css/global.css">
-    <link rel="stylesheet" href="css/login.css">
+    <title>Login — Sistema de Devolução</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a0a2e;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ── Fundo gradiente animado ── */
+        .bg {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse 80% 80% at 20% 30%, #3b0d6e 0%, transparent 60%),
+                        radial-gradient(ellipse 70% 70% at 80% 70%, #1a0550 0%, transparent 60%),
+                        radial-gradient(ellipse 60% 60% at 50% 50%, #2d0a5a 0%, transparent 70%),
+                        linear-gradient(135deg, #0d001a 0%, #1a0535 50%, #0a0020 100%);
+            z-index: 0;
+        }
+
+        .blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.45;
+            z-index: 0;
+            animation: float 8s ease-in-out infinite;
+        }
+        .blob-1 { width: 400px; height: 400px; background: #7c3aed; top: -80px; left: -80px; animation-delay: 0s; }
+        .blob-2 { width: 350px; height: 350px; background: #4c1d95; bottom: -60px; right: -60px; animation-delay: -3s; }
+        .blob-3 { width: 250px; height: 250px; background: #5b21b6; top: 40%; left: 60%; animation-delay: -6s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33%       { transform: translate(20px, -20px) scale(1.05); }
+            66%       { transform: translate(-15px, 15px) scale(0.97); }
+        }
+
+        /* ── Card glass ── */
+        .card {
+            position: relative;
+            z-index: 10;
+            width: 340px;
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            border-radius: 24px;
+            padding: 36px 32px 32px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+
+        /* ── Avatar ── */
+        .avatar-wrap {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .avatar {
+            width: 72px; height: 72px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 30px rgba(139,92,246,0.4);
+            transition: box-shadow 0.3s;
+        }
+        .avatar svg { opacity: 0.6; }
+        .avatar.admin-mode { box-shadow: 0 0 30px rgba(251,191,36,0.5); border-color: rgba(251,191,36,0.4); }
+
+        /* ── Abas ── */
+        .tabs {
+            display: flex;
+            background: rgba(0,0,0,0.25);
+            border-radius: 12px;
+            padding: 3px;
+            margin-bottom: 26px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            background: transparent;
+            border: none;
+            border-radius: 9px;
+            color: rgba(255,255,255,0.45);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 0.3px;
+        }
+        .tab-btn.active {
+            background: rgba(139,92,246,0.55);
+            color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .tab-btn:not(.active):hover { color: rgba(255,255,255,0.75); }
+
+        /* ── Conteúdo de abas ── */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ── Inputs ── */
+        .input-group {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .input-group .icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.85rem;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 11px 12px 11px 36px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            color: rgba(255,255,255,0.9);
+            font-size: 0.88rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.25s, background 0.25s;
+        }
+        .input-group input::placeholder { color: rgba(255,255,255,0.35); }
+        .input-group input:focus {
+            border-color: rgba(139,92,246,0.7);
+            background: rgba(139,92,246,0.1);
+        }
+
+        /* ── Lembrar-me + link ── */
+        .row-opts {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 4px 0 22px;
+        }
+
+        .remember {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .remember input[type="checkbox"] {
+            appearance: none;
+            width: 14px; height: 14px;
+            border: 1.5px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .remember input[type="checkbox"]:checked {
+            background: #7c3aed;
+            border-color: #7c3aed;
+        }
+        .remember input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            top: -1px; left: 1px;
+            font-size: 10px;
+            color: white;
+            font-weight: 700;
+        }
+
+        .remember span {
+            color: rgba(255,255,255,0.45);
+            font-size: 0.78rem;
+        }
+
+        .forgot-link {
+            color: rgba(255,255,255,0.4);
+            font-size: 0.78rem;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .forgot-link:hover { color: rgba(255,255,255,0.75); }
+
+        /* ── Botão principal ── */
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.92rem;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 4px 20px rgba(124,58,237,0.45);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+            border-radius: 12px;
+        }
+        .btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 26px rgba(124,58,237,0.6); }
+        .btn-login:active { transform: translateY(0); }
+        .btn-login:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+        .btn-login.admin-btn {
+            background: linear-gradient(135deg, #92400e, #78350f);
+            box-shadow: 0 4px 20px rgba(251,191,36,0.3);
+        }
+        .btn-login.admin-btn:hover { box-shadow: 0 6px 26px rgba(251,191,36,0.5); }
+
+        /* ── Alerta ── */
+        .alert-box {
+            border-radius: 10px;
+            padding: 10px 13px;
+            font-size: 0.82rem;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            display: none;
+        }
+        .alert-box.show { display: flex; }
+        .alert-box.error   { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+        .alert-box.success { background: rgba(34,197,94,0.15); color: #86efac;  border: 1px solid rgba(34,197,94,0.3); }
+        .alert-box.loading { background: rgba(139,92,246,0.15); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.3); }
+
+        /* Spinner inline */
+        .spin {
+            width: 13px; height: 13px;
+            border: 2px solid rgba(196,181,253,0.3);
+            border-top-color: #c4b5fd;
+            border-radius: 50%;
+            animation: spin .6s linear infinite;
+            flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Divider ── */
+        .divider {
+            height: 1px;
+            background: rgba(255,255,255,0.08);
+            margin: 20px 0 16px;
+        }
+
+        .register-link {
+            text-align: center;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.35);
+        }
+        .register-link a {
+            color: rgba(167,139,250,0.9);
+            text-decoration: none;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+        .register-link a:hover { color: #c4b5fd; }
+
+        /* ── Badge admin ── */
+        .admin-badge {
+            background: rgba(251,191,36,0.12);
+            border: 1px solid rgba(251,191,36,0.25);
+            color: rgba(251,191,36,0.8);
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 0.78rem;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Lado Esquerdo -->
-        <div class="left-side">
-            <h1>Cadastre-se<br>Aqui</h1>
-            <p>Gerenciamento de livros e empréstimos</p>
-            <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
-                <button class="btn-outline" onclick="location.href='cadastro.html'">Cadastre-se →</button>
-            </div>
-        </div>
 
-        <!-- Lado Direito -->
-        <div class="right-side">
-            <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('usuario', this)">👤 Usuário</button>
-                <button class="tab-btn" onclick="switchTab('admin', this)">🔐 Admin</button>
-            </div>
+<div class="bg"></div>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
 
-            <!-- Login Usuário -->
-            <div id="usuario" class="tab-content active">
-                <div id="usuarioAlert"></div>
-                <form id="usuarioForm">
-                    <div class="form-group">
-                        <label for="usuarioEmail">Email</label>
-                        <input type="email" id="usuarioEmail" required>
-                    </div>
+<div class="card">
 
-                    <div class="form-group">
-                        <label for="usuarioSenha">Senha</label>
-                        <input type="password" id="usuarioSenha" required>
-                    </div>
-
-                    <div class="remember-me">
-                        <input type="checkbox" id="usuarioLembrar">
-                        <label for="usuarioLembrar" style="margin: 0;">Lembrar-me</label>
-                    </div>
-
-                    <button type="submit" class="btn-submit">Entrar</button>
-                </form>
-
-                <div class="forgot-link">
-                    <a href="#">Esqueci minha senha</a>
-                </div>
-            </div>
-
-            <div id="admin" class="tab-content">
-                <div id="adminAlert"></div>
-                <form id="adminForm">
-                    <div class="form-group">
-                        <label for="adminEmail">Email Admin</label>
-                        <input type="email" id="adminEmail" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="adminSenha">Senha</label>
-                        <input type="password" id="adminSenha" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="adminChave">Chave de Acesso</label>
-                        <input type="password" id="adminChave" placeholder="Chave de administrador" required>
-                    </div>
-
-                    <div class="remember-me">
-                        <input type="checkbox" id="adminLembrar">
-                        <label for="adminLembrar" style="margin: 0;">Lembrar-me</label>
-                    </div>
-
-                    <button type="submit" class="btn-submit">Entrar como Admin</button>
-                </form>
-
-                <div class="forgot-link">
-                    <a href="#">Recuperar acesso admin</a>
-                </div>
-            </div>
+    <!-- Avatar -->
+    <div class="avatar-wrap">
+        <div class="avatar" id="avatarEl">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
         </div>
     </div>
 
-    <script>
-        // Trocar abas
-        function switchTab(tabName, button) {
-            // Ocultar todas as abas
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
+    <!-- Abas -->
+    <div class="tabs">
+        <button class="tab-btn active" id="tabUsuario" onclick="switchTab('usuario')">👤 Usuário</button>
+        <button class="tab-btn"        id="tabAdmin"   onclick="switchTab('admin')">🔐 Admin</button>
+    </div>
+
+    <!-- ── Tab Usuário ── -->
+    <div class="tab-content active" id="paneUsuario">
+        <div class="alert-box" id="alertUsuario"></div>
+        <div class="input-group">
+            <span class="icon">✉️</span>
+            <input type="email" id="uEmail" placeholder="Email ID">
+        </div>
+        <div class="input-group">
+            <span class="icon">🔒</span>
+            <input type="password" id="uSenha" placeholder="Password">
+        </div>
+        <div class="row-opts">
+            <label class="remember">
+                <input type="checkbox" id="uLembrar">
+                <span>Remember me</span>
+            </label>
+            <a href="#" class="forgot-link">Forgot Password?</a>
+        </div>
+        <button class="btn-login" id="btnUsuario" onclick="loginUsuario()">LOGIN</button>
+    </div>
+
+    <!-- ── Tab Admin ── -->
+    <div class="tab-content" id="paneAdmin">
+        <div class="alert-box" id="alertAdmin"></div>
+        <div class="admin-badge">🔒 Área restrita — somente administradores</div>
+        <div class="input-group">
+            <span class="icon">✉️</span>
+            <input type="email" id="aEmail" placeholder="Email Admin">
+        </div>
+        <div class="input-group">
+            <span class="icon">🔒</span>
+            <input type="password" id="aSenha" placeholder="Password">
+        </div>
+        <div class="input-group">
+            <span class="icon">🗝️</span>
+            <input type="password" id="aChave" placeholder="Chave de acesso">
+        </div>
+        <div class="row-opts">
+            <label class="remember">
+                <input type="checkbox" id="aLembrar">
+                <span>Remember me</span>
+            </label>
+            <a href="#" class="forgot-link">Forgot Password?</a>
+        </div>
+        <button class="btn-login admin-btn" id="btnAdmin" onclick="loginAdmin()">LOGIN</button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="register-link">Não tem conta?<a href="cadastro.html">Criar conta</a></div>
+
+</div>
+
+<script>
+    const API = 'http://localhost:3000';
+    const ADMIN_KEY = 'admin123';
+
+    /* ── Abas ─────────────────────────────── */
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('pane'  + cap(tab)).classList.add('active');
+        document.getElementById('tab'   + cap(tab)).classList.add('active');
+        document.getElementById('avatarEl').classList.toggle('admin-mode', tab === 'admin');
+    }
+    const cap = s => s[0].toUpperCase() + s.slice(1);
+
+    /* ── Alerta ───────────────────────────── */
+    function alerta(id, msg, tipo, spinner) {
+        const el = document.getElementById(id);
+        el.className = `alert-box show ${tipo}`;
+        el.innerHTML = (spinner ? '<div class="spin"></div>' : '') + msg;
+    }
+    function limpa(id) {
+        const el = document.getElementById(id);
+        el.className = 'alert-box';
+        el.innerHTML = '';
+    }
+
+    /* ── Login Usuário ────────────────────── */
+    async function loginUsuario() {
+        const email = document.getElementById('uEmail').value.trim();
+        const senha = document.getElementById('uSenha').value;
+        if (!email || !senha) { alerta('alertUsuario','Preencha email e senha.','error'); return; }
+
+        const btn = document.getElementById('btnUsuario');
+        btn.disabled = true;
+        alerta('alertUsuario', 'Verificando…', 'loading', true);
+
+        try {
+            const res  = await fetch(`${API}/usuario/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Email: email, Senha: senha })
             });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Credenciais inválidas.');
 
-            // Remover classe active de todos os botões
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
+            sessionStorage.setItem('usuario', JSON.stringify(data.usuario));
+            alerta('alertUsuario', 'Acesso autorizado! Redirecionando…', 'success');
+            setTimeout(() => window.location.href = 'index.html', 1300);
+        } catch (err) {
+            alerta('alertUsuario', err.message, 'error');
+            setTimeout(() => limpa('alertUsuario'), 5000);
+        } finally { btn.disabled = false; }
+    }
+
+    /* ── Login Admin ──────────────────────── */
+    async function loginAdmin() {
+        const email = document.getElementById('aEmail').value.trim();
+        const senha = document.getElementById('aSenha').value;
+        const chave = document.getElementById('aChave').value;
+
+        if (!email || !senha) { alerta('alertAdmin','Preencha todos os campos.','error'); return; }
+
+        const btn = document.getElementById('btnAdmin');
+        btn.disabled = true;
+        alerta('alertAdmin', 'Autenticando…', 'loading', true);
+
+        try {
+            const res  = await fetch(`${API}/usuario/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Email: email, Senha: senha })
             });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Credenciais inválidas.');
 
-            // Mostrar a aba selecionada
-            document.getElementById(tabName).classList.add('active');
-            button.classList.add('active');
-        }
+            sessionStorage.setItem('admin', JSON.stringify(data.usuario));
+            alerta('alertAdmin', 'Acesso autorizado! Redirecionando…', 'success');
+            setTimeout(() => window.location.href = 'admin.html', 1300);
+        } catch (err) {
+            alerta('alertAdmin', err.message, 'error');
+            setTimeout(() => limpa('alertAdmin'), 5000);
+        } finally { btn.disabled = false; }
+    }
 
-        // Login de usuário
-        document.getElementById('usuarioForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('usuarioEmail').value;
-            const senha = document.getElementById('usuarioSenha').value;
-
-            try {
-                // Simular login bem-sucedido
-                mostrarAlerta('usuarioAlert', 'Login bem-sucedido! Redirecionando...', 'success');
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1500);
-            } catch (error) {
-                mostrarAlerta('usuarioAlert', `Erro: ${error.message}`, 'error');
-            }
-        });
-
-        // Login de admin
-        document.getElementById('adminForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const chave = document.getElementById('adminChave').value;
-
-            try {
-                if (chave !== 'admin123') {
-                    throw new Error('Chave de acesso inválida');
-                }
-                mostrarAlerta('adminAlert', 'Login de admin bem-sucedido! Redirecionando...', 'success');
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1500);
-            } catch (error) {
-                mostrarAlerta('adminAlert', `Erro: ${error.message}`, 'error');
-            }
-        });
-
-        function mostrarAlerta(elementId, mensagem, tipo) {
-            const elemento = document.getElementById(elementId);
-            elemento.innerHTML = `<div class="alert ${tipo}">${mensagem}</div>`;
-            if (tipo === 'error') {
-                setTimeout(() => {
-                    elemento.innerHTML = '';
-                }, 5000);
-            }
-        }
-    </script>
+    /* ── Enter ────────────────────────────── */
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        if (document.getElementById('paneAdmin').classList.contains('active')) loginAdmin();
+        else loginUsuario();
+    });
+</script>
 </body>
 </html>

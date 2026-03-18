@@ -1,5 +1,11 @@
 import express from 'express'
 import dbconfig from './db/dbconfig.js';
+import { validarUsuario } from './utils/validacoes.js'
+
+app.post('/usuario', (req, res) => {
+    const erro = validarUsuario(req.body) // reusando a mesma função
+    if (erro) return res.status(400).json({ error: erro })
+})
 
 const app = express();
 app.use(express.json());
@@ -30,7 +36,6 @@ function handleQuery(res, err, results) {
     }
     return res.json(results);
 }
-
 
 app.get('/usuario', (req, res) => {
     dbconfig.query('SELECT * FROM Usuario', (err, results) => {
