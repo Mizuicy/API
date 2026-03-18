@@ -39,18 +39,37 @@ app.get('/usuario', (req, res) => {
 });
 
 app.post('/usuario', (req, res) => {
-    const { Nome, Email, Senha, Telefone, CPF, DataNascimento } = req.body; 
+    const { Nome, Email, Senha, Telefone, CPF, DataNascimento } = req.body;
+
+    // Validação básica de campos obrigatórios
+    if (!Nome || !Email || !Senha || !CPF || !DataNascimento) {
+        return res.status(400).json({ error: 'Nome, Email, Senha, CPF e Data de nascimento são obrigatórios.' });
+    }
+
+    // Normaliza valores vazios para NULL apenas para campos opcionais
+    const normalizeOptional = (value) => (value === '' ? null : value);
+    const values = [
+        Nome,
+        Email,
+        Senha,
+        normalizeOptional(Telefone),
+        CPF,
+        DataNascimento
+    ];
 
     const sql = `INSERT INTO Usuario (Nome, Email, Senha, Telefone, CPF, DataNascimento) 
                  VALUES (?, ?, ?, ?, ?, ?)`;
 
-    dbconfig.query(sql, [Nome, Email, Senha, Telefone, CPF, DataNascimento], (err, result) => {
+    dbconfig.query(sql, values, (err, result) => {
         if (err) {
             if (err.errno === 1062) {
                 return res.status(400).json({ 
                     error: "Este CPF ou Email já está cadastrado em nosso sistema." 
                 });
             }
+
+            // Em desenvolvimento pode ser útil devolver a mensagem do SQL
+            console.error('Erro ao inserir usuário:', err);
             return res.status(500).json({ error: "Erro interno no servidor." });
         }
 
