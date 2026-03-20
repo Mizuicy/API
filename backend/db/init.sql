@@ -21,8 +21,21 @@ CREATE TABLE IF NOT EXISTS Usuario (
 CREATE TABLE IF NOT EXISTS Emprestimo (
   Emprestimo_id INT AUTO_INCREMENT PRIMARY KEY,
   Usuario_id INT NOT NULL,
+  Livro_id INT NOT NULL,
   DataEmprestimo DATE NOT NULL,
   DataDevolucao DATE,
   Status ENUM('Pendente', 'Devolvido', 'Atrasado') DEFAULT 'Pendente',
   FOREIGN KEY (Usuario_id) REFERENCES Usuario(Usuario_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+--4) Tabela Livro
+CREATE TABLE IF NOT EXISTS Livro (
+  Livro_id INT AUTO_INCREMENT PRIMARY KEY,
+  Titulo VARCHAR(255) NOT NULL,
+  Autor VARCHAR(255) NOT NULL,
+  ISBN VARCHAR(20) NOT NULL UNIQUE,
+  Editora VARCHAR(255),
+  AnoPublicacao INT NOT NULL,
+  Categoria VARCHAR(100),
+  Descricao TEXT,
+  DataCadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; /* Define o mecanismo de armazenamento e o conjunto de caracteres */

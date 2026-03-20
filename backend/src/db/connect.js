@@ -1,6 +1,6 @@
 import dbconfig from './dbconfig.js'; 
 
-dbconfig.query('SELECT * FROM users', (err, results) => {
+dbconfig.query('SELECT * FROM usuario', (err, results) => {
     if (err) {
         console.error('Error executing query:', err);
         return;

@@ -360,10 +360,6 @@
             <span class="icon">🔒</span>
             <input type="password" id="aSenha" placeholder="Password">
         </div>
-        <div class="input-group">
-            <span class="icon">🗝️</span>
-            <input type="password" id="aChave" placeholder="Chave de acesso">
-        </div>
         <div class="row-opts">
             <label class="remember">
                 <input type="checkbox" id="aLembrar">
@@ -381,7 +377,6 @@
 
 <script>
     const API = 'http://localhost:3000';
-    const ADMIN_KEY = 'admin123';
 
     /* ── Abas ─────────────────────────────── */
     function switchTab(tab) {
@@ -437,7 +432,6 @@
     async function loginAdmin() {
         const email = document.getElementById('aEmail').value.trim();
         const senha = document.getElementById('aSenha').value;
-        const chave = document.getElementById('aChave').value;
 
         if (!email || !senha) { alerta('alertAdmin','Preencha todos os campos.','error'); return; }
 
