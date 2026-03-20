@@ -2,6 +2,8 @@ import express from 'express'
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dbconfig from './db/dbconfig.js';
+import { validarUsuario, validarLivro } from './utils/validacoes.js'
+import { validateEmail, generateAuthCode, sendAuthEmail, sendWelcomeEmail } from './utils/emailService.js'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,20 +19,15 @@ app.use((req, res, next) => {
     next();
 });
 
-
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
     res.header('Access-Control-Expose-Headers', 'Content-Length, X-Kuma-Revision');
-
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
+    if (req.method === 'OPTIONS') return res.sendStatus(200);
     next();
 });
 
-// helper to send query results/errors
 function handleQuery(res, err, results) {
     if (err) {
         console.error('Database error:', err);
@@ -39,7 +36,6 @@ function handleQuery(res, err, results) {
     return res.json(results);
 }
 
-
 app.get('/usuario', (req, res) => {
     dbconfig.query('SELECT * FROM Usuario', (err, results) => {
         handleQuery(res, err, results);
@@ -47,46 +43,103 @@ app.get('/usuario', (req, res) => {
 });
 
 app.post('/usuario', (req, res) => {
+    const erro = validarUsuario(req.body);
+    if (erro) return res.status(400).json({ error: erro });
+
     const { Nome, Email, Senha, Telefone, CPF, DataNascimento } = req.body;
 
-    // Validação básica de campos obrigatórios
-    if (!Nome || !Email || !Senha || !CPF || !DataNascimento) {
-        return res.status(400).json({ error: 'Nome, Email, Senha, CPF e Data de nascimento são obrigatórios.' });
+    if (!DataNascimento) {
+        return res.status(400).json({ error: 'Data de nascimento é obrigatória.' });
     }
 
-    // Normaliza valores vazios para NULL apenas para campos opcionais
+    if (!validateEmail(Email)) {
+        return res.status(400).json({ error: 'Email inválido.' });
+    }
+
     const normalizeOptional = (value) => (value === '' ? null : value);
-    const values = [
-        Nome,
-        Email,
-        Senha,
-        normalizeOptional(Telefone),
-        CPF,
-        DataNascimento
-    ];
+    const values = [Nome, Email, Senha, normalizeOptional(Telefone), CPF, DataNascimento];
+    const sql = `INSERT INTO Usuario (Nome, Email, Senha, Telefone, CPF, DataNascimento) VALUES (?, ?, ?, ?, ?, ?)`;
 
-    const sql = `INSERT INTO Usuario (Nome, Email, Senha, Telefone, CPF, DataNascimento) 
-                 VALUES (?, ?, ?, ?, ?, ?)`;
-
-    dbconfig.query(sql, values, (err, result) => {
+    dbconfig.query(sql, values, async (err) => {
         if (err) {
             if (err.errno === 1062) {
-                return res.status(400).json({ 
-                    error: "Este CPF ou Email já está cadastrado em nosso sistema." 
-                });
+                return res.status(400).json({ error: "Este CPF ou Email já está cadastrado em nosso sistema." });
             }
-
-            // Em desenvolvimento pode ser útil devolver a mensagem do SQL
             console.error('Erro ao inserir usuário:', err);
             return res.status(500).json({ error: "Erro interno no servidor." });
+        }
+
+        const emailEnviado = await sendWelcomeEmail(Email, Nome);
+        if (!emailEnviado) {
+            console.warn('Falha ao enviar email de boas-vindas para:', Email);
         }
 
         res.status(201).json({ message: "Usuário criado com sucesso!" });
     });
 });
 
+app.post('/usuario/login', (req, res) => {
+    const { Email, Senha } = req.body;
+    if (!Email || !Senha) {
+        return res.status(400).json({ error: 'Email e senha são obrigatórios.' });
+    }
+    dbconfig.query(
+        'SELECT * FROM Usuario WHERE Email = ? AND Senha = ?',
+        [Email, Senha],
+        (err, results) => {
+            if (err) return handleQuery(res, err);
+            if (results.length === 0) {
+                return res.status(401).json({ error: 'Credenciais inválidas.' });
+            }
+            const { Senha: _, ...usuarioSemSenha } = results[0];
+            res.json({ usuario: usuarioSemSenha });
+        }
+    );
+});
+
+const authCodes = new Map();
+
+app.post('/usuario/authcode', async (req, res) => {
+    const { Email } = req.body;
+    if (!Email || !validateEmail(Email)) {
+        return res.status(400).json({ error: 'Email inválido.' });
+    }
+
+    const code = generateAuthCode();
+    authCodes.set(Email, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
+
+    const emailEnviado = await sendAuthEmail(Email, code);
+    if (!emailEnviado) {
+        return res.status(500).json({ error: 'Falha ao enviar código de autenticação.' });
+    }
+
+    res.json({ message: 'Código de autenticação enviado para o email.' });
+});
+
+app.post('/usuario/authcode/verify', (req, res) => {
+    const { Email, Codigo } = req.body;
+    if (!Email || !Codigo) {
+        return res.status(400).json({ error: 'Email e código são obrigatórios.' });
+    }
+
+    const saved = authCodes.get(Email);
+    if (!saved || saved.code !== Codigo) {
+        return res.status(401).json({ error: 'Código inválido.' });
+    }
+
+    if (Date.now() > saved.expiresAt) {
+        authCodes.delete(Email);
+        return res.status(401).json({ error: 'Código expirado.' });
+    }
+
+    authCodes.delete(Email);
+    res.json({ message: 'Código verificado com sucesso.' });
+});
+
 app.delete('/usuario/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
+
     dbconfig.query('DELETE FROM Usuario WHERE Usuario_id = ?', [id], (err, result) => {
         if (err) return handleQuery(res, err);
         if (result.affectedRows === 0) {
@@ -96,9 +149,13 @@ app.delete('/usuario/:id', (req, res) => {
     });
 });
 
-
 app.put('/usuario/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
+
+    const erro = validarUsuario(req.body);
+    if (erro) return res.status(400).json({ error: erro });
+
     const { Nome, Email, Senha, Telefone, CPF, DataNascimento } = req.body;
     const sql = 'UPDATE Usuario SET Nome = ?, Email = ?, Senha = ?, Telefone = ?, CPF = ?, DataNascimento = ? WHERE Usuario_id = ?';
     dbconfig.query(sql, [Nome, Email, Senha, Telefone, CPF, DataNascimento, id], (err, result) => {
@@ -109,20 +166,18 @@ app.put('/usuario/:id', (req, res) => {
         res.json({ Usuario_id: id, Nome, Email, Telefone, CPF, DataNascimento });
     });
 });
-
-// ======== ENDPOINTS PARA LIVROS ========
-
-// GET - Listar todos os livros
-app.get('/livros', (req, res) => {
-    dbconfig.query('SELECT * FROM Livro ORDER BY data_criacao DESC', (err, results) => {
+//Função para validar os dados do livro 
+app.get('/livro', (req, res) => {
+    dbconfig.query('SELECT * FROM Livro', (err, results) => {
         handleQuery(res, err, results);
     });
 });
 
-// GET - Listar um livro específico por ID
-app.get('/livros/:id', (req, res) => {
+app.get('/livro/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
-    dbconfig.query('SELECT * FROM Livro WHERE id = ?', [id], (err, results) => {
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
+
+    dbconfig.query('SELECT * FROM Livro WHERE Livro_id = ?', [id], (err, results) => {
         if (err) return handleQuery(res, err);
         if (results.length === 0) {
             return res.status(404).json({ message: 'Livro não encontrado' });
@@ -131,70 +186,56 @@ app.get('/livros/:id', (req, res) => {
     });
 });
 
-// POST - Adicionar novo livro
-app.post('/livros', (req, res) => {
-    const { titulo, autor, editora, ano_publicacao, idioma, numero_paginas, classificacao_etaria, genero, resumo, capa } = req.body;
+app.post('/livro', (req, res) => {
+    const erro = validarLivro(req.body);
+    if (erro) return res.status(400).json({ error: erro });
 
-    // Validação básica de campos obrigatórios
-    if (!titulo || !autor || !editora || !ano_publicacao || !idioma || !numero_paginas || !classificacao_etaria || !genero || !resumo || !capa) {
-        return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
-    }
-
-    const sql = `INSERT INTO Livro (titulo, autor, editora, ano_publicacao, idioma, numero_paginas, classificacao_etaria, genero, resumo, capa) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-    const values = [titulo, autor, editora, ano_publicacao, idioma, numero_paginas, classificacao_etaria, genero, resumo, capa];
+    const { Titulo, Autor, ISBN, Editora, AnoPublicacao, Categoria, Descricao } = req.body;
+    const values = [Titulo, Autor, ISBN, Editora || null, AnoPublicacao, Categoria || null, Descricao || null];
+    const sql = 'INSERT INTO Livro (Titulo, Autor, ISBN, Editora, AnoPublicacao, Categoria, Descricao) VALUES (?, ?, ?, ?, ?, ?, ?)';
 
     dbconfig.query(sql, values, (err, result) => {
         if (err) {
+            if (err.errno === 1062) {
+                return res.status(400).json({ error: 'Este ISBN já está cadastrado.' });
+            }
             console.error('Erro ao inserir livro:', err);
-            return res.status(500).json({ error: 'Erro ao inserir livro no banco de dados.' });
+            return res.status(500).json({ error: 'Erro interno no servidor.' });
         }
-        res.status(201).json({ message: 'Livro criado com sucesso!', id: result.insertId });
+        res.status(201).json({ Livro_id: result.insertId, Titulo, Autor, ISBN, Editora, AnoPublicacao, Categoria, Descricao });
     });
 });
 
-// PUT - Atualizar um livro
-app.put('/livros/:id', (req, res) => {
+app.put('/livro/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
-    const { titulo, autor, editora, ano_publicacao, idioma, numero_paginas, classificacao_etaria, genero, resumo, capa } = req.body;
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
 
-    // Validação básica de campos obrigatórios
-    if (!titulo || !autor || !editora || !ano_publicacao || !idioma || !numero_paginas || !classificacao_etaria || !genero || !resumo || !capa) {
-        return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
-    }
+    const erro = validarLivro(req.body);
+    if (erro) return res.status(400).json({ error: erro });
 
-    const sql = `UPDATE Livro SET titulo = ?, autor = ?, editora = ?, ano_publicacao = ?, idioma = ?, numero_paginas = ?, classificacao_etaria = ?, genero = ?, resumo = ?, capa = ? WHERE id = ?`;
-
-    const values = [titulo, autor, editora, ano_publicacao, idioma, numero_paginas, classificacao_etaria, genero, resumo, capa, id];
-
-    dbconfig.query(sql, values, (err, result) => {
-        if (err) {
-            console.error('Erro ao atualizar livro:', err);
-            return res.status(500).json({ error: 'Erro ao atualizar livro.' });
-        }
+    const { Titulo, Autor, ISBN, Editora, AnoPublicacao, Categoria, Descricao } = req.body;
+    const sql = 'UPDATE Livro SET Titulo = ?, Autor = ?, ISBN = ?, Editora = ?, AnoPublicacao = ?, Categoria = ?, Descricao = ? WHERE Livro_id = ?';
+    dbconfig.query(sql, [Titulo, Autor, ISBN, Editora || null, AnoPublicacao, Categoria || null, Descricao || null, id], (err, result) => {
+        if (err) return handleQuery(res, err);
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Livro não encontrado' });
         }
-        res.json({ message: 'Livro atualizado com sucesso!' });
+        res.json({ Livro_id: id, Titulo, Autor, ISBN, Editora, AnoPublicacao, Categoria, Descricao });
     });
 });
 
-// DELETE - Deletar um livro
-app.delete('/livros/:id', (req, res) => {
+app.delete('/livro/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
-    dbconfig.query('DELETE FROM Livro WHERE id = ?', [id], (err, result) => {
-        if (err) {
-            console.error('Erro ao deletar livro:', err);
-            return res.status(500).json({ error: 'Erro ao deletar livro.' });
-        }
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
+
+    dbconfig.query('DELETE FROM Livro WHERE Livro_id = ?', [id], (err, result) => {
+        if (err) return handleQuery(res, err);
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Livro não encontrado' });
         }
         res.status(204).send();
     });
 });
-
 
 app.listen(3000, () => {
     console.log('Server listening on port 3000');

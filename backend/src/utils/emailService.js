@@ -45,7 +45,6 @@ export async function sendAuthEmail(email, authCode) {
         return false;
     }
 }
-
 // Função para enviar email de boas-vindas
 export async function sendWelcomeEmail(email, name) {
     try {
@@ -61,6 +60,7 @@ export async function sendWelcomeEmail(email, name) {
                 <p>Obrigado por se registrar!</p>
             `
         };
+    
 
         const info = await transporter.sendMail(mailOptions);
         console.log('Email de boas-vindas enviado:', info.response);
