@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/darkmode-global.css">
+    <script>(function(){var t=localStorage.getItem('kairos-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kairos - Dashboard</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/notificacoes.css">
+</head>
+<body>
+    <div class="dashboard">
+        <header class="dash-header">
+            <div class="dash-header-inner">
+                <h1 class="dash-logo">🏛️ Kairos</h1>
+                <div class="dash-user">
+                    <span id="nomeUsuario">Olá, usuário</span>
+                    <div id="kna-wrapper-index" style="position:relative;display:flex;align-items:center;"></div>
+                    <a href="pages/perfil.html" class="dash-avatar" id="dashAvatar" title="Editar perfil">
+                        <img id="dashAvatarImg" src="" alt="" style="display:none;">
+                        <span id="dashAvatarInitials">US</span>
+                    </a>
+                    <button class="theme-toggle" title="Alternar tema" aria-label="Alternar tema claro/escuro">
+                        <span class="tt-icon tt-sun">☀️</span>
+                        <span class="tt-track"><span class="tt-ball"></span></span>
+                        <span class="tt-icon tt-moon">🌙</span>
+                    </button>
+                    <button class="btn-logout" onclick="logout()">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="dash-main">
+            <section class="dash-welcome">
+                <h2>Bem-vindo ao sistema de gerenciamento</h2>
+                <p>Selecione uma área para começar</p>
+            </section>
+
+            <div class="dash-grid">
+                <a href="pages/gestao/livros.html" class="dash-card">
+                    <span class="dash-card-icon">📖</span>
+                    <h3>Livros</h3>
+                    <p>Adicionar novos livros ao acervo</p>
+                </a>
+
+                <a href="pages/admin/admin.html" class="dash-card">
+                    <span class="dash-card-icon">🗂️</span>
+                    <h3>Painel Admin</h3>
+                    <p>Gerenciar e visualizar o catálogo completo</p>
+                </a>
+
+                <a href="pages/gestao/autores.html" class="dash-card">
+                    <span class="dash-card-icon">✍️</span>
+                    <h3>Autores</h3>
+                    <p>Cadastro e gestão de autores</p>
+                </a>
+
+                <a href="pages/gestao/emprestimos.html" class="dash-card">
+                    <span class="dash-card-icon">🔄</span>
+                    <h3>Empréstimos</h3>
+                    <p>Controle de empréstimos e devoluções</p>
+                </a>
+
+                <a href="pages/gestao/exemplares.html" class="dash-card">
+                    <span class="dash-card-icon">📦</span>
+                    <h3>Exemplares</h3>
+                    <p>Gerenciar exemplares do acervo</p>
+                </a>
+            </div>
+        </main>
+    </div>
+
+    <style>
+        .dash-avatar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.15));
+            border: 2px solid rgba(255,255,255,0.6);
+            color: white;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            text-decoration: none;
+            cursor: pointer;
+            overflow: hidden;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+            box-shadow: 0 0 0 0 rgba(255,255,255,0);
+            flex-shrink: 0;
+        }
+        .dash-avatar:hover {
+            transform: scale(1.1);
+            border-color: white;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+        }
+        .dash-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+    <script>
+        // ── Proteção de rota ──────────────────────────────────────────────
+        (function() {
+            const token = sessionStorage.getItem('authToken');
+            const tipo = sessionStorage.getItem('tipoUsuario');
+            if (!token || tipo !== 'admin') {
+                window.location.replace('pages/auth/login.html');
+                return;
+            }
+        })();
+
+        // Exibir nome do usuário logado se disponível
+        const nome = sessionStorage.getItem('nomeUsuario');
+        const email = sessionStorage.getItem('pendingEmail') || sessionStorage.getItem('admin');
+        const saudacao = nome || email || 'usuário';
+        document.getElementById('nomeUsuario').textContent = `Olá, ${saudacao}`;
+
+        // Avatar initials
+        function getInitials(n, e) {
+            if (n && n.trim()) {
+                const p = n.trim().split(' ');
+                return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0].slice(0,2).toUpperCase();
+            }
+            return e ? e.slice(0,2).toUpperCase() : 'US';
+        }
+        document.getElementById('dashAvatarInitials').textContent = getInitials(nome, email);
+        const savedAvatar = sessionStorage.getItem('avatarDataUrl');
+        if (savedAvatar) {
+            document.getElementById('dashAvatarImg').src = savedAvatar;
+            document.getElementById('dashAvatarImg').style.display = 'block';
+            document.getElementById('dashAvatarInitials').style.display = 'none';
+        }
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = 'pages/auth/login.html';
+        }
+    </script>
+<script src="js/theme.js"></script>
+<script>
+    // Monta o sino de notificações no wrapper reservado do index
+    (function() {
+        const wrap = document.getElementById('kna-wrapper-index');
+        if (!wrap) return;
+        wrap.id = 'kna-wrapper';
+    })();
+</script>
+<script src="js/kairos-notificacoes-admin.js"></script>
+</body>
+</html>

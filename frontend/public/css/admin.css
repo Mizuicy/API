@@ -1,0 +1,45 @@
+/* ============================================================
+   admin.css — Kairos · Painel Administrativo
+   Estilos específicos do admin, complementares ao darkmode-global.css
+   ============================================================ */
+
+.catalogo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.catalogo-header h2 {
+    color: var(--text, #333);
+    font-size: 22px;
+    margin: 0;
+    transition: color 0.25s;
+}
+
+.btn-add {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.35);
+}
+
+/* Transições globais para o painel admin */
+body, .header, .form-section, .list-section, .catalogo-section,
+.admin-card, .nav-dropdown-menu, table, th, td,
+input, select, textarea, .search-input, .filter-select {
+    transition:
+        background-color 0.25s ease,
+        background 0.25s ease,
+        color 0.25s ease,
+        border-color 0.25s ease !important;
+}

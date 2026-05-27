@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/darkmode-global.css">
+    <script>(function(){var t=localStorage.getItem('kairos-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kairos — Início</title>
+    <link rel="stylesheet" href="../../css/user.css">
+    <style>
+        .hero {
+            text-align: center;
+            padding: 56px 20px 40px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 44px;
+        }
+        .hero-label {
+            display: inline-block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--purple);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+        .hero h1 {
+            font-family: 'Lora', serif;
+            font-size: clamp(1.6rem, 4vw, 2.4rem);
+            font-weight: 700;
+            color: var(--text);
+            max-width: 620px;
+            margin: 0 auto;
+            line-height: 1.25;
+        }
+
+        /* ── Section header ─────────── */
+        .section-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .section-title {
+            font-family: 'Lora', serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .section-link {
+            font-size: 0.85rem;
+            color: var(--purple);
+            font-weight: 500;
+        }
+        .section-link:hover { text-decoration: underline; }
+
+        /* ── Featured grid (3 tall cards) ── */
+        .featured-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 60px;
+        }
+
+        .featured-grid .book-cover {
+            aspect-ratio: 2/3;
+        }
+
+        .featured-grid .book-cover-placeholder {
+            aspect-ratio: 2/3;
+        }
+
+        /* ── More books horizontal scroll ── */
+        .more-section { margin-bottom: 60px; }
+
+        .more-scroll {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        /* Skeleton grids */
+        .skel-featured {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 60px;
+        }
+        .skel-card {
+            border-radius: var(--card-radius);
+            overflow: hidden;
+        }
+        .skel-img  { width: 100%; aspect-ratio: 2/3; }
+        .skel-line { height: 14px; border-radius: 6px; margin: 12px 16px 6px; }
+        .skel-line.short { width: 60%; height: 11px; margin-top: 4px; }
+
+        @media (max-width: 768px) {
+            .featured-grid { grid-template-columns: 1fr 1fr; }
+            .skel-featured  { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 480px) {
+            .featured-grid { grid-template-columns: 1fr; }
+            .skel-featured  { grid-template-columns: 1fr; }
+        }
+    </style>
+    <link rel="stylesheet" href="../../css/notificacoes.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="u-header">
+    <div class="u-header-inner">
+        <a href="inicio.html" class="u-logo">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                <rect x="3" y="3" width="20" height="20" rx="4" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M8 8h10M8 12h10M8 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            Kairos
+        </a>
+
+        <div class="u-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="text" id="globalSearch" placeholder="Buscar livros, autores…"
+                   oninput="buscarGlobal(this.value)">
+        </div>
+
+        <nav class="u-nav">
+            <a href="inicio.html"       class="u-nav-link active">Início</a>
+            <a href="catalogo.html"     class="u-nav-link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+                Catálogo
+            </a>
+            <a href="meus-emprestimos.html" class="u-nav-link">Empréstimos</a>
+        </nav>
+
+        <button class="theme-toggle" title="Alternar tema" aria-label="Alternar tema">
+                <span class="tt-icon tt-sun">☀️</span>
+                <span class="tt-track"><span class="tt-ball"></span></span>
+                <span class="tt-icon tt-moon">🌙</span>
+            </button>
+        <div class="u-user-actions">
+            <div class="u-avatar" id="avatarIniciais" onclick="window.location.href='../../pages/perfil.html'" title="Editar perfil"></div>
+            <button class="btn-logout" onclick="logout()">Sair</button>
+        </div>
+    </div>
+</header>
+
+<!-- Page -->
+<div class="u-page">
+
+    <!-- Hero -->
+    <section class="hero">
+        <span class="hero-label">Bem-vindo à Kairos</span>
+        <h1>Explore nossa coleção e encontre seu próximo livro favorito</h1>
+    </section>
+
+    <!-- Destaque do mês -->
+    <section>
+        <div class="section-header">
+            <h2 class="section-title">Destaque do mês</h2>
+            <a href="catalogo.html" class="section-link">Ver catálogo completo →</a>
+        </div>
+        <div id="featuredGrid" class="featured-grid">
+            <!-- skeletons -->
+            ${[1,2,3].map(() => `
+            <div class="skel-card">
+                <div class="skeleton skel-img"></div>
+                <div class="skeleton skel-line"></div>
+                <div class="skeleton skel-line short"></div>
+            </div>`).join('')}
+        </div>
+    </section>
+
+    <!-- Mais da biblioteca -->
+    <section class="more-section">
+        <div class="section-header">
+            <h2 class="section-title">Mais da biblioteca</h2>
+        </div>
+        <div id="moreGrid" class="more-scroll">
+            ${[1,2,3,4,5,6].map(() => `
+            <div class="skel-card">
+                <div class="skeleton skel-img" style="aspect-ratio:3/4"></div>
+                <div class="skeleton skel-line"></div>
+                <div class="skeleton skel-line short"></div>
+            </div>`).join('')}
+        </div>
+    </section>
+</div>
+
+<!-- Modal detalhes -->
+<div id="modal" class="u-modal">
+    <div class="u-modal-box">
+        <button class="u-modal-close" onclick="fecharModal()">✕</button>
+        <div id="modalConteudo"></div>
+    </div>
+</div>
+
+<!-- Modal confirmação logout -->
+<div id="logoutModal" class="u-modal">
+    <div class="u-modal-box">
+        <h3 style="margin-bottom: 20px; color: var(--text);">Tem certeza que deseja sair?</h3>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="btn-confirm" onclick="confirmarLogout()">Sim</button>
+            <button class="btn-cancel" onclick="fecharLogoutModal()">Não</button>
+            <button class="btn-cancel" onclick="fecharLogoutModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Proteção de rota ──────────────────────────────────────────────
+(function() {
+    const token = sessionStorage.getItem('authToken');
+    if (!token) {
+        window.location.replace('../auth/login.html');
+    }
+})();
+
+// Função de logout
+function logout() {
+    document.getElementById('logoutModal').classList.add('open');
+    // Previne fechar com ESC
+    document.addEventListener('keydown', preventEscape);
+}
+
+function confirmarLogout() {
+    sessionStorage.clear();
+    window.location.href = '../auth/login.html';
+}
+
+function fecharLogoutModal() {
+    document.getElementById('logoutModal').classList.remove('open');
+    document.removeEventListener('keydown', preventEscape);
+}
+
+function preventEscape(e) {
+    if (e.key === 'Escape') {
+        e.preventDefault();
+    }
+}
+
+const API = 'http://localhost:3000';
+let todosLivros = [];
+
+// Avatar: gerenciado por kairos-avatar.js
+
+// Redirecionar busca para catálogo
+function buscarGlobal(valor) {
+    if (valor.trim()) {
+        sessionStorage.setItem('buscaPendente', valor.trim());
+        window.location.href = 'catalogo.html';
+    }
+}
+document.getElementById('globalSearch').addEventListener('keydown', e => {
+    if (e.key === 'Enter') buscarGlobal(e.target.value);
+});
+
+// Carregar livros
+async function carregarLivros() {
+    try {
+        const res  = await fetch(`${API}/livro`);
+        todosLivros = await res.json();
+        renderizarDestaque();
+        renderizarMais();
+    } catch {
+        document.getElementById('featuredGrid').innerHTML =
+            '<p style="color:var(--muted);grid-column:1/-1">Não foi possível conectar ao servidor.</p>';
+    }
+}
+
+function cardHTML(livro) {
+    const capa = livro.Imagem || livro.capa || '';
+    const img  = capa
+        ? `<img class="book-cover" src="${capa}" alt="${livro.titulo || livro.Nome}"
+               onerror="this.outerHTML=this.nextElementSibling.outerHTML">`
+        : '';
+    return `
+    <div class="book-card" onclick="abrirModal(${livro.Livro_id || livro.id})">
+        ${img}
+        <div class="book-cover-placeholder" ${capa ? 'style="display:none"' : ''}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+        </div>
+        <div class="book-info">
+            <div class="book-category">${livro.Categoria || livro.genero || 'Geral'}</div>
+            <div class="book-title">${livro.Nome || livro.titulo}</div>
+            <div class="book-author">${livro.Autor || livro.autor || ''}</div>
+        </div>
+    </div>`;
+}
+
+function renderizarDestaque() {
+    const destaques = todosLivros.slice(0, 3);
+    document.getElementById('featuredGrid').innerHTML =
+        destaques.length ? destaques.map(cardHTML).join('') :
+        '<p style="color:var(--muted);grid-column:1/-1">Nenhum livro cadastrado ainda.</p>';
+}
+
+function renderizarMais() {
+    const mais = todosLivros.slice(3, 9);
+    document.getElementById('moreGrid').innerHTML =
+        mais.length ? mais.map(cardHTML).join('') :
+        '<p style="color:var(--muted)">Sem mais livros no momento.</p>';
+}
+
+function abrirModal(id) {
+    const livro = todosLivros.find(l => (l.Livro_id || l.id) === id);
+    if (!livro) return;
+
+    const titulo   = livro.Nome || livro.titulo || '—';
+    const autor    = livro.Autor || livro.autor || '—';
+    const categoria= livro.Categoria || livro.genero || 'Geral';
+    const desc     = livro.Descricao || livro.resumo || 'Sem descrição disponível.';
+    const ano      = livro.DataPublicacao || livro.ano_publicacao || '';
+    const capa     = livro.Imagem || livro.capa || '';
+
+    document.getElementById('modalConteudo').innerHTML = `
+        <div class="modal-book-header">
+            ${capa
+                ? `<img class="modal-cover" src="${capa}" alt="${titulo}" onerror="this.style.background='var(--border)'">`
+                : `<div class="modal-cover" style="background:var(--border);border-radius:8px"></div>`}
+            <div class="modal-meta">
+                <span class="modal-category">${categoria}</span>
+                <h2 class="modal-title">${titulo}</h2>
+                <p class="modal-author">${autor}</p>
+                <div class="modal-row">
+                    ${ano ? `<span class="modal-tag">📅 ${ano}</span>` : ''}
+                    ${livro.idioma ? `<span class="modal-tag">🌍 ${livro.idioma}</span>` : ''}
+                    ${livro.numero_paginas ? `<span class="modal-tag">📄 ${livro.numero_paginas} pág.</span>` : ''}
+                </div>
+            </div>
+        </div>
+        <p class="modal-desc">${desc}</p>
+        <button class="btn-emprestimo" onclick="solicitarEmprestimo(${livro.Livro_id || livro.id}, '${titulo.replace(/'/g,"\\'")}')">
+            Solicitar Empréstimo
+        </button>`;
+
+    document.getElementById('modal').classList.add('open');
+}
+
+function fecharModal() {
+    document.getElementById('modal').classList.remove('open');
+}
+
+function solicitarEmprestimo(id, titulo) {
+    const usuarioId = sessionStorage.getItem('usuarioId');
+    if (!usuarioId) {
+        mostrarNotif('Faça login para solicitar um empréstimo.', 'error');
+        return;
+    }
+
+    const btn = document.querySelector('.btn-emprestimo');
+    if (btn) { btn.disabled = true; btn.textContent = 'Solicitando…'; }
+
+    fetch('http://localhost:3000/emprestimo', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ Usuario_id: parseInt(usuarioId), Livro_id: id })
+    })
+    .then(async res => {
+        const data = await res.json();
+        fecharModal();
+        if (res.ok) {
+            mostrarNotif(`Empréstimo de "${titulo}" solicitado! Você tem 14 dias para devolver.`, 'success');
+        } else {
+            mostrarNotif(data.error || 'Não foi possível realizar o empréstimo.', 'error');
+        }
+    })
+    .catch(() => {
+        fecharModal();
+        mostrarNotif('Erro de conexão com o servidor.', 'error');
+    });
+}
+
+// ── Painel de notificação lateral ─────────────────────────────
+(function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        #notifPanel {
+            position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px;
+            pointer-events: none;
+        }
+        .notif-card {
+            background: var(--surface, #fff);
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.13), 0 1.5px 6px rgba(0,0,0,.07);
+            padding: 14px 18px 14px 16px;
+            display: flex; align-items: flex-start; gap: 12px;
+            min-width: 300px; max-width: 370px;
+            pointer-events: all;
+            opacity: 0; transform: translateX(30px);
+            transition: opacity .28s ease, transform .28s ease;
+            border-left: 4px solid #667eea;
+        }
+        .notif-card.show { opacity: 1; transform: translateX(0); }
+        .notif-card.success { border-left-color: #16a34a; }
+        .notif-card.error   { border-left-color: #dc2626; }
+        .notif-card.info    { border-left-color: #667eea; }
+        .notif-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+        .notif-body { flex: 1; min-width: 0; }
+        .notif-title {
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .05em; color: var(--muted, #888); margin-bottom: 3px;
+        }
+        .notif-msg { font-size: 0.875rem; color: var(--text, #1a1a2e); line-height: 1.45; }
+        .notif-close {
+            background: none; border: none; cursor: pointer; padding: 0 0 0 6px;
+            color: var(--muted, #aaa); font-size: 1rem; flex-shrink: 0;
+            transition: color .15s;
+        }
+        .notif-close:hover { color: var(--text, #333); }
+        @media (max-width: 480px) {
+            #notifPanel { bottom: 16px; right: 12px; left: 12px; }
+            .notif-card { min-width: unset; max-width: 100%; }
+        }
+    `;
+    document.head.appendChild(style);
+    const panel = document.createElement('div');
+    panel.id = 'notifPanel';
+    document.body.appendChild(panel);
+})();
+
+function mostrarNotif(msg, type = 'info') {
+    const icons  = { success: '✅', error: '❌', info: 'ℹ️' };
+    const titles = { success: 'Sucesso', error: 'Atenção', info: 'Informação' };
+    const card = document.createElement('div');
+    card.className = `notif-card ${type}`;
+    card.innerHTML = `
+        <span class="notif-icon">${icons[type] || 'ℹ️'}</span>
+        <div class="notif-body">
+            <div class="notif-title">${titles[type] || 'Aviso'}</div>
+            <div class="notif-msg">${msg}</div>
+        </div>
+        <button class="notif-close" onclick="this.closest('.notif-card').remove()">✕</button>`;
+    document.getElementById('notifPanel').appendChild(card);
+    requestAnimationFrame(() => card.classList.add('show'));
+    setTimeout(() => {
+        card.classList.remove('show');
+        setTimeout(() => card.remove(), 300);
+    }, 5000);
+}
+
+document.getElementById('modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal')) fecharModal();
+});
+
+carregarLivros();
+</script>
+<script src="../../js/theme.js"></script>
+<script src="../../js/kairos-notificacoes.js"></script>
+<script src="../../js/kairos-avatar.js"></script>
+</body>
+</html>

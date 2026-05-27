@@ -1,0 +1,89 @@
+@import './reset.css';
+
+/* CSS extraído de catalogo.html */
+
+/* ── Filtros por categoria (pills) ─── */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 32px;
+        }
+
+        .pill {
+            padding: 7px 18px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+
+        .pill:hover  { border-color: var(--purple-mid); color: var(--purple); }
+        .pill.active { background: var(--purple); border-color: var(--purple); color: white; }
+
+        /* ── Catalog grid ─────────────────── */
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .page-title {
+            font-family: 'Lora', serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 28px;
+        }
+
+        .results-count {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+
+        /* Skeleton */
+        .skel-card { border-radius: var(--card-radius); overflow: hidden; }
+        .skel-img  { width: 100%; aspect-ratio: 3/4; }
+        .skel-line { height: 13px; border-radius: 6px; margin: 12px 14px 5px; }
+        .skel-line.short { width: 55%; height: 10px; margin-top: 3px; }
+
+        @media (max-width: 480px) {
+            .catalog-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+        }
+/* ── MODO ESCURO (catalogo.css) ── */
+[data-theme="dark"] body { background: var(--bg); color: var(--text); }
+[data-theme="dark"] .filter-bar { background: var(--surface); border-color: var(--border); }
+[data-theme="dark"] select { background: var(--bg); border-color: var(--border); color: var(--text); }
+body { transition: background 0.25s, color 0.25s; }
+
+/* ── DARK MODE COMPLETO (catalogo.css) ── */
+[data-theme="dark"] .pill {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--muted);
+}
+[data-theme="dark"] .pill:hover {
+    border-color: var(--purple-mid);
+    color: var(--purple);
+}
+[data-theme="dark"] .pill.active {
+    background: var(--purple);
+    border-color: var(--purple);
+    color: white;
+}
+[data-theme="dark"] .page-title { color: var(--text); }
+[data-theme="dark"] .results-count { color: var(--muted); }
+[data-theme="dark"] .skeleton,
+[data-theme="dark"] .skel-img,
+[data-theme="dark"] .skel-line {
+    background: linear-gradient(90deg, #1e1e2e 25%, #252535 50%, #1e1e2e 75%);
+    background-size: 200% 100%;
+}
+[data-theme="dark"] .empty-state { color: var(--muted); }

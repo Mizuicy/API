@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/darkmode-global.css">
+    <script>(function(){var t=localStorage.getItem('kairos-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esqueci minha senha - Kairos</title>
+    <link rel="stylesheet" href="../../css/login.css">
+</head>
+<body>
+<div class="container">
+    <div class="left-side">
+        <h1>🏛️ Kairos</h1>
+        <p>Recuperar acesso à sua conta</p>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+            <button class="btn-outline" onclick="location.href='login.html'">Voltar ao login</button>
+        </div>
+    </div>
+
+    <div class="right-side">
+        <h2>Esqueci minha senha</h2>
+        <p>Informe o email vinculado à sua conta e enviaremos um código de verificação.</p>
+        <div id="alertBox"></div>
+
+        <form id="esqueciForm">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required>
+            </div>
+
+            <button type="submit" class="btn-submit" id="btnEnviar">Enviar código</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:3000';
+
+    document.getElementById('esqueciForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim().toLowerCase();
+        const btn = document.getElementById('btnEnviar');
+
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+            showAlert('Informe um email válido.', 'error');
+            return;
+        }
+
+        btn.disabled = true;
+        showAlert('<span class="spin"></span>Enviando código...', 'loading');
+
+        try {
+            const res = await fetch(`${API}/usuario/authcode`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Email: email, motivo: 'reset' })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                showAlert(`❌ ${data.error || 'Erro ao enviar código.'}`, 'error');
+                btn.disabled = false;
+                return;
+            }
+
+            sessionStorage.setItem('resetEmail', email);
+            sessionStorage.setItem('resetVerified', 'false');
+            showAlert('✅ Código enviado! Verifique seu email.', 'success');
+
+            setTimeout(() => {
+                window.location.href = 'codigo-verificacao.html';
+            }, 1000);
+        } catch (err) {
+            showAlert('❌ Servidor offline. Tente novamente.', 'error');
+            btn.disabled = false;
+        }
+    });
+
+    function showAlert(message, type) {
+        document.getElementById('alertBox').innerHTML = `<div class="alert ${type}">${message}</div>`;
+    }
+</script>
+<script src="../../js/theme.js"></script>
+</body>
+</html>

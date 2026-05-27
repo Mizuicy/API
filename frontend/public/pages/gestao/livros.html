@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/darkmode-global.css">
+    <script>(function(){var t=localStorage.getItem('kairos-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kairos - Adicionar Livro</title>
+    <link rel="stylesheet" href="../../css/livros.css">
+    <link rel="stylesheet" href="../../css/notificacoes.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">🏛️ Kairos</h1>
+                                <nav class="nav">
+                    <a href="../../index.html" class="nav-link">Início</a>
+                    <a href="livros.html" class="nav-link active">Adicionar Livro</a>
+                    <a href="../admin/admin.html" class="nav-link">Catálogo</a>
+
+                    <div class="nav-dropdown">
+                        <button class="nav-link nav-dropdown-btn">Gestão ▾</button>
+                        <div class="nav-dropdown-menu">
+                            <a href="autores.html" class="dropdown-item">✍️ Autores</a>
+                            <a href="exemplares.html" class="dropdown-item">📦 Exemplares</a>
+                            <a href="emprestimos.html" class="dropdown-item">🔄 Empréstimos</a>
+                        </div>
+                    </div>
+
+                    <a href="../perfil.html" class="nav-link nav-link-perfil" title="Perfil">👤</a>
+                    <button class="theme-toggle" title="Alternar tema" style="margin-left:8px"><span class="tt-icon tt-sun">☀️</span><span class="tt-track"><span class="tt-ball"></span></span><span class="tt-icon tt-moon">🌙</span></button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main">
+            <section class="form-section">
+                <h2>Adicionar Novo Livro</h2>
+                <form id="livroForm" class="form-livro">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="titulo">Título do Livro *</label>
+                            <input type="text" id="titulo" name="titulo" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="autor">Autor *</label>
+                            <input type="text" id="autor" name="autor" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editora">Editora *</label>
+                            <input type="text" id="editora" name="editora" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ano_publicacao">Ano de Publicação *</label>
+                            <input type="number" id="ano_publicacao" name="ano_publicacao" min="1000" max="2099" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="idioma">Idioma *</label>
+                            <select id="idioma" name="idioma" required>
+                                <option value="">Selecione um idioma</option>
+                                <option value="Português">Português</option>
+                                <option value="Inglês">Inglês</option>
+                                <option value="Espanhol">Espanhol</option>
+                                <option value="Francês">Francês</option>
+                                <option value="Alemão">Alemão</option>
+                                <option value="Italiano">Italiano</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="numero_paginas">Número de Páginas *</label>
+                            <input type="number" id="numero_paginas" name="numero_paginas" min="1" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="classificacao_etaria">Classificação Etária *</label>
+                            <select id="classificacao_etaria" name="classificacao_etaria" required>
+                                <option value="">Selecione uma classificação</option>
+                                <option value="Livre">Livre</option>
+                                <option value="6+">6+</option>
+                                <option value="10+">10+</option>
+                                <option value="12+">12+</option>
+                                <option value="14+">14+</option>
+                                <option value="16+">16+</option>
+                                <option value="18+">18+</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="genero">Gênero *</label>
+                            <select id="genero" name="genero" required>
+                                <option value="">Selecione um gênero</option>
+                                <option value="Ficção">Ficção</option>
+                                <option value="Não-Ficção">Não-Ficção</option>
+                                <option value="Ficção Científica">Ficção Científica</option>
+                                <option value="Fantasia">Fantasia</option>
+                                <option value="Romance">Romance</option>
+                                <option value="Mistério">Mistério</option>
+                                <option value="História">História</option>
+                                <option value="Autobiografia">Autobiografia</option>
+                                <option value="Educativo">Educativo</option>
+                                <option value="Infantil">Infantil</option>
+                                <option value="Conto">Conto</option>
+                                <option value="Poesia">Poesia</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="resumo">Resumo do Livro *</label>
+                        <textarea id="resumo" name="resumo" rows="4" required placeholder="Digite um breve resumo do livro..."></textarea>
+                    </div>
+
+                    <!-- Capa: URL ou arquivo do PC -->
+                    <div class="form-group full-width">
+                        <label>Imagem da Capa *</label>
+
+                        <!-- Tabs de modo -->
+                        <div class="capa-tabs">
+                            <button type="button" class="capa-tab active" id="tabUrl" onclick="setCapaMode('url')">
+                                🔗 URL
+                            </button>
+                            <button type="button" class="capa-tab" id="tabFile" onclick="setCapaMode('file')">
+                                📁 Arquivo do PC
+                            </button>
+                        </div>
+
+                        <!-- Modo URL -->
+                        <div id="capaUrlMode">
+                            <input type="url" id="capaUrl" name="capaUrl"
+                                   placeholder="https://exemplo.com/imagem.jpg"
+                                   oninput="previewFromUrl(this.value)">
+                        </div>
+
+                        <!-- Modo Arquivo -->
+                        <div id="capaFileMode" style="display:none;">
+                            <label class="capa-dropzone" id="capaDropzone" for="capaFile">
+                                <div class="dropzone-inner" id="dropzoneInner">
+                                    <span class="dropzone-icon">📂</span>
+                                    <span class="dropzone-text">Clique para selecionar ou arraste a imagem aqui</span>
+                                    <span class="dropzone-hint">JPG, PNG, WEBP · Máx. 10 MB</span>
+                                </div>
+                            </label>
+                            <input type="file" id="capaFile" name="capaFile"
+                                   accept="image/*" style="display:none;"
+                                   onchange="previewFromFile(this)">
+                        </div>
+
+                        <!-- Preview + remover -->
+                        <div class="capa-preview-wrap" id="capaPreviewWrap" style="display:none;">
+                            <img id="capaPreview" src="" alt="Preview da capa">
+                            <button type="button" class="capa-remove-btn" onclick="removeCapa()" title="Remover imagem">✕ Remover</button>
+                        </div>
+
+                        <!-- Campo oculto que vai pro form -->
+                        <input type="hidden" id="capa" name="capa">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-submit">Adicionar Livro</button>
+                        <a href="../admin/admin.html" class="btn-link">Ver catálogo no Painel Admin →</a>
+                    </div>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <script src="../../js/livros.js"></script>
+    <script src="../../js/nav.js"></script>
+    <script>
+        // ── Capa: modo URL / Arquivo ─────────────────────────────────
+        function setCapaMode(mode) {
+            const urlEl  = document.getElementById('capaUrlMode');
+            const fileEl = document.getElementById('capaFileMode');
+            const tabUrl  = document.getElementById('tabUrl');
+            const tabFile = document.getElementById('tabFile');
+
+            if (mode === 'url') {
+                urlEl.style.display  = '';
+                fileEl.style.display = 'none';
+                tabUrl.classList.add('active');
+                tabFile.classList.remove('active');
+                // limpa seleção de arquivo ao trocar
+                document.getElementById('capaFile').value = '';
+                const urlVal = document.getElementById('capaUrl').value.trim();
+                setCapaHidden(urlVal);
+                if (!urlVal) hideCover();
+            } else {
+                urlEl.style.display  = 'none';
+                fileEl.style.display = '';
+                tabFile.classList.add('active');
+                tabUrl.classList.remove('active');
+                document.getElementById('capaUrl').value = '';
+                setCapaHidden('');
+                hideCover();
+            }
+        }
+
+        function previewFromUrl(val) {
+            const v = val.trim();
+            if (v) { showCover(v); setCapaHidden(v); }
+            else   { hideCover(); setCapaHidden(''); }
+        }
+
+        function previewFromFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                showCover(e.target.result);
+                setCapaHidden(e.target.result);
+                // Update dropzone label to show filename
+                document.getElementById('dropzoneInner').innerHTML =
+                    `<span class="dropzone-icon">🖼️</span>
+                     <span class="dropzone-text dropzone-text--selected" style="font-weight:600;color:var(--purple,#4b19e6);">${file.name}</span>
+                     <span class="dropzone-hint">Clique para trocar</span>`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showCover(src) {
+            const wrap = document.getElementById('capaPreviewWrap');
+            document.getElementById('capaPreview').src = src;
+            wrap.style.display = 'flex';
+        }
+        function hideCover() {
+            document.getElementById('capaPreviewWrap').style.display = 'none';
+            document.getElementById('capaPreview').src = '';
+        }
+        function setCapaHidden(val) {
+            document.getElementById('capa').value = val;
+        }
+        function removeCapa() {
+            hideCover();
+            setCapaHidden('');
+            document.getElementById('capaUrl').value  = '';
+            document.getElementById('capaFile').value = '';
+            document.getElementById('dropzoneInner').innerHTML =
+                `<span class="dropzone-icon">📂</span>
+                 <span class="dropzone-text">Clique para selecionar ou arraste a imagem aqui</span>
+                 <span class="dropzone-hint">JPG, PNG, WEBP · Máx. 10 MB</span>`;
+        }
+
+        // ── Drag-and-drop na dropzone ─────────────────────────────────
+        const dropzone = document.getElementById('capaDropzone');
+        if (dropzone) {
+            dropzone.addEventListener('dragover', e => {
+                e.preventDefault();
+                dropzone.classList.add('drag-over');
+            });
+            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+            dropzone.addEventListener('drop', e => {
+                e.preventDefault();
+                dropzone.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                if (!file || !file.type.startsWith('image/')) return;
+                const input = document.getElementById('capaFile');
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                input.files = dt.files;
+                previewFromFile(input);
+            });
+        }
+    </script>
+
+    <style>
+        /* ── Capa tabs ── */
+        .capa-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 10px;
+            border: 1.5px solid var(--border, #ddd);
+            border-radius: 6px;
+            overflow: hidden;
+            width: fit-content;
+            transition: border-color 0.25s;
+        }
+        .capa-tab {
+            padding: 7px 18px;
+            background: var(--surface, #f8f8f8);
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            color: var(--muted, #888);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .capa-tab + .capa-tab {
+            border-left: 1.5px solid var(--border, #ddd);
+        }
+        .capa-tab.active {
+            background: var(--purple, #4b19e6);
+            color: #fff;
+        }
+        .capa-tab:hover:not(.active) {
+            background: var(--purple-soft, #ede8fc);
+            color: var(--purple, #4b19e6);
+        }
+
+        /* ── Dropzone ── */
+        .capa-dropzone {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed var(--border, #c8c2f0);
+            border-radius: 8px;
+            padding: 28px 20px;
+            cursor: pointer;
+            background: var(--surface, #f9f7ff);
+            transition: border-color 0.2s, background 0.2s;
+            text-align: center;
+        }
+        .capa-dropzone:hover,
+        .capa-dropzone.drag-over {
+            border-color: var(--purple, #4b19e6);
+            background: var(--purple-soft, #ede8fc);
+        }
+        .dropzone-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            pointer-events: none;
+        }
+        .dropzone-icon  { font-size: 2rem; }
+        .dropzone-text  { font-size: 14px; font-weight: 500; color: var(--text-mid, #555); transition: color 0.25s; }
+        .dropzone-hint  { font-size: 12px; color: var(--muted, #aaa); transition: color 0.25s; }
+
+        /* ── Preview ── */
+        .capa-preview-wrap {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--surface, #f9f7ff);
+            border-radius: 8px;
+            border: 1.5px solid var(--border, #e0daf5);
+            transition: background 0.25s, border-color 0.25s;
+        }
+        #capaPreview {
+            width: 90px;
+            height: 126px;
+            object-fit: cover;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(75,25,230,0.2);
+            flex-shrink: 0;
+        }
+        .capa-remove-btn {
+            align-self: flex-end;
+            background: none;
+            border: 1.5px solid var(--error-border, #f87171);
+            color: var(--error, #ef4444);
+            font-size: 12px;
+            font-weight: 600;
+            font-family: inherit;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .capa-remove-btn:hover {
+            background: var(--error-bg, #fef2f2);
+        }
+    </style>
+<script src="../../js/kairos-notificacoes-admin.js"></script>
+<script src="../../js/theme.js"></script>
+</body>
+</html>

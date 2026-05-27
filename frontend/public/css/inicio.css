@@ -1,0 +1,112 @@
+@import './reset.css';
+
+/* CSS extraído de inicio.html */
+
+/* ── Hero ───────────────────── */
+        .hero {
+            text-align: center;
+            padding: 56px 20px 40px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 44px;
+        }
+        .hero-label {
+            display: inline-block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--purple);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+        .hero h1 {
+            font-family: 'Lora', serif;
+            font-size: clamp(1.6rem, 4vw, 2.4rem);
+            font-weight: 700;
+            color: var(--text);
+            max-width: 620px;
+            margin: 0 auto;
+            line-height: 1.25;
+        }
+
+        /* ── Section header ─────────── */
+        .section-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .section-title {
+            font-family: 'Lora', serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .section-link {
+            font-size: 0.85rem;
+            color: var(--purple);
+            font-weight: 500;
+        }
+        .section-link:hover { text-decoration: underline; }
+
+        /* ── Featured grid (3 tall cards) ── */
+        .featured-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 60px;
+        }
+
+        .featured-grid .book-cover {
+            aspect-ratio: 2/3;
+        }
+
+        .featured-grid .book-cover-placeholder {
+            aspect-ratio: 2/3;
+        }
+
+        /* ── More books horizontal scroll ── */
+        .more-section { margin-bottom: 60px; }
+
+        .more-scroll {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        /* Skeleton grids */
+        .skel-featured {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 60px;
+        }
+        .skel-card {
+            border-radius: var(--card-radius);
+            overflow: hidden;
+        }
+        .skel-img  { width: 100%; aspect-ratio: 2/3; }
+        .skel-line { height: 14px; border-radius: 6px; margin: 12px 16px 6px; }
+        .skel-line.short { width: 60%; height: 11px; margin-top: 4px; }
+
+        @media (max-width: 768px) {
+            .featured-grid { grid-template-columns: 1fr 1fr; }
+            .skel-featured  { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 480px) {
+            .featured-grid { grid-template-columns: 1fr; }
+            .skel-featured  { grid-template-columns: 1fr; }
+        }
+/* ── MODO ESCURO (inicio.css) ── */
+[data-theme="dark"] body { background: var(--bg); color: var(--text); }
+[data-theme="dark"] .hero { border-bottom-color: var(--border); }
+[data-theme="dark"] .section-title { color: var(--text); }
+body { transition: background 0.25s, color 0.25s; }
+
+/* ── DARK MODE COMPLETO (inicio.css) ── */
+[data-theme="dark"] .hero-sub { color: var(--muted); }
+[data-theme="dark"] .u-header { border-bottom-color: var(--border); }
+[data-theme="dark"] .book-card { background: var(--surface); border-color: var(--border); }
+[data-theme="dark"] .book-title { color: var(--text); }
+[data-theme="dark"] .book-author { color: var(--muted); }
+[data-theme="dark"] .skeleton { background: linear-gradient(90deg, #1e1e2e 25%, #252535 50%, #1e1e2e 75%); background-size: 200% 100%; }
+[data-theme="dark"] .empty-state { color: var(--muted); }

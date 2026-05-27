@@ -1,0 +1,84 @@
+@import './reset.css';
+
+/* CSS extraído de validacoes.html */
+
+body {
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+            background: var(--purple-soft);
+            color: var(--text);
+            transition: background 0.25s, color 0.25s;
+        }
+        .card {
+            background: var(--surface); padding: 50px; border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); width: 100%; max-width: 450px;
+            transition: background 0.25s;
+        }
+        h1 { text-align: center; color: var(--text); font-size: 1.8rem; margin-bottom: 8px; }
+        .subtitulo { text-align: center; color: var(--muted); margin-bottom: 30px; font-size: 0.95rem; }
+        .info {
+            background: var(--purple-soft); border-left: 4px solid var(--purple);
+            padding: 12px 15px; border-radius: 6px; margin-bottom: 25px;
+            font-size: 0.9rem; color: var(--muted);
+            transition: background 0.25s;
+        }
+        .code-group {
+            display: flex; justify-content: center; gap: 8px;
+            margin-bottom: 25px;
+        }
+        .code-group input {
+            width: 45px; height: 45px;
+            text-align: center; font-size: 0.9rem; font-weight: 700;
+            padding: 0; border: 2px solid var(--border); border-radius: 6px;
+            outline: none; background: var(--bg); color: var(--text);
+            transition: border-color 0.2s;
+        }
+        .code-group input:focus { border-color: var(--purple); }
+        .btn {
+            width: 100%; padding: 14px; background: var(--purple); color: white;
+            border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .btn:hover:not(:disabled) { background: var(--purple-mid); }
+        .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+        .alert { padding: 14px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; }
+        .alert.error   { background: var(--error-bg); color: var(--error); border: 1px solid var(--error-border); }
+        .alert.success { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+        .alert.loading { background: var(--surface); color: var(--purple); border: 1px solid var(--border); }
+        .spin {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid currentColor; border-top-color: transparent;
+            border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .timer { text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 15px; }
+        .timer.aviso { color: var(--error); font-weight: 600; }
+        .reenviar { text-align: center; margin-top: 15px; }
+        .reenviar a { color: var(--purple); cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+        .voltar { text-align: center; margin-top: 20px; }
+        .voltar a { color: var(--purple); text-decoration: none; font-weight: 600; }
+        body, .card { transition: background 0.25s, color 0.25s; }
+
+/* ── MODO ESCURO ── */
+[data-theme="dark"] body { background: var(--purple-soft); }
+[data-theme="dark"] .card { background: var(--surface); }
+[data-theme="dark"] .info { background: var(--purple-soft); border-left-color: var(--purple); }
+
+/* ── DARK MODE AUTOFILL (validacoes.css) ── */
+[data-theme="dark"] body { background: var(--bg); }
+
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] input:-webkit-autofill:hover,
+[data-theme="dark"] input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #0f0f13 inset !important;
+    -webkit-text-fill-color: #e8e8f0 !important;
+    caret-color: #e8e8f0;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+[data-theme="dark"] .code-group input {
+    background: var(--bg);
+    border-color: var(--border);
+    color: var(--text);
+}
+[data-theme="dark"] .code-group input:focus { border-color: var(--purple); }

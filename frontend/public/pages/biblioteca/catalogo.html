@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/darkmode-global.css">
+    <script>(function(){var t=localStorage.getItem('kairos-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kairos — Catálogo</title>
+    <link rel="stylesheet" href="../../css/user.css">
+    <style>
+        /* ── Filtros por categoria (pills) ─── */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 32px;
+        }
+
+        .pill {
+            padding: 7px 18px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+
+        .pill:hover  { border-color: var(--purple-mid); color: var(--purple); }
+        .pill.active { background: var(--purple); border-color: var(--purple); color: white; }
+
+        /* ── Catalog grid ─────────────────── */
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .page-title {
+            font-family: 'Lora', serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 28px;
+        }
+
+        .results-count {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+
+        /* Skeleton */
+        .skel-card { border-radius: var(--card-radius); overflow: hidden; }
+        .skel-img  { width: 100%; aspect-ratio: 3/4; }
+        .skel-line { height: 13px; border-radius: 6px; margin: 12px 14px 5px; }
+        .skel-line.short { width: 55%; height: 10px; margin-top: 3px; }
+
+        @media (max-width: 480px) {
+            .catalog-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+        }
+    </style>
+    <link rel="stylesheet" href="../../css/notificacoes.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="u-header">
+    <div class="u-header-inner">
+        <a href="inicio.html" class="u-logo">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                <rect x="3" y="3" width="20" height="20" rx="4" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M8 8h10M8 12h10M8 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            Kairos
+        </a>
+
+        <div class="u-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="text" id="searchInput" placeholder="Buscar livros, autores…"
+                   oninput="filtrar()">
+        </div>
+
+        <nav class="u-nav">
+            <a href="inicio.html"           class="u-nav-link">Início</a>
+            <a href="catalogo.html"         class="u-nav-link active">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+                Catálogo
+            </a>
+            <a href="meus-emprestimos.html" class="u-nav-link">Empréstimos</a>
+        </nav>
+
+        <button class="theme-toggle" title="Alternar tema" aria-label="Alternar tema">
+                <span class="tt-icon tt-sun">☀️</span>
+                <span class="tt-track"><span class="tt-ball"></span></span>
+                <span class="tt-icon tt-moon">🌙</span>
+            </button>
+        <div class="u-user-actions">
+            <div class="u-avatar" id="avatarIniciais" onclick="window.location.href='../../pages/perfil.html'" title="Editar perfil"></div>
+            <button class="btn-logout" onclick="logout()">Sair</button>
+        </div>
+    </div>
+</header>
+
+<!-- Page -->
+<div class="u-page">
+    <h1 class="page-title">Catálogo Completo</h1>
+
+    <!-- Pills de categoria -->
+    <div class="filter-bar" id="filterBar">
+        <button class="pill active" data-cat="">Início</button>
+        <!-- demais pills geradas pelo JS conforme categorias da API -->
+    </div>
+
+    <p class="results-count" id="resultsCount"></p>
+
+    <!-- Grid -->
+    <div id="catalogGrid" class="catalog-grid">
+        ${Array(8).fill(0).map(() => `
+        <div class="skel-card">
+            <div class="skeleton skel-img"></div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line short"></div>
+        </div>`).join('')}
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="u-modal">
+    <div class="u-modal-box">
+        <button class="u-modal-close" onclick="fecharModal()">✕</button>
+        <div id="modalConteudo"></div>
+    </div>
+</div>
+
+<!-- Modal confirmação logout -->
+<div id="logoutModal" class="u-modal">
+    <div class="u-modal-box">
+        <h3 style="margin-bottom: 20px; color: var(--text);">Tem certeza que deseja sair?</h3>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="btn-confirm" onclick="confirmarLogout()">Sim</button>
+            <button class="btn-cancel" onclick="fecharLogoutModal()">Não</button>
+            <button class="btn-cancel" onclick="fecharLogoutModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Proteção de rota ──────────────────────────────────────────────
+(function() {
+    const token = sessionStorage.getItem('authToken');
+    if (!token) {
+        window.location.replace('../auth/login.html');
+    }
+})();
+
+// Função de logout
+function logout() {
+    document.getElementById('logoutModal').classList.add('open');
+    // Previne fechar com ESC
+    document.addEventListener('keydown', preventEscape);
+}
+
+function confirmarLogout() {
+    sessionStorage.clear();
+    window.location.href = '../auth/login.html';
+}
+
+function fecharLogoutModal() {
+    document.getElementById('logoutModal').classList.remove('open');
+    document.removeEventListener('keydown', preventEscape);
+}
+
+function preventEscape(e) {
+    if (e.key === 'Escape') {
+        e.preventDefault();
+    }
+}
+
+const API = 'http://localhost:3000';
+let todosLivros    = [];
+let categoriaAtiva = '';
+
+// Avatar: gerenciado por kairos-avatar.js
+
+// Aplicar busca pendente vinda da página Início
+const buscaPendente = sessionStorage.getItem('buscaPendente');
+if (buscaPendente) {
+    document.getElementById('searchInput').value = buscaPendente;
+    sessionStorage.removeItem('buscaPendente');
+}
+
+async function carregarLivros() {
+    try {
+        const res = await fetch(`${API}/livro`);
+        todosLivros = await res.json();
+        construirPills();
+        filtrar();
+    } catch {
+        document.getElementById('catalogGrid').innerHTML =
+            '<p style="color:var(--muted);grid-column:1/-1">Não foi possível conectar ao servidor.</p>';
+    }
+}
+
+function construirPills() {
+    const cats = [...new Set(todosLivros.map(l => l.Categoria || l.genero).filter(Boolean))];
+    const bar  = document.getElementById('filterBar');
+
+    cats.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className  = 'pill';
+        btn.dataset.cat = cat;
+        btn.textContent = cat;
+        btn.onclick = () => selecionarCategoria(cat, btn);
+        bar.appendChild(btn);
+    });
+}
+
+function selecionarCategoria(cat, btn) {
+    categoriaAtiva = cat;
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    filtrar();
+}
+
+// Pill "Início" reseta
+document.querySelector('.pill[data-cat=""]').onclick = function() {
+    categoriaAtiva = '';
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    this.classList.add('active');
+    filtrar();
+};
+
+function filtrar() {
+    const busca = document.getElementById('searchInput').value.toLowerCase().trim();
+
+    const resultado = todosLivros.filter(l => {
+        const titulo    = (l.Nome || l.titulo || '').toLowerCase();
+        const autor     = (l.Autor || l.autor  || '').toLowerCase();
+        const categoria = l.Categoria || l.genero || '';
+
+        const matchTexto = !busca || titulo.includes(busca) || autor.includes(busca);
+        const matchCat   = !categoriaAtiva || categoria === categoriaAtiva;
+
+        return matchTexto && matchCat;
+    });
+
+    const count = document.getElementById('resultsCount');
+    count.textContent = resultado.length > 0
+        ? `${resultado.length} livro${resultado.length > 1 ? 's' : ''} encontrado${resultado.length > 1 ? 's' : ''}`
+        : '';
+
+    const grid = document.getElementById('catalogGrid');
+
+    if (!resultado.length) {
+        grid.innerHTML = `
+            <div class="empty-state" style="grid-column:1/-1">
+                <div class="empty-icon">🔍</div>
+                <h3>Nenhum livro encontrado</h3>
+                <p>Tente outros termos ou remova o filtro de categoria.</p>
+            </div>`;
+        return;
+    }
+
+    grid.innerHTML = resultado.map(livro => {
+        const capa     = livro.Imagem || livro.capa || '';
+        const titulo   = livro.Nome || livro.titulo || '—';
+        const autor    = livro.Autor || livro.autor || '';
+        const categoria= livro.Categoria || livro.genero || 'Geral';
+        const id       = livro.Livro_id || livro.id;
+
+        return `
+        <div class="book-card" onclick="abrirModal(${id})">
+            ${capa
+                ? `<img class="book-cover" src="${capa}" alt="${titulo}"
+                       onerror="this.parentElement.querySelector('.book-cover-placeholder').style.display='flex';this.style.display='none'">`
+                : ''}
+            <div class="book-cover-placeholder" ${capa ? 'style="display:none"' : ''}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+            </div>
+            <div class="book-info">
+                <div class="book-category">${categoria}</div>
+                <div class="book-title">${titulo}</div>
+                <div class="book-author">${autor}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function abrirModal(id) {
+    const livro = todosLivros.find(l => (l.Livro_id || l.id) === id);
+    if (!livro) return;
+
+    const titulo    = livro.Nome || livro.titulo || '—';
+    const autor     = livro.Autor || livro.autor || '—';
+    const categoria = livro.Categoria || livro.genero || 'Geral';
+    const desc      = livro.Descricao || livro.resumo || 'Sem descrição disponível.';
+    const ano       = livro.DataPublicacao || livro.ano_publicacao || '';
+    const capa      = livro.Imagem || livro.capa || '';
+
+    document.getElementById('modalConteudo').innerHTML = `
+        <div class="modal-book-header">
+            ${capa
+                ? `<img class="modal-cover" src="${capa}" alt="${titulo}">`
+                : `<div class="modal-cover" style="background:var(--border);border-radius:8px"></div>`}
+            <div class="modal-meta">
+                <span class="modal-category">${categoria}</span>
+                <h2 class="modal-title">${titulo}</h2>
+                <p class="modal-author">${autor}</p>
+                <div class="modal-row">
+                    ${ano ? `<span class="modal-tag">📅 ${ano}</span>` : ''}
+                    ${livro.idioma ? `<span class="modal-tag">🌍 ${livro.idioma}</span>` : ''}
+                    ${livro.numero_paginas ? `<span class="modal-tag">📄 ${livro.numero_paginas} pág.</span>` : ''}
+                </div>
+            </div>
+        </div>
+        <p class="modal-desc">${desc}</p>
+        <button class="btn-emprestimo" onclick="solicitarEmprestimo(${livro.Livro_id || livro.id}, '${titulo.replace(/'/g,"\\'")}')">
+            📖 Solicitar Empréstimo
+        </button>`;
+
+    document.getElementById('modal').classList.add('open');
+}
+
+function fecharModal() { document.getElementById('modal').classList.remove('open'); }
+
+function solicitarEmprestimo(livroId, titulo) {
+    const usuarioId = sessionStorage.getItem('usuarioId');
+    if (!usuarioId) {
+        mostrarToast('Faça login para solicitar um empréstimo.', 'error');
+        return;
+    }
+
+    const btn = document.querySelector('.btn-emprestimo');
+    if (btn) { btn.disabled = true; btn.textContent = 'Solicitando...'; }
+
+    fetch('http://localhost:3000/emprestimo', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ Usuario_id: parseInt(usuarioId), Livro_id: livroId })
+    })
+    .then(async res => {
+        const data = await res.json();
+        fecharModal();
+        if (res.ok) {
+            mostrarToast(`✅ Empréstimo de "${titulo}" solicitado! Você tem 14 dias para devolver.`, 'success');
+        } else {
+            mostrarToast(data.error || 'Não foi possível realizar o empréstimo.', 'error');
+        }
+    })
+    .catch(() => {
+        fecharModal();
+        mostrarToast('Erro de conexão com o servidor.', 'error');
+    });
+}
+
+// ── Painel de notificação lateral ────────────────────────────
+(function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        #notifPanel {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .notif-card {
+            background: var(--surface, #fff);
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.13), 0 1.5px 6px rgba(0,0,0,.07);
+            padding: 14px 18px 14px 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            min-width: 300px;
+            max-width: 370px;
+            pointer-events: all;
+            opacity: 0;
+            transform: translateX(30px);
+            transition: opacity .28s cubic-bezier(.4,0,.2,1), transform .28s cubic-bezier(.4,0,.2,1);
+            border-left: 4px solid #667eea;
+        }
+        .notif-card.show { opacity: 1; transform: translateX(0); }
+        .notif-card.success { border-left-color: #16a34a; }
+        .notif-card.error   { border-left-color: #dc2626; }
+        .notif-card.info    { border-left-color: #667eea; }
+        .notif-icon {
+            font-size: 1.25rem;
+            line-height: 1;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .notif-body { flex: 1; min-width: 0; }
+        .notif-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--muted, #888);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin-bottom: 3px;
+        }
+        .notif-msg {
+            font-size: 0.875rem;
+            color: var(--text, #1a1a2e);
+            line-height: 1.45;
+            word-break: break-word;
+        }
+        .notif-close {
+            background: none; border: none; cursor: pointer;
+            color: var(--muted, #aaa); font-size: 1rem;
+            padding: 0 0 0 6px; flex-shrink: 0; line-height: 1;
+            margin-top: -1px;
+            transition: color .15s;
+        }
+        .notif-close:hover { color: var(--text, #333); }
+        @media (max-width: 480px) {
+            #notifPanel { bottom: 16px; right: 12px; left: 12px; }
+            .notif-card { min-width: unset; max-width: 100%; }
+        }
+    `;
+    document.head.appendChild(style);
+
+    const panel = document.createElement('div');
+    panel.id = 'notifPanel';
+    document.body.appendChild(panel);
+})();
+
+function mostrarToast(msg, type = 'info') {
+    const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+    const titles = { success: 'Sucesso', error: 'Atenção', info: 'Informação' };
+
+    const card = document.createElement('div');
+    card.className = `notif-card ${type}`;
+    card.innerHTML = `
+        <span class="notif-icon">${icons[type] || 'ℹ️'}</span>
+        <div class="notif-body">
+            <div class="notif-title">${titles[type] || 'Aviso'}</div>
+            <div class="notif-msg">${msg}</div>
+        </div>
+        <button class="notif-close" onclick="this.closest('.notif-card').remove()">✕</button>
+    `;
+
+    document.getElementById('notifPanel').appendChild(card);
+    requestAnimationFrame(() => card.classList.add('show'));
+
+    setTimeout(() => {
+        card.classList.remove('show');
+        setTimeout(() => card.remove(), 300);
+    }, 5000);
+}
+
+document.getElementById('modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal')) fecharModal();
+});
+
+carregarLivros();
+</script>
+<script src="../../js/theme.js"></script>
+<script src="../../js/kairos-notificacoes.js"></script>
+<script src="../../js/kairos-avatar.js"></script>
+</body>
+</html>

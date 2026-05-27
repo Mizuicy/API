@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/darkmode-global.css">
+    <script>(function(){var t=localStorage.getItem('kairos-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Senha - Kairos</title>
+    <link rel="stylesheet" href="../../css/login.css">
+</head>
+<body>
+<div class="container">
+    <div class="left-side">
+        <h1>🏛️ Kairos</h1>
+        <p>Defina uma nova senha</p>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+            <button class="btn-outline" onclick="location.href='esqueci-senha.html'">Voltar</button>
+        </div>
+    </div>
+
+    <div class="right-side">
+        <h2>Redefinir senha</h2>
+        <p>Seu email: <strong id="emailDisplay">seu email</strong></p>
+        <div id="alertBox"></div>
+
+        <form id="novaSenhaForm">
+            <div class="form-group">
+                <label for="senha">Nova senha</label>
+                <input type="password" id="senha" required>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmaSenha">Confirme a senha</label>
+                <input type="password" id="confirmaSenha" required>
+            </div>
+
+            <div class="password-requirements">
+                <div class="requirement" id="req-length"><span class="requirement-icon">○</span> Mínimo 8 caracteres</div>
+                <div class="requirement" id="req-upper"><span class="requirement-icon">○</span> Letra maiúscula</div>
+                <div class="requirement" id="req-lower"><span class="requirement-icon">○</span> Letra minúscula</div>
+                <div class="requirement" id="req-number"><span class="requirement-icon">○</span> Número</div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="btnRedefinir" disabled>Redefinir senha</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:3000';
+    const resetEmail = sessionStorage.getItem('resetEmail');
+    const resetVerified = sessionStorage.getItem('resetVerified');
+
+    if (!resetEmail || resetVerified !== 'true') {
+        window.location.href = 'esqueci-senha.html';
+    }
+
+    document.getElementById('emailDisplay').textContent = resetEmail || 'seu email';
+
+    const senhaInput = document.getElementById('senha');
+    const confirmaInput = document.getElementById('confirmaSenha');
+    const btn = document.getElementById('btnRedefinir');
+
+    function atualizarRequisitos() {
+        const senha = senhaInput.value;
+        const regras = {
+            'req-length': senha.length >= 8,
+            'req-upper': /[A-Z]/.test(senha),
+            'req-lower': /[a-z]/.test(senha),
+            'req-number': /[0-9]/.test(senha),
+        };
+
+        Object.entries(regras).forEach(([id, ok]) => {
+            const el = document.getElementById(id);
+            const icon = el.querySelector('.requirement-icon');
+            if (ok) {
+                el.classList.add('met');
+                icon.textContent = '✓';
+            } else {
+                el.classList.remove('met');
+                icon.textContent = '○';
+            }
+        });
+
+        const senhasIguais = senha && senha === confirmaInput.value;
+        btn.disabled = !(Object.values(regras).every(Boolean) && senhasIguais);
+    }
+
+    senhaInput.addEventListener('input', atualizarRequisitos);
+    confirmaInput.addEventListener('input', atualizarRequisitos);
+
+    document.getElementById('novaSenhaForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const senha = senhaInput.value;
+        const confirma = confirmaInput.value;
+
+        if (senha !== confirma) {
+            showAlert('Senhas não coincidem.', 'error');
+            return;
+        }
+
+        btn.disabled = true;
+        showAlert('<span class="spin"></span>Atualizando senha…', 'loading');
+
+        try {
+            const res = await fetch(`${API}/usuario/reset-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Email: resetEmail, Senha: senha })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                showAlert(`❌ ${data.error || 'Erro ao redefinir senha.'}`, 'error');
+                btn.disabled = false;
+                return;
+            }
+
+            sessionStorage.removeItem('resetVerified');
+            sessionStorage.setItem('resetSuccessMessage', 'Senha redefinida com sucesso. Faça login usando a nova senha.');
+            showAlert('✅ Senha redefinida com sucesso. Redirecionando…', 'success');
+            setTimeout(() => window.location.href = 'login.html', 1000);
+        } catch (err) {
+            showAlert('❌ Servidor offline.', 'error');
+            btn.disabled = false;
+        }
+    });
+
+    function showAlert(message, type) {
+        document.getElementById('alertBox').innerHTML = `<div class="alert ${type}">${message}</div>`;
+    }
+</script>
+<script src="../../js/theme.js"></script>
+</body>
+</html>

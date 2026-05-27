@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/darkmode-global.css">
+    <script>(function(){var t=localStorage.getItem('kairos-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kairos — Meus Empréstimos</title>
+    <link rel="stylesheet" href="../../css/user.css">
+    <style>
+        .page-title {
+            font-family: 'Lora', serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--purple);
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .page-sub {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-bottom: 40px;
+        }
+
+        /* ── Tabs ─────────────────────────── */
+        .tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 32px;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: color .15s, border-color .15s;
+        }
+
+        .tab-btn.active { color: var(--purple); border-bottom-color: var(--purple); font-weight: 600; }
+        .tab-btn:hover:not(.active) { color: var(--text); }
+
+        /* ── Empréstimo card ──────────────── */
+        .emprestimos-lista {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .emp-card {
+            background: var(--surface);
+            border-radius: var(--card-radius);
+            padding: 20px 24px;
+            display: grid;
+            grid-template-columns: 64px 1fr auto;
+            align-items: center;
+            gap: 20px;
+            border-left: 4px solid var(--purple);
+            transition: box-shadow .2s;
+        }
+
+        .emp-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+
+        .emp-cover {
+            width: 64px; height: 88px;
+            object-fit: cover;
+            border-radius: 6px;
+            background: var(--border);
+        }
+
+        .emp-cover-placeholder {
+            width: 64px; height: 88px;
+            background: var(--border);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: #ccc;
+        }
+
+        .emp-info { min-width: 0; }
+
+        .emp-titulo {
+            font-family: 'Lora', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .emp-autor   { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; }
+
+        .emp-datas   { display: flex; gap: 16px; flex-wrap: wrap; }
+        .emp-data    { font-size: 0.78rem; color: var(--muted); }
+        .emp-data strong { color: var(--text); }
+
+        /* Status badges */
+        .badge {
+            padding: 5px 14px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge-pendente  { background: #fef3cd; color: #856404; }
+        .badge-devolvido { background: #d1e7dd; color: #0a3622; }
+        .badge-atrasado  { background: #f8d7da; color: #721c24; }
+
+        /* Atrasado card border */
+        .emp-card.atrasado { border-left-color: #dc3545; }
+        .emp-card.devolvido { border-left-color: #198754; opacity: .8; }
+
+        @media (max-width: 580px) {
+            .emp-card { grid-template-columns: 48px 1fr; }
+            .emp-card > .badge { grid-column: 2; }
+            .emp-cover, .emp-cover-placeholder { width: 48px; height: 66px; }
+        }
+    </style>
+    <link rel="stylesheet" href="../../css/notificacoes.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="u-header">
+    <div class="u-header-inner">
+        <a href="inicio.html" class="u-logo">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                <rect x="3" y="3" width="20" height="20" rx="4" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M8 8h10M8 12h10M8 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            Kairos
+        </a>
+
+        <div class="u-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="text" id="globalSearch" placeholder="Buscar livros, autores…"
+                   oninput="buscarGlobal(this.value)">
+        </div>
+
+        <nav class="u-nav">
+            <a href="inicio.html" class="u-nav-link">Início</a>
+            <a href="catalogo.html" class="u-nav-link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+                Catálogo
+            </a>
+            <a href="meus-emprestimos.html" class="u-nav-link active">Empréstimos</a>
+        </nav>
+
+        <button class="theme-toggle" title="Alternar tema" aria-label="Alternar tema">
+                <span class="tt-icon tt-sun">☀️</span>
+                <span class="tt-track"><span class="tt-ball"></span></span>
+                <span class="tt-icon tt-moon">🌙</span>
+            </button>
+        <div class="u-user-actions">
+            <div class="u-avatar" id="avatarIniciais" onclick="window.location.href='../../pages/perfil.html'" title="Editar perfil"></div>
+            <button class="btn-logout" onclick="logout()">Sair</button>
+        </div>
+    </div>
+</header>
+
+<!-- Page -->
+<div class="u-page">
+    <h1 class="page-title">Meus Empréstimos</h1>
+    <p class="page-sub" id="pageSubtitle">Carregando…</p>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="mudarTab('todos', this)">Todos</button>
+        <button class="tab-btn" onclick="mudarTab('ativo', this)">Solicitados</button>
+        <button class="tab-btn" onclick="mudarTab('atrasado', this)">Atrasados</button>
+        <button class="tab-btn" onclick="mudarTab('devolvido', this)">Devolvidos</button>
+    </div>
+
+    <div id="listaEmprestimos" class="emprestimos-lista"></div>
+</div>
+
+<!-- Modal confirmação logout -->
+<div id="logoutModal" class="u-modal">
+    <div class="u-modal-box">
+        <h3 style="margin-bottom: 20px; color: var(--text);">Tem certeza que deseja sair?</h3>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="btn-confirm" onclick="confirmarLogout()">Sim</button>
+            <button class="btn-cancel" onclick="fecharLogoutModal()">Não</button>
+            <button class="btn-cancel" onclick="fecharLogoutModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Proteção de rota ──────────────────────────────────────────────
+(function() {
+    const token = sessionStorage.getItem('authToken');
+    if (!token) {
+        window.location.replace('../auth/login.html');
+    }
+})();
+
+// Função de logout
+function logout() {
+    document.getElementById('logoutModal').classList.add('open');
+    // Previne fechar com ESC
+    document.addEventListener('keydown', preventEscape);
+}
+
+function confirmarLogout() {
+    sessionStorage.clear();
+    window.location.href = '../auth/login.html';
+}
+
+function fecharLogoutModal() {
+    document.getElementById('logoutModal').classList.remove('open');
+    document.removeEventListener('keydown', preventEscape);
+}
+
+function preventEscape(e) {
+    if (e.key === 'Escape') {
+        e.preventDefault();
+    }
+}
+
+// Redirecionar busca para catálogo
+function buscarGlobal(valor) {
+    if (valor.trim()) {
+        sessionStorage.setItem('buscaPendente', valor.trim());
+        window.location.href = 'catalogo.html';
+    }
+}
+document.getElementById('globalSearch').addEventListener('keydown', e => {
+    if (e.key === 'Enter') buscarGlobal(e.target.value);
+});
+
+const API = 'http://localhost:3000';
+let todosEmprestimos = [];
+let tabAtiva = 'todos';
+
+// Avatar: gerenciado por kairos-avatar.js
+
+function mudarTab(tab, btn) {
+    tabAtiva = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderizar();
+}
+
+function formatarData(data) {
+    if (!data) return '—';
+    const dt = new Date(data);
+    const local = new Date(dt.getTime() + dt.getTimezoneOffset() * 60000);
+    return local.toLocaleDateString('pt-BR');
+}
+
+function statusBadge(status) {
+    const map = {
+        ativo:     ['badge-pendente',  '📖 Ativo'],
+        devolvido: ['badge-devolvido', '✅ Devolvido'],
+        atrasado:  ['badge-atrasado',  '⚠️ Atrasado'],
+    };
+    const [cls, label] = map[status] || ['badge-pendente', status || 'Ativo'];
+    return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function atualizarContadores() {
+    const total     = todosEmprestimos.length;
+    const ativos    = todosEmprestimos.filter(e => (e.Status || '').toLowerCase() === 'ativo').length;
+    const atrasados = todosEmprestimos.filter(e => (e.Status || '').toLowerCase() === 'atrasado').length;
+    const devolvidos= todosEmprestimos.filter(e => (e.Status || '').toLowerCase() === 'devolvido').length;
+    const countTodos    = document.getElementById('countTodos');
+    const countAtivo    = document.getElementById('countAtivo');
+    const countAtrasado = document.getElementById('countAtrasado');
+    const countDevolvido= document.getElementById('countDevolvido');
+    if (countTodos)     countTodos.textContent     = total;
+    if (countAtivo)     countAtivo.textContent     = ativos;
+    if (countAtrasado)  countAtrasado.textContent  = atrasados;
+    if (countDevolvido) countDevolvido.textContent = devolvidos;
+}
+
+function renderizar() {
+    const filtrados = tabAtiva === 'todos'
+        ? todosEmprestimos
+        : todosEmprestimos.filter(e => (e.Status || '').toLowerCase() === tabAtiva);
+
+    const lista = document.getElementById('listaEmprestimos');
+
+    if (!filtrados.length) {
+        const msgs = {
+            todos:     ['Nenhum empréstimo registrado', 'Visite o catálogo para solicitar seu primeiro livro.'],
+            ativo:     ['Nenhum empréstimo solicitado', 'Visite o catálogo para solicitar um novo livro.'],
+            atrasado:  ['Nenhum empréstimo atrasado',   'Tudo em dia! Continue assim. 🎉'],
+            devolvido: ['Nenhum livro devolvido ainda',  'Suas devoluções aparecerão aqui.'],
+        };
+        const [titulo, sub] = msgs[tabAtiva] || msgs.todos;
+        lista.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <h3>${titulo}</h3>
+                <p>${sub}</p>
+            </div>`;
+        return;
+    }
+
+    lista.innerHTML = filtrados.map(emp => {
+        // O novo backend retorna NomeLivro, AutorLivro, CapaLivro diretamente via JOIN
+        const titulo  = emp.NomeLivro   || `Livro #${emp.Livro_id || '—'}`;
+        const autor   = emp.AutorLivro  || '';
+        const capa    = emp.CapaLivro   || '';
+        const status  = emp.Status      || 'ativo';
+        const cssClass = status === 'atrasado' ? 'atrasado' : status === 'devolvido' ? 'devolvido' : '';
+
+        return `
+        <div class="emp-card ${cssClass}">
+            ${capa
+                ? `<img class="emp-cover" src="${capa}" alt="${titulo}"
+                       onerror="this.outerHTML='<div class=emp-cover-placeholder><svg width=24 height=24 viewBox=\\'0 0 24 24\\' fill=none stroke=currentColor stroke-width=1.5><path d=\\'M4 19.5A2.5 2.5 0 0 1 6.5 17H20\\'/><path d=\\'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z\\'/></svg></div>'">`
+                : `<div class="emp-cover-placeholder">
+                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                       </svg>
+                   </div>`}
+            <div class="emp-info">
+                <div class="emp-titulo">${titulo}</div>
+                <div class="emp-autor">${autor}</div>
+                <div class="emp-datas">
+                    <span class="emp-data">Emprestado em: <strong>${formatarData(emp.DataEmprestimo)}</strong></span>
+                    <span class="emp-data">Devolver até: <strong>${formatarData(emp.DataPrevista)}</strong></span>
+                    ${emp.DataDevolucao
+                        ? `<span class="emp-data">Devolvido em: <strong>${formatarData(emp.DataDevolucao)}</strong></span>`
+                        : ''}
+                </div>
+            </div>
+            ${statusBadge(status)}
+        </div>`;
+    }).join('');
+}
+
+async function carregarDados() {
+    const usuarioId = sessionStorage.getItem('usuarioId');
+
+    try {
+        const url = usuarioId
+            ? `${API}/emprestimo?usuario=${usuarioId}`
+            : `${API}/emprestimo`;
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Falha ao carregar');
+        todosEmprestimos = await res.json();
+
+        const total = todosEmprestimos.length;
+        document.getElementById('pageSubtitle').textContent = total > 0
+            ? `${total} empréstimo${total !== 1 ? 's' : ''} no histórico`
+            : 'Nenhum livro emprestado no momento';
+
+        atualizarContadores();
+        renderizar();
+    } catch {
+        document.getElementById('pageSubtitle').textContent = 'Erro ao carregar dados';
+        document.getElementById('listaEmprestimos').innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">⚠️</div>
+                <h3>Não foi possível conectar ao servidor</h3>
+                <p>Verifique se o servidor está rodando e tente novamente.</p>
+            </div>`;
+    }
+}
+
+carregarDados();
+</script>
+<script src="../../js/theme.js"></script>
+<script src="../../js/kairos-notificacoes.js"></script>
+<script src="../../js/kairos-avatar.js"></script>
+</body>
+</html>

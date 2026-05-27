@@ -1,0 +1,90 @@
+/*
+ * notificacoes.css — Kairos Biblioteca
+ * Estilos de suporte ao sino de notificações (kairos-notificacoes.js).
+ * A maior parte do CSS é injetada inline pelo JS para evitar
+ * problemas de caminho relativo entre páginas.
+ * Este arquivo pode ser mantido para sobrescritas específicas.
+ */
+
+/* Garante que o wrapper do sino não quebre o layout flex do header */
+#kn-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+/* ── DARK MODE — Notificações (kairos-notificacoes.js) ──
+   O JS injeta os estilos via <style id="kn-style">.
+   Estas regras sobrescrevem os valores hardcoded em dark mode. */
+
+[data-theme="dark"] #kn-bell-btn {
+    color: var(--muted);
+}
+[data-theme="dark"] #kn-bell-btn:hover {
+    background: var(--bg);
+    color: var(--text);
+}
+
+[data-theme="dark"] #kn-dropdown {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+[data-theme="dark"] .kn-dd-title {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .kn-dd-clear {
+    color: var(--purple) !important;
+}
+
+[data-theme="dark"] .kn-item {
+    color: var(--text) !important;
+    border-bottom-color: var(--border) !important;
+}
+
+[data-theme="dark"] .kn-item:hover {
+    background: var(--bg) !important;
+}
+
+[data-theme="dark"] .kn-item.kn-nao-lida {
+    background: rgba(245, 158, 11, 0.08) !important;
+}
+
+[data-theme="dark"] .kn-item-icon {
+    background: #422006 !important;
+    border-color: #92400e !important;
+}
+
+[data-theme="dark"] .kn-item-book {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .kn-item.kn-nao-lida .kn-item-book {
+    color: #d97706 !important;
+}
+
+[data-theme="dark"] .kn-item-msg {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .kn-btn-acao {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .kn-btn-acao:hover {
+    background: var(--purple-soft) !important;
+    color: var(--purple) !important;
+    border-color: var(--purple) !important;
+}
+
+[data-theme="dark"] .kn-empty {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] #kn-badge {
+    background: #ef4444 !important;
+    color: #fff !important;
+}

@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/darkmode-global.css">
+    <script>(function(){var t=localStorage.getItem('kairos-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kairos — Gestão de Empréstimos</title>
+    <link rel="stylesheet" href="../../css/livros.css">
+    <link rel="stylesheet" href="../../css/notificacoes.css">
+    <style>
+        /* ── Estatísticas ─────────────────────────────────── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.07);
+            text-align: center;
+            border-top: 3px solid var(--border, #e4e4e4);
+            transition: transform .15s;
+        }
+
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card.total  { border-top-color: #667eea; }
+        .stat-card.ativo  { border-top-color: #3b82f6; }
+        .stat-card.atrasado { border-top-color: #ef4444; }
+        .stat-card.devolvido { border-top-color: #22c55e; }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #333;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        /* ── Filtros ──────────────────────────────────────── */
+        .filtros-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 220px;
+            padding: 9px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        .search-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,.12);
+        }
+
+        .filter-select {
+            padding: 9px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background: white;
+            cursor: pointer;
+            outline: none;
+        }
+
+        /* ── Tabela ───────────────────────────────────────── */
+        .tabela-wrapper {
+            overflow-x: auto;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.07);
+        }
+
+        .emp-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 0.875rem;
+        }
+
+        .emp-table thead {
+            background: #f8f8fc;
+        }
+
+        .emp-table th {
+            padding: 13px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #eee;
+            white-space: nowrap;
+        }
+
+        .emp-table td {
+            padding: 13px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #333;
+            vertical-align: middle;
+        }
+
+        .emp-table tbody tr:hover { background: #fafafa; }
+
+        .emp-table tbody tr:last-child td { border-bottom: none; }
+
+        /* Livro com capa pequena */
+        .livro-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .livro-mini-capa {
+            width: 36px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+            flex-shrink: 0;
+            background: #eee;
+        }
+
+        .livro-mini-placeholder {
+            width: 36px;
+            height: 50px;
+            background: #e4e4e4;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+            flex-shrink: 0;
+        }
+
+        .livro-nome { font-weight: 600; color: #333; line-height: 1.3; }
+        .livro-autor { font-size: 0.78rem; color: #888; margin-top: 2px; }
+
+        /* Badges de status */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .badge-ativo     { background: #dbeafe; color: #1d4ed8; }
+        .badge-devolvido { background: #dcfce7; color: #15803d; }
+        .badge-atrasado  { background: #fee2e2; color: #b91c1c; }
+
+        /* Botões de ação */
+        .btn-devolver {
+            padding: 6px 13px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            background: #22c55e;
+            color: white;
+            transition: background .15s, transform .1s;
+        }
+
+        .btn-devolver:hover { background: #16a34a; transform: translateY(-1px); }
+        .btn-devolver:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+        .btn-excluir {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            background: #fee2e2;
+            color: #b91c1c;
+            margin-left: 6px;
+            transition: background .15s;
+        }
+
+        .btn-excluir:hover { background: #fecaca; }
+
+        /* Linha atrasada em destaque */
+        .row-atrasado { background: #fff9f9 !important; }
+
+        /* Vazio / loading */
+        .table-msg {
+            text-align: center;
+            padding: 48px 20px;
+            color: #888;
+        }
+
+        .table-msg .big-icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+        /* Novo empréstimo modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open { display: flex; }
+
+        .modal-box {
+            background: white;
+            border-radius: 14px;
+            padding: 32px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.2);
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-group { margin-bottom: 16px; }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 13px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,.12);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        .btn-cancelar {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #666;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-confirmar {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .btn-confirmar:hover { background: #5a6fd6; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0,0,0,.2);
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity .25s, transform .25s;
+            z-index: 999;
+        }
+
+        .toast.show   { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #16a34a; }
+        .toast.error   { background: #dc2626; }
+
+        /* Dark mode básico */
+        [data-theme="dark"] .stat-card,
+        [data-theme="dark"] .emp-table,
+        [data-theme="dark"] .emp-table thead,
+        [data-theme="dark"] .modal-box { background: #1a1a24; color: #e8e8f0; }
+        [data-theme="dark"] .emp-table th { color: #aaa; border-bottom-color: #2e2e42; }
+        [data-theme="dark"] .emp-table td { border-bottom-color: #2a2a38; color: #e8e8f0; }
+        [data-theme="dark"] .emp-table tbody tr:hover { background: #22223a; }
+        [data-theme="dark"] .stat-value { color: #e8e8f0; }
+        [data-theme="dark"] .search-input,
+        [data-theme="dark"] .filter-select,
+        [data-theme="dark"] .form-group input,
+        [data-theme="dark"] .form-group select {
+            background: #22223a; color: #e8e8f0; border-color: #2e2e42;
+        }
+        [data-theme="dark"] .livro-nome { color: #e8e8f0; }
+        [data-theme="dark"] .livro-autor { color: var(--muted); }
+
+        /* Autofill */
+        [data-theme="dark"] input:-webkit-autofill,
+        [data-theme="dark"] input:-webkit-autofill:hover,
+        [data-theme="dark"] input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px #22223a inset !important;
+            -webkit-text-fill-color: #e8e8f0 !important;
+            caret-color: #e8e8f0;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        /* Modal botões */
+        [data-theme="dark"] .btn-cancelar {
+            background: var(--surface) !important;
+            border-color: var(--border) !important;
+            color: var(--text-mid) !important;
+        }
+        [data-theme="dark"] .modal-title { color: var(--text); }
+
+        /* Badges de status */
+        [data-theme="dark"] .badge-ativo     { background: var(--success-bg); color: var(--success); }
+        [data-theme="dark"] .badge-devolvido { background: var(--border); color: var(--muted); }
+        [data-theme="dark"] .badge-atrasado  { background: var(--error-bg); color: var(--error); }
+
+        /* Stat cards labels */
+        [data-theme="dark"] .stat-label { color: var(--muted); }
+
+        /* Botão devolver */
+        [data-theme="dark"] .btn-devolver:disabled {
+            background: var(--border) !important;
+            color: var(--muted) !important;
+        }
+
+        /* Botão excluir */
+        [data-theme="dark"] .btn-excluir {
+            background: var(--error-bg) !important;
+            border-color: var(--error-border) !important;
+            color: var(--error) !important;
+        }
+        [data-theme="dark"] .btn-excluir:hover {
+            background: var(--error-border) !important;
+        }
+
+        /* Dropdown nav */
+        [data-theme="dark"] .nav-dropdown-menu {
+            background: var(--surface);
+            border-color: var(--border);
+        }
+        [data-theme="dark"] .dropdown-item { color: var(--muted); }
+        [data-theme="dark"] .dropdown-item:hover,
+        [data-theme="dark"] .dropdown-item.active {
+            background: var(--purple-soft);
+            color: var(--purple);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Header de admin -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">🏛️ Kairos</h1>
+            <nav class="nav">
+                <a href="../../index.html" class="nav-link">Início</a>
+                <a href="livros.html" class="nav-link">Adicionar Livro</a>
+                <a href="../admin/admin.html" class="nav-link">Catálogo</a>
+
+                <div class="nav-dropdown">
+                    <button class="nav-link nav-dropdown-btn">Gestão ▾</button>
+                    <div class="nav-dropdown-menu">
+                        <a href="autores.html" class="dropdown-item">✍️ Autores</a>
+                        <a href="exemplares.html" class="dropdown-item">📦 Exemplares</a>
+                        <a href="emprestimos.html" class="dropdown-item active">🔄 Empréstimos</a>
+                    </div>
+                </div>
+
+                <a href="../perfil.html" class="nav-link nav-link-perfil" title="Perfil">👤</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <section class="form-section">
+
+            <!-- Título + botão -->
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:24px;">
+                <div>
+                    <h2>🔄 Gestão de Empréstimos</h2>
+                    <p style="color:#888; font-size:0.875rem; margin-top:4px;">Controle completo de empréstimos e devoluções</p>
+                </div>
+                <button class="btn-add" onclick="abrirModalNovo()">+ Novo Empréstimo</button>
+            </div>
+
+            <!-- Cards de estatísticas -->
+            <div class="stats-row">
+                <div class="stat-card total">
+                    <div class="stat-value" id="statTotal">—</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-card ativo">
+                    <div class="stat-value" id="statAtivo">—</div>
+                    <div class="stat-label">Ativos</div>
+                </div>
+                <div class="stat-card atrasado">
+                    <div class="stat-value" id="statAtrasado">—</div>
+                    <div class="stat-label">Atrasados</div>
+                </div>
+                <div class="stat-card devolvido">
+                    <div class="stat-value" id="statDevolvido">—</div>
+                    <div class="stat-label">Devolvidos</div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="filtros-bar">
+                <input type="text" id="searchInput" class="search-input"
+                       placeholder="🔍 Pesquisar por livro ou usuário..."
+                       oninput="filtrar()">
+                <select id="statusFilter" class="filter-select" onchange="filtrar()">
+                    <option value="">Todos os status</option>
+                    <option value="ativo">Ativos</option>
+                    <option value="atrasado">Atrasados</option>
+                    <option value="devolvido">Devolvidos</option>
+                </select>
+            </div>
+
+            <!-- Tabela -->
+            <div class="tabela-wrapper">
+                <table class="emp-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Livro</th>
+                            <th>Usuário</th>
+                            <th>Emprestado em</th>
+                            <th>Devolver até</th>
+                            <th>Devolvido em</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaBody">
+                        <tr>
+                            <td colspan="8">
+                                <div class="table-msg">
+                                    <div class="big-icon">⏳</div>
+                                    Carregando empréstimos...
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+    </main>
+</div>
+
+<!-- Modal: Novo Empréstimo -->
+<div class="modal-overlay" id="modalNovo">
+    <div class="modal-box">
+        <h3 class="modal-title">📖 Registrar Novo Empréstimo</h3>
+
+        <div class="form-group">
+            <label for="selectUsuario">Usuário</label>
+            <select id="selectUsuario">
+                <option value="">Selecione o usuário...</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="selectLivro">Livro</label>
+            <select id="selectLivro">
+                <option value="">Selecione o livro...</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="inputDataPrevista">Data prevista de devolução</label>
+            <input type="date" id="inputDataPrevista">
+        </div>
+
+        <p id="erroModal" style="color:#dc2626; font-size:0.85rem; min-height:1.2em;"></p>
+
+        <div class="modal-actions">
+            <button class="btn-cancelar" onclick="fecharModalNovo()">Cancelar</button>
+            <button class="btn-confirmar" onclick="criarEmprestimo()">Confirmar Empréstimo</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:3000';
+let todosEmprestimos = [];
+let todosLivros      = [];
+let todosUsuarios    = [];
+
+// ── Formatação ───────────────────────────────────────────────
+function fmtData(d) {
+    if (!d) return '—';
+    const dt = new Date(d);
+    const local = new Date(dt.getTime() + dt.getTimezoneOffset() * 60000);
+    return local.toLocaleDateString('pt-BR');
+}
+
+function badgeHtml(status) {
+    const map = {
+        ativo:     ['badge-ativo',     '📖 Ativo'],
+        devolvido: ['badge-devolvido', '✅ Devolvido'],
+        atrasado:  ['badge-atrasado',  '⚠️ Atrasado'],
+    };
+    const [cls, label] = map[status] || ['badge-ativo', status];
+    return `<span class="badge ${cls}">${label}</span>`;
+}
+
+// ── Estatísticas ─────────────────────────────────────────────
+function atualizarStats(dados) {
+    document.getElementById('statTotal').textContent    = dados.length;
+    document.getElementById('statAtivo').textContent    = dados.filter(e => e.Status === 'ativo').length;
+    document.getElementById('statAtrasado').textContent = dados.filter(e => e.Status === 'atrasado').length;
+    document.getElementById('statDevolvido').textContent= dados.filter(e => e.Status === 'devolvido').length;
+}
+
+// ── Filtro e renderização ────────────────────────────────────
+function filtrar() {
+    const busca  = document.getElementById('searchInput').value.toLowerCase().trim();
+    const status = document.getElementById('statusFilter').value;
+
+    const filtrados = todosEmprestimos.filter(e => {
+        const matchStatus = !status || e.Status === status;
+        const matchBusca  = !busca
+            || (e.NomeLivro   || '').toLowerCase().includes(busca)
+            || (e.NomeUsuario || '').toLowerCase().includes(busca)
+            || (e.EmailUsuario|| '').toLowerCase().includes(busca);
+        return matchStatus && matchBusca;
+    });
+
+    renderizarTabela(filtrados);
+}
+
+function renderizarTabela(dados) {
+    const tbody = document.getElementById('tabelaBody');
+
+    if (!dados.length) {
+        tbody.innerHTML = `
+            <tr><td colspan="8">
+                <div class="table-msg">
+                    <div class="big-icon">📋</div>
+                    Nenhum empréstimo encontrado.
+                </div>
+            </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = dados.map(e => {
+        const capa   = e.CapaLivro || '';
+        const titulo = e.NomeLivro || `Livro #${e.Livro_id || '—'}`;
+        const autor  = e.AutorLivro || '';
+        const usuario= e.NomeUsuario || `Usuário #${e.Usuario_id}`;
+        const email  = e.EmailUsuario || '';
+        const rowCls = e.Status === 'atrasado' ? 'row-atrasado' : '';
+
+        const miniCapa = capa
+            ? `<img class="livro-mini-capa" src="${capa}" alt="${titulo}"
+                     onerror="this.style.display='none'">`
+            : `<div class="livro-mini-placeholder">
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                   </svg>
+               </div>`;
+
+        const podeDevolver = e.Status === 'ativo' || e.Status === 'atrasado';
+
+        return `
+        <tr class="${rowCls}">
+            <td style="color:#aaa; font-size:0.8rem;">#${e.Emprestimo_id}</td>
+            <td>
+                <div class="livro-cell">
+                    ${miniCapa}
+                    <div>
+                        <div class="livro-nome">${titulo}</div>
+                        <div class="livro-autor">${autor}</div>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div style="font-weight:600">${usuario}</div>
+                <div style="font-size:0.78rem; color:#888">${email}</div>
+            </td>
+            <td>${fmtData(e.DataEmprestimo)}</td>
+            <td style="${e.Status === 'atrasado' ? 'color:#b91c1c; font-weight:600' : ''}">${fmtData(e.DataPrevista)}</td>
+            <td>${fmtData(e.DataDevolucao)}</td>
+            <td>${badgeHtml(e.Status)}</td>
+            <td>
+                <button class="btn-devolver"
+                        onclick="devolverLivro(${e.Emprestimo_id})"
+                        ${podeDevolver ? '' : 'disabled'}>
+                    Devolver
+                </button>
+                <button class="btn-excluir"
+                        onclick="excluirEmprestimo(${e.Emprestimo_id})"
+                        title="Excluir registro">🗑</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// ── Carregar dados ───────────────────────────────────────────
+async function carregarEmprestimos() {
+    try {
+        const res = await fetch(`${API}/emprestimo`);
+        if (!res.ok) throw new Error();
+        todosEmprestimos = await res.json();
+        atualizarStats(todosEmprestimos);
+        filtrar();
+    } catch {
+        document.getElementById('tabelaBody').innerHTML = `
+            <tr><td colspan="8">
+                <div class="table-msg">
+                    <div class="big-icon">⚠️</div>
+                    Não foi possível conectar ao servidor.
+                </div>
+            </td></tr>`;
+    }
+}
+
+async function carregarSelects() {
+    try {
+        const [resU, resL] = await Promise.all([
+            fetch(`${API}/usuario`),
+            fetch(`${API}/livro`)
+        ]);
+
+        todosUsuarios = resU.ok ? await resU.json() : [];
+        todosLivros   = resL.ok ? await resL.json() : [];
+
+        const selU = document.getElementById('selectUsuario');
+        todosUsuarios.forEach(u => {
+            const op = document.createElement('option');
+            op.value       = u.Usuario_id;
+            op.textContent = `${u.Nome} (${u.Email})`;
+            selU.appendChild(op);
+        });
+
+        const selL = document.getElementById('selectLivro');
+        todosLivros.forEach(l => {
+            const op = document.createElement('option');
+            op.value       = l.Livro_id || l.id;
+            op.textContent = `${l.Nome || l.titulo}${l.Autor ? ' — ' + l.Autor : ''}`;
+            selL.appendChild(op);
+        });
+    } catch(e) {
+        console.error('Erro ao carregar selects:', e);
+    }
+}
+
+// ── Modal novo empréstimo ────────────────────────────────────
+function abrirModalNovo() {
+    // Data default: +14 dias
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    document.getElementById('inputDataPrevista').value = d.toISOString().split('T')[0];
+    document.getElementById('erroModal').textContent = '';
+    document.getElementById('modalNovo').classList.add('open');
+}
+
+function fecharModalNovo() {
+    document.getElementById('modalNovo').classList.remove('open');
+    document.getElementById('selectUsuario').value = '';
+    document.getElementById('selectLivro').value   = '';
+    document.getElementById('erroModal').textContent = '';
+}
+
+async function criarEmprestimo() {
+    const usuarioId = document.getElementById('selectUsuario').value;
+    const livroId   = document.getElementById('selectLivro').value;
+    const dataPrev  = document.getElementById('inputDataPrevista').value;
+    const erroEl    = document.getElementById('erroModal');
+
+    if (!usuarioId || !livroId) {
+        erroEl.textContent = 'Selecione o usuário e o livro.';
+        return;
+    }
+
+    erroEl.textContent = '';
+
+    try {
+        const res = await fetch(`${API}/emprestimo`, {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({
+                Usuario_id  : parseInt(usuarioId),
+                Livro_id    : parseInt(livroId),
+                DataPrevista: dataPrev || undefined
+            })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            erroEl.textContent = data.error || 'Erro ao criar empréstimo.';
+            return;
+        }
+
+        fecharModalNovo();
+        showToast('Empréstimo registrado com sucesso! ✅', 'success');
+        await carregarEmprestimos();
+
+    } catch {
+        erroEl.textContent = 'Erro de conexão com o servidor.';
+    }
+}
+
+// ── Devolver livro ───────────────────────────────────────────
+async function devolverLivro(id) {
+    if (!confirm('Confirmar devolução deste livro?')) return;
+
+    const hoje = new Date().toISOString().split('T')[0];
+
+    try {
+        const res = await fetch(`${API}/emprestimo/${id}`, {
+            method : 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({ Status: 'devolvido', DataDevolucao: hoje })
+        });
+
+        if (!res.ok) {
+            const d = await res.json();
+            showToast(d.error || 'Erro ao registrar devolução.', 'error');
+            return;
+        }
+
+        showToast('Devolução registrada com sucesso! ✅', 'success');
+        await carregarEmprestimos();
+
+    } catch {
+        showToast('Erro de conexão com o servidor.', 'error');
+    }
+}
+
+// ── Excluir empréstimo ───────────────────────────────────────
+async function excluirEmprestimo(id) {
+    if (!confirm('Tem certeza que deseja excluir este registro de empréstimo?\nEsta ação não pode ser desfeita.')) return;
+
+    try {
+        const res = await fetch(`${API}/emprestimo/${id}`, { method: 'DELETE' });
+        if (!res.ok && res.status !== 204) {
+            showToast('Erro ao excluir empréstimo.', 'error');
+            return;
+        }
+        showToast('Empréstimo excluído.', 'success');
+        await carregarEmprestimos();
+    } catch {
+        showToast('Erro de conexão com o servidor.', 'error');
+    }
+}
+
+// ── Toast ────────────────────────────────────────────────────
+function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast show ${type}`;
+    setTimeout(() => { t.className = 'toast'; }, 3500);
+}
+
+// ── Fechar modal com ESC ─────────────────────────────────────
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') fecharModalNovo();
+});
+
+document.getElementById('modalNovo').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalNovo')) fecharModalNovo();
+});
+
+// ── Inicialização ────────────────────────────────────────────
+carregarEmprestimos();
+carregarSelects();
+</script>
+
+<script src="../../js/nav.js"></script>
+<div style="position:fixed;top:16px;right:16px;z-index:9999">
+  <button class="theme-toggle" title="Alternar tema">
+    <span class="tt-icon tt-sun">☀️</span>
+    <span class="tt-track"><span class="tt-ball"></span></span>
+    <span class="tt-icon tt-moon">🌙</span>
+  </button>
+</div>
+<script src="../../js/kairos-notificacoes-admin.js"></script>
+<script src="../../js/theme.js"></script>
+</body>
+</html>

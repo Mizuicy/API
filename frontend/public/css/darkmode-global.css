@@ -1,0 +1,1241 @@
+/* ============================================================
+   darkmode-global.css — Kairos · Sistema de Dark Mode Global
+   ============================================================
+   Arquivo central de padronização do tema escuro.
+   Deve ser importado APÓS reset.css em todas as páginas.
+   Corrige: autofill, inputs, cards, tabelas, modais, dropdowns,
+   formulários, notificações, badges, toasts e todos os componentes.
+   ============================================================ */
+
+/* ──────────────────────────────────────────────────────────
+   1. AUTOFILL — Elimina o fundo branco do browser em dark mode
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] input:-webkit-autofill:hover,
+[data-theme="dark"] input:-webkit-autofill:focus,
+[data-theme="dark"] input:-webkit-autofill:active,
+[data-theme="dark"] select:-webkit-autofill,
+[data-theme="dark"] select:-webkit-autofill:hover,
+[data-theme="dark"] select:-webkit-autofill:focus,
+[data-theme="dark"] textarea:-webkit-autofill,
+[data-theme="dark"] textarea:-webkit-autofill:hover,
+[data-theme="dark"] textarea:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #1a1a24 inset !important;
+    -webkit-text-fill-color: #e8e8f0 !important;
+    caret-color: #e8e8f0 !important;
+    border-color: #2e2e42 !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Autofill para inputs com background específico (login/cadastro) */
+[data-theme="dark"] .right-side input:-webkit-autofill,
+[data-theme="dark"] .right-side input:-webkit-autofill:hover,
+[data-theme="dark"] .right-side input:-webkit-autofill:focus,
+[data-theme="dark"] .perfil-card input:-webkit-autofill,
+[data-theme="dark"] .perfil-card input:-webkit-autofill:hover,
+[data-theme="dark"] .perfil-card input:-webkit-autofill:focus,
+[data-theme="dark"] .panel input:-webkit-autofill,
+[data-theme="dark"] .panel input:-webkit-autofill:hover,
+[data-theme="dark"] .panel input:-webkit-autofill:focus,
+[data-theme="dark"] .modal-box input:-webkit-autofill,
+[data-theme="dark"] .modal-box input:-webkit-autofill:hover,
+[data-theme="dark"] .modal-box input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #1a1a24 inset !important;
+    -webkit-text-fill-color: #e8e8f0 !important;
+    caret-color: #e8e8f0 !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   2. BASE GLOBAL — Corpo, superfícies e textos
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] body {
+    background: var(--bg) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+    color: var(--text);
+}
+
+[data-theme="dark"] p {
+    color: var(--text-mid);
+}
+
+/* ──────────────────────────────────────────────────────────
+   3. INPUTS, SELECTS e TEXTAREAS — Todos os campos
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] input,
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="search"],
+[data-theme="dark"] input[type="tel"],
+[data-theme="dark"] input[type="url"],
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+    background: var(--bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus {
+    border-color: var(--purple) !important;
+    outline: none;
+}
+
+/* Inputs com borda bottom (estilo login/cadastro) */
+[data-theme="dark"] .form-group input[style*="border-bottom"],
+[data-theme="dark"] input[style*="border-bottom"] {
+    background: transparent !important;
+}
+
+/* Inputs readonly */
+[data-theme="dark"] input[readonly],
+[data-theme="dark"] input:disabled,
+[data-theme="dark"] select:disabled {
+    background: var(--bg) !important;
+    color: var(--muted) !important;
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+/* Select: seta do dropdown */
+[data-theme="dark"] select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238888a8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   4. LABELS E TEXTOS DE FORMULÁRIO
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] label {
+    color: var(--text-mid);
+}
+
+[data-theme="dark"] .form-group label {
+    color: var(--text-mid);
+}
+
+[data-theme="dark"] .form-label {
+    color: var(--text-mid);
+}
+
+/* ──────────────────────────────────────────────────────────
+   5. CARDS E SUPERFÍCIES
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .card,
+[data-theme="dark"] .panel,
+[data-theme="dark"] .dash-card,
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .emp-card,
+[data-theme="dark"] .book-card,
+[data-theme="dark"] .perfil-card,
+[data-theme="dark"] .form-card,
+[data-theme="dark"] .list-section,
+[data-theme="dark"] .form-section,
+[data-theme="dark"] .main-section {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text);
+}
+
+/* ──────────────────────────────────────────────────────────
+   6. HEADERS E NAVEGAÇÃO
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .header,
+[data-theme="dark"] .u-header,
+[data-theme="dark"] .perfil-header ~ * .right-side,
+[data-theme="dark"] .dash-header {
+    /* Gradiente do header é intencional — mantido */
+}
+
+[data-theme="dark"] .right-side {
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .header {
+    background: var(--surface) !important;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Nav links */
+[data-theme="dark"] .nav-link {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .nav-link:hover,
+[data-theme="dark"] .nav-link.active {
+    color: var(--purple);
+    border-bottom-color: var(--purple);
+}
+
+[data-theme="dark"] .nav-dropdown-btn {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .nav-dropdown-btn:hover {
+    color: var(--purple);
+}
+
+[data-theme="dark"] .nav-link-perfil {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .nav-link-perfil:hover {
+    color: var(--purple);
+}
+
+[data-theme="dark"] .logo {
+    color: var(--purple);
+}
+
+/* ──────────────────────────────────────────────────────────
+   7. DROPDOWNS
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .nav-dropdown-menu {
+    background: var(--surface) !important;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .dropdown-item {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+    background: var(--purple-soft) !important;
+    color: var(--purple) !important;
+}
+
+[data-theme="dark"] .dropdown-item.active {
+    background: var(--purple-soft) !important;
+    color: var(--purple) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   8. TABELAS
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] table {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text);
+}
+
+[data-theme="dark"] thead,
+[data-theme="dark"] table thead {
+    background: var(--bg) !important;
+}
+
+[data-theme="dark"] th {
+    background: var(--bg) !important;
+    color: var(--muted) !important;
+    border-bottom-color: var(--border) !important;
+    border-color: var(--border) !important;
+}
+
+[data-theme="dark"] td {
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+    border-bottom-color: var(--border) !important;
+}
+
+[data-theme="dark"] tbody tr:hover td,
+[data-theme="dark"] tbody tr:hover {
+    background: var(--purple-soft) !important;
+}
+
+/* Tabelas específicas do projeto */
+[data-theme="dark"] .ex-table,
+[data-theme="dark"] .emp-table,
+[data-theme="dark"] .ex-table thead,
+[data-theme="dark"] .emp-table thead {
+    background: var(--surface) !important;
+}
+
+[data-theme="dark"] .ex-table th,
+[data-theme="dark"] .emp-table th {
+    background: var(--bg) !important;
+    color: var(--muted) !important;
+    border-bottom-color: var(--border) !important;
+}
+
+[data-theme="dark"] .ex-table td,
+[data-theme="dark"] .emp-table td {
+    color: var(--text) !important;
+    border-bottom-color: var(--border) !important;
+}
+
+[data-theme="dark"] .ex-table tbody tr:hover,
+[data-theme="dark"] .emp-table tbody tr:hover {
+    background: var(--purple-soft) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   9. MODAIS E PAINÉIS LATERAIS
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .modal-overlay {
+    background: rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="dark"] .modal-box,
+[data-theme="dark"] .u-modal-box {
+    background: var(--surface) !important;
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+[data-theme="dark"] .modal-header {
+    border-bottom-color: var(--border) !important;
+    color: var(--text);
+}
+
+[data-theme="dark"] .modal-header h3,
+[data-theme="dark"] .modal-title {
+    color: var(--text);
+}
+
+[data-theme="dark"] .modal-body {
+    color: var(--text);
+}
+
+[data-theme="dark"] .modal-footer,
+[data-theme="dark"] .modal-actions {
+    border-top-color: var(--border) !important;
+}
+
+[data-theme="dark"] .side-panel {
+    background: var(--surface) !important;
+    border-left-color: var(--border) !important;
+}
+
+[data-theme="dark"] .panel-header,
+[data-theme="dark"] .panel-footer {
+    border-color: var(--border) !important;
+    color: var(--text);
+}
+
+[data-theme="dark"] .panel-close {
+    background: var(--border) !important;
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .panel-close:hover {
+    background: var(--purple-soft) !important;
+    color: var(--purple) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   10. BOTÕES
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .btn-secondary {
+    background: var(--surface) !important;
+    border-color: var(--purple) !important;
+    color: var(--purple) !important;
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+    background: var(--purple-soft) !important;
+}
+
+[data-theme="dark"] .btn-ghost {
+    background: var(--purple-soft) !important;
+    color: var(--purple) !important;
+}
+
+[data-theme="dark"] .btn-ghost:hover {
+    background: var(--border) !important;
+}
+
+[data-theme="dark"] .btn-cancelar,
+[data-theme="dark"] .btn-cancel {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text-mid) !important;
+}
+
+[data-theme="dark"] .btn-cancelar:hover,
+[data-theme="dark"] .btn-cancel:hover {
+    border-color: var(--muted) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .btn-excluir {
+    background: var(--error-bg) !important;
+    color: var(--error) !important;
+    border-color: var(--error-border) !important;
+}
+
+[data-theme="dark"] .btn-excluir:hover {
+    background: var(--error-border) !important;
+}
+
+[data-theme="dark"] .btn-outline {
+    /* botão outline no left-side (gradiente) — mantém branco */
+}
+
+/* Botões de ação gerais */
+[data-theme="dark"] .btn-add,
+[data-theme="dark"] .btn-novo {
+    /* Primary buttons — mantêm o gradiente */
+}
+
+/* ──────────────────────────────────────────────────────────
+   11. BADGES E STATUS
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .badge-ativo,
+[data-theme="dark"] .badge.ativo {
+    background: var(--success-bg) !important;
+    color: var(--success) !important;
+    border-color: var(--success-border) !important;
+}
+
+[data-theme="dark"] .badge-devolvido,
+[data-theme="dark"] .badge.devolvido {
+    background: var(--border) !important;
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .badge-atrasado,
+[data-theme="dark"] .badge.atrasado {
+    background: var(--error-bg) !important;
+    color: var(--error) !important;
+    border-color: var(--error-border) !important;
+}
+
+[data-theme="dark"] .status-disponivel {
+    background: var(--success-bg) !important;
+    color: var(--success) !important;
+}
+
+[data-theme="dark"] .status-emprestado {
+    background: var(--warning-bg) !important;
+    color: var(--warning) !important;
+}
+
+[data-theme="dark"] .status-indisponivel {
+    background: var(--error-bg) !important;
+    color: var(--error) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   12. ALERTAS
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .alert.success,
+[data-theme="dark"] .alert-success {
+    background: var(--success-bg) !important;
+    color: var(--success) !important;
+    border-color: var(--success-border) !important;
+}
+
+[data-theme="dark"] .alert.error,
+[data-theme="dark"] .alert-error {
+    background: var(--error-bg) !important;
+    color: var(--error) !important;
+    border-color: var(--error-border) !important;
+}
+
+[data-theme="dark"] .alert.info,
+[data-theme="dark"] .alert-info {
+    background: var(--purple-soft) !important;
+    color: var(--purple) !important;
+    border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .alert.loading {
+    background: var(--surface) !important;
+    color: var(--text-mid) !important;
+    border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .alert.warning {
+    background: var(--warning-bg) !important;
+    color: var(--warning) !important;
+}
+
+/* Inline alerts em HTML (login.html tem estilo inline) */
+[data-theme="dark"] [style*="background: #f8d7da"],
+[data-theme="dark"] [style*="background:#f8d7da"] {
+    background: var(--error-bg) !important;
+    color: var(--error) !important;
+}
+
+[data-theme="dark"] [style*="background: #d4edda"],
+[data-theme="dark"] [style*="background:#d4edda"] {
+    background: var(--success-bg) !important;
+    color: var(--success) !important;
+}
+
+[data-theme="dark"] [style*="background: #cfe2ff"],
+[data-theme="dark"] [style*="background:#cfe2ff"] {
+    background: var(--surface) !important;
+    color: var(--text-mid) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   13. TOASTS
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .toast {
+    background: var(--surface) !important;
+    border: 1px solid var(--border);
+    color: var(--text) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   14. TABS (abas)
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .tabs {
+    border-bottom-color: var(--border) !important;
+}
+
+[data-theme="dark"] .tab-btn {
+    color: var(--muted) !important;
+    border-bottom-color: transparent;
+}
+
+[data-theme="dark"] .tab-btn:hover:not(.active) {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .tab-btn.active {
+    color: var(--purple) !important;
+    border-bottom-color: var(--purple) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   15. SEARCH E FILTROS
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .search-input,
+[data-theme="dark"] .filter-select,
+[data-theme="dark"] .u-search input {
+    background: var(--bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .search-input::placeholder,
+[data-theme="dark"] .u-search input::placeholder {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .section-toolbar {
+    border-color: var(--border) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   16. NOTIFICAÇÕES (kairos-notificacoes.js)
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] #kn-dropdown {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .kn-item {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .kn-item:hover {
+    background: var(--bg) !important;
+}
+
+[data-theme="dark"] .kn-item.kn-nao-lida {
+    background: rgba(245, 158, 11, 0.08) !important;
+}
+
+[data-theme="dark"] .kn-item-icon {
+    background: #422006 !important;
+    border-color: #92400e !important;
+}
+
+[data-theme="dark"] .kn-btn-acao {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .kn-btn-acao:hover {
+    background: var(--purple-soft) !important;
+    color: var(--purple) !important;
+    border-color: var(--purple) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   17. EMPTY STATE E MENSAGENS
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .empty-state,
+[data-theme="dark"] .table-msg {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .empty-state-icon {
+    opacity: 0.6;
+}
+
+/* ──────────────────────────────────────────────────────────
+   18. PÁGINAS DE AUTH (login, cadastro, verificação, etc.)
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .container {
+    /* Container que envolve left + right side */
+}
+
+[data-theme="dark"] .right-side {
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+}
+
+/* Campos com borda inferior (estilo minimalista do login) */
+[data-theme="dark"] .right-side .form-group input {
+    background: transparent !important;
+    border-bottom-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .right-side .form-group input:focus {
+    border-bottom-color: var(--purple) !important;
+}
+
+[data-theme="dark"] .remember-me,
+[data-theme="dark"] .terms-checkbox {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .terms-checkbox {
+    background: var(--bg) !important;
+}
+
+[data-theme="dark"] .password-requirements {
+    background: var(--bg) !important;
+    border-color: var(--border) !important;
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .requirement {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .requirement.met,
+[data-theme="dark"] .requirement.valid {
+    color: var(--success) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   19. PERFIL — Campos específicos
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .perfil-card {
+    background: var(--surface) !important;
+}
+
+[data-theme="dark"] .perfil-card input[type="text"],
+[data-theme="dark"] .perfil-card input[type="email"],
+[data-theme="dark"] .perfil-card input[type="password"] {
+    background: var(--bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .perfil-card input[type="text"]:focus,
+[data-theme="dark"] .perfil-card input[type="email"]:focus,
+[data-theme="dark"] .perfil-card input[type="password"]:focus {
+    background: var(--surface) !important;
+    border-color: var(--purple) !important;
+}
+
+[data-theme="dark"] .card-section-label {
+    border-bottom-color: var(--purple-soft) !important;
+}
+
+[data-theme="dark"] .form-divider {
+    color: var(--muted);
+}
+
+[data-theme="dark"] .form-divider::before,
+[data-theme="dark"] .form-divider::after {
+    background: var(--border);
+}
+
+[data-theme="dark"] .btn-back {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .btn-back:hover {
+    border-color: var(--purple) !important;
+    color: var(--purple) !important;
+    background: var(--purple-soft) !important;
+}
+
+[data-theme="dark"] input[readonly] {
+    background: var(--bg) !important;
+    color: var(--muted) !important;
+    opacity: 0.65;
+}
+
+/* ──────────────────────────────────────────────────────────
+   20. ADMIN PANEL
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .admin-card {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text);
+}
+
+/* ──────────────────────────────────────────────────────────
+   21. CATALOGO E LIVROS (cards de livro)
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .filter-bar {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .modal-tag {
+    background: var(--purple-soft) !important;
+    color: var(--purple) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   22. EMPRÉSTIMOS — Inline styles do emprestimos.html
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .stat-card {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .stat-value {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .stat-label {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .livro-nome {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .livro-autor,
+[data-theme="dark"] .livro-sub {
+    color: var(--muted) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   23. COMPONENTES INJETADOS DINAMICAMENTE (JS)
+   ────────────────────────────────────────────────────────── */
+/* Regras que usam !important para garantir override de estilos inline */
+[data-theme="dark"] [style*="background: white"],
+[data-theme="dark"] [style*="background:white"],
+[data-theme="dark"] [style*="background-color: white"],
+[data-theme="dark"] [style*="background-color:white"],
+[data-theme="dark"] [style*="background: #fff"],
+[data-theme="dark"] [style*="background:#fff"],
+[data-theme="dark"] [style*="background: #ffffff"],
+[data-theme="dark"] [style*="background:#ffffff"],
+[data-theme="dark"] [style*="background-color: #fff"],
+[data-theme="dark"] [style*="background-color:#fff"],
+[data-theme="dark"] [style*="background: rgb(255, 255, 255)"] {
+    /* Não sobrescrever automaticamente pois pode afetar left-side, botões primários, etc. */
+    /* Estes casos são tratados individualmente acima */
+}
+
+/* Texto explicitamente escuro em contextos que precisam ser claros */
+[data-theme="dark"] [style*="color: #333"],
+[data-theme="dark"] [style*="color:#333"],
+[data-theme="dark"] [style*="color: #1a1a1a"],
+[data-theme="dark"] [style*="color: rgb(0,0,0)"] {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] [style*="color: #888"],
+[data-theme="dark"] [style*="color:#888"],
+[data-theme="dark"] [style*="color: #666"],
+[data-theme="dark"] [style*="color:#666"],
+[data-theme="dark"] [style*="color: #999"],
+[data-theme="dark"] [style*="color:#999"] {
+    color: var(--muted) !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+   24. SCROLLBAR (Webkit)
+   ────────────────────────────────────────────────────────── */
+[data-theme="dark"] ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+}
+
+/* ──────────────────────────────────────────────────────────
+   25. TRANSIÇÕES GLOBAIS SUAVES
+   ────────────────────────────────────────────────────────── */
+body,
+input, select, textarea,
+.card, .panel, .stat-card, .dash-card, .perfil-card, .emp-card, .book-card,
+.header, .u-header, .right-side, .modal-box, .side-panel, .nav-dropdown-menu,
+table, th, td, thead, tbody,
+.alert, .toast, .badge,
+label, h1, h2, h3, h4, h5, h6 {
+    transition:
+        background-color 0.25s ease,
+        background 0.25s ease,
+        color 0.25s ease,
+        border-color 0.25s ease !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   26. ÁREA ADMINISTRATIVA — Dark Mode Completo
+   Corrige: painel admin, dashboard, navbar, tabelas, cards,
+   inputs, selects, dropdowns, modais, formulários, upload de
+   imagem e todos os elementos do painel admin.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Body com gradiente → substituir por bg sólido no dark */
+[data-theme="dark"] body {
+    background: var(--bg) !important;
+    background-image: none !important;
+}
+
+/* Container geral */
+[data-theme="dark"] .container {
+    background: transparent !important;
+}
+
+/* ── Header / Navbar ── */
+[data-theme="dark"] .header {
+    background: var(--surface) !important;
+    border-bottom: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+[data-theme="dark"] .header-content {
+    background: transparent !important;
+}
+
+[data-theme="dark"] .logo {
+    color: var(--purple) !important;
+}
+
+[data-theme="dark"] .nav-link {
+    color: var(--muted) !important;
+    border-bottom-color: transparent !important;
+}
+
+[data-theme="dark"] .nav-link:hover,
+[data-theme="dark"] .nav-link.active {
+    color: var(--purple) !important;
+    border-bottom-color: var(--purple) !important;
+}
+
+[data-theme="dark"] .nav-dropdown-btn {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .nav-dropdown-btn:hover {
+    color: var(--purple) !important;
+}
+
+/* ── Sections / Panels ── */
+[data-theme="dark"] .form-section,
+[data-theme="dark"] .list-section,
+[data-theme="dark"] .catalogo-section {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .catalogo-header h2 {
+    color: var(--text) !important;
+}
+
+/* ── Filtros / Search / Select ── */
+[data-theme="dark"] .filtros {
+    background: transparent !important;
+}
+
+[data-theme="dark"] .search-input,
+[data-theme="dark"] .filter-select {
+    background: var(--bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .search-input::placeholder {
+    color: var(--muted) !important;
+}
+
+/* ── Cards de livro no grid ── */
+[data-theme="dark"] .livro-card,
+[data-theme="dark"] .book-item,
+[data-theme="dark"] .livros-grid > * {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .livro-info h3,
+[data-theme="dark"] .livro-title {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .livro-autor,
+[data-theme="dark"] .livro-sub,
+[data-theme="dark"] .livro-meta {
+    color: var(--muted) !important;
+}
+
+/* ── Loading state ── */
+[data-theme="dark"] .loading {
+    color: var(--muted) !important;
+}
+
+/* ── Modal admin (modal com .modal / .modal-content) ── */
+[data-theme="dark"] .modal {
+    background: rgba(0, 0, 0, 0.75) !important;
+}
+
+[data-theme="dark"] .modal-content {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text) !important;
+    box-shadow: var(--shadow-xl) !important;
+}
+
+[data-theme="dark"] .close {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .close:hover {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .detalhes-conteudo {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .detalhes-conteudo h3,
+[data-theme="dark"] .detalhes-conteudo h4 {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .detalhes-conteudo p,
+[data-theme="dark"] .detalhes-conteudo span {
+    color: var(--text-mid) !important;
+}
+
+/* ── Formulário Adicionar Livro ── */
+[data-theme="dark"] .form-livro {
+    background: transparent !important;
+}
+
+[data-theme="dark"] .form-group label {
+    color: var(--text-mid) !important;
+}
+
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select,
+[data-theme="dark"] .form-group textarea {
+    background: var(--bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .form-group input:focus,
+[data-theme="dark"] .form-group select:focus,
+[data-theme="dark"] .form-group textarea:focus {
+    background: var(--surface) !important;
+    border-color: var(--purple) !important;
+    box-shadow: 0 0 0 3px rgba(124, 111, 247, 0.15) !important;
+}
+
+[data-theme="dark"] .form-group input::placeholder,
+[data-theme="dark"] .form-group textarea::placeholder {
+    color: var(--muted) !important;
+}
+
+/* ── Upload de Capa: Tabs ── */
+[data-theme="dark"] .capa-tabs {
+    border-color: var(--border) !important;
+    background: var(--bg) !important;
+}
+
+[data-theme="dark"] .capa-tab {
+    background: var(--bg) !important;
+    color: var(--muted) !important;
+    border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .capa-tab + .capa-tab {
+    border-left-color: var(--border) !important;
+}
+
+[data-theme="dark"] .capa-tab.active {
+    background: var(--purple) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .capa-tab:hover:not(.active) {
+    background: var(--purple-soft) !important;
+    color: var(--purple) !important;
+}
+
+/* ── Upload de Capa: Dropzone (componente de escolher arquivo) ── */
+[data-theme="dark"] .capa-dropzone {
+    background: var(--bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .capa-dropzone:hover,
+[data-theme="dark"] .capa-dropzone.drag-over {
+    border-color: var(--purple) !important;
+    background: var(--purple-soft) !important;
+}
+
+[data-theme="dark"] .dropzone-text {
+    color: var(--text-mid) !important;
+}
+
+[data-theme="dark"] .dropzone-hint {
+    color: var(--muted) !important;
+}
+
+/* ── Upload de Capa: Preview ── */
+[data-theme="dark"] .capa-preview-wrap {
+    background: var(--bg) !important;
+    border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .capa-remove-btn {
+    border-color: var(--error-border) !important;
+    color: var(--error) !important;
+    background: transparent !important;
+}
+
+[data-theme="dark"] .capa-remove-btn:hover {
+    background: var(--error-bg) !important;
+}
+
+/* ── Botão de submit do formulário ── */
+[data-theme="dark"] .btn-submit {
+    /* gradient primário — mantém visual */
+    box-shadow: 0 4px 16px rgba(91, 76, 245, 0.35) !important;
+}
+
+[data-theme="dark"] .btn-link {
+    color: var(--purple) !important;
+}
+
+[data-theme="dark"] .btn-link:hover {
+    color: var(--purple-mid) !important;
+}
+
+/* ── Empty state na grade de livros ── */
+[data-theme="dark"] .empty-state-box {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .empty-title {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .empty-sub {
+    color: var(--border) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   27. FAIXA KAIROS — Perfil (admin e usuário)
+   No modo escuro: roxo escuro elegante.
+   No modo claro: roxo vibrante da identidade visual.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Modo claro: roxo vivo e saturado */
+.perfil-header {
+    background: linear-gradient(135deg, #5b4cf5 0%, #764ba2 100%) !important;
+}
+
+/* Modo escuro: roxo mais escuro, profundo e harmonioso */
+[data-theme="dark"] .perfil-header {
+    background: linear-gradient(135deg, #2d2460 0%, #3d2070 100%) !important;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Textos na faixa — garantir legibilidade em ambos os temas */
+.perfil-header .perfil-logo,
+.perfil-header .perfil-breadcrumb {
+    color: rgba(255, 255, 255, 0.92) !important;
+}
+
+[data-theme="dark"] .perfil-header .perfil-logo {
+    color: rgba(255, 255, 255, 0.95) !important;
+}
+
+[data-theme="dark"] .perfil-header .perfil-breadcrumb {
+    color: rgba(200, 190, 255, 0.75) !important;
+}
+
+/* theme-toggle dentro do header de perfil */
+[data-theme="dark"] .perfil-header .theme-toggle {
+    background: rgba(255, 255, 255, 0.10) !important;
+    border-color: rgba(255, 255, 255, 0.20) !important;
+}
+
+[data-theme="dark"] .perfil-header .theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   28. PERFIL — Correções visuais completas (admin e usuário)
+   ══════════════════════════════════════════════════════════════ */
+
+[data-theme="dark"] .perfil-main {
+    background: var(--bg) !important;
+}
+
+[data-theme="dark"] .perfil-card {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+[data-theme="dark"] .perfil-title {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .card-section-label {
+    color: var(--purple) !important;
+    border-bottom-color: var(--purple-soft) !important;
+}
+
+/* Avatar */
+[data-theme="dark"] .avatar-circle {
+    background: var(--purple-soft) !important;
+    border-color: var(--border) !important;
+    color: var(--purple) !important;
+}
+
+[data-theme="dark"] .avatar-initials {
+    color: var(--purple) !important;
+}
+
+[data-theme="dark"] .avatar-change-btn {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .avatar-change-btn:hover {
+    border-color: var(--purple) !important;
+    color: var(--purple) !important;
+    background: var(--purple-soft) !important;
+}
+
+/* Inputs do perfil */
+[data-theme="dark"] .perfil-card input[type="text"],
+[data-theme="dark"] .perfil-card input[type="email"],
+[data-theme="dark"] .perfil-card input[type="password"] {
+    background: var(--bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .perfil-card input[type="text"]:focus,
+[data-theme="dark"] .perfil-card input[type="email"]:focus,
+[data-theme="dark"] .perfil-card input[type="password"]:focus {
+    background: var(--surface) !important;
+    border-color: var(--purple) !important;
+    box-shadow: 0 0 0 3px rgba(124, 111, 247, 0.15) !important;
+}
+
+[data-theme="dark"] .perfil-card input[readonly],
+[data-theme="dark"] .perfil-card input:read-only {
+    background: var(--bg) !important;
+    color: var(--muted) !important;
+    opacity: 0.65;
+}
+
+[data-theme="dark"] .perfil-card label {
+    color: var(--text-mid) !important;
+}
+
+[data-theme="dark"] .input-with-icon {
+    background: transparent !important;
+}
+
+[data-theme="dark"] .input-icon,
+[data-theme="dark"] .toggle-pwd {
+    color: var(--muted) !important;
+}
+
+/* Divisor de formulário */
+[data-theme="dark"] .form-divider {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .form-divider::before,
+[data-theme="dark"] .form-divider::after {
+    background: var(--border) !important;
+}
+
+/* Botões do perfil */
+[data-theme="dark"] .btn-back {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .btn-back:hover {
+    border-color: var(--purple) !important;
+    color: var(--purple) !important;
+    background: var(--purple-soft) !important;
+}
+
+[data-theme="dark"] .btn-cancelar {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .btn-cancelar:hover {
+    border-color: var(--muted) !important;
+    color: var(--text) !important;
+}
+
+/* Toast do perfil */
+[data-theme="dark"] .toast {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+/* Campo de erro */
+[data-theme="dark"] .field-error {
+    color: var(--error) !important;
+}

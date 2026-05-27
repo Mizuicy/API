@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/darkmode-global.css">
+    <script>(function(){var t=localStorage.getItem('kairos-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Código de Verificação - Kairos</title>
+    <link rel="stylesheet" href="../../css/login.css">
+    <style>
+        .code-input { width: 45px; height: 45px; margin: 0 4px; text-align:center; font-size:1.15rem; }
+        .code-row { display:flex; justify-content:center; gap:6px; margin-bottom:18px; }
+        .small-text { font-size:0.9rem; color:#555; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="left-side">
+        <h1>🏛️ Kairos</h1>
+        <p>Confirme seu email para redefinir sua senha</p>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+            <button class="btn-outline" onclick="location.href='esqueci-senha.html'">Voltar</button>
+        </div>
+    </div>
+
+    <div class="right-side">
+        <h2>Digite o código</h2>
+        <p class="small-text">Enviado para <strong id="emailDisplay">seu email</strong>.</p>
+        <div id="alertBox"></div>
+
+        <form id="codigoForm">
+            <div class="code-row" id="codeRow">
+                <input class="code-input" type="text" maxlength="1" inputmode="numeric" required>
+                <input class="code-input" type="text" maxlength="1" inputmode="numeric" required>
+                <input class="code-input" type="text" maxlength="1" inputmode="numeric" required>
+                <input class="code-input" type="text" maxlength="1" inputmode="numeric" required>
+                <input class="code-input" type="text" maxlength="1" inputmode="numeric" required>
+                <input class="code-input" type="text" maxlength="1" inputmode="numeric" required>
+            </div>
+            <button type="submit" class="btn-submit" id="btnVerificar">Validar código</button>
+        </form>
+
+        <p class="small-text">Não recebeu? <a href="#" id="resendLink">Reenviar código</a></p>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:3000';
+    const resetEmail = sessionStorage.getItem('resetEmail');
+    const resetVerified = sessionStorage.getItem('resetVerified');
+
+    if (!resetEmail) {
+        window.location.href = 'esqueci-senha.html';
+    }
+
+    document.getElementById('emailDisplay').textContent = resetEmail || 'seu email';
+
+    const inputs = document.querySelectorAll('.code-input');
+    inputs.forEach((input, idx) => {
+        input.addEventListener('input', () => {
+            input.value = input.value.replace(/\D/g, '');
+            if (input.value && idx < inputs.length - 1) {
+                inputs[idx + 1].focus();
+            }
+        });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !input.value && idx > 0) {
+                inputs[idx - 1].focus();
+            }
+        });
+    });
+
+    document.getElementById('codigoForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = Array.from(inputs).map(i => i.value).join('');
+        if (code.length < 6) {
+            showAlert('Digite os 6 dígitos do código.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('btnVerificar');
+        btn.disabled = true;
+        showAlert('<span class="spin"></span>Validando…', 'loading');
+
+        try {
+            const res = await fetch(`${API}/usuario/authcode/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Email: resetEmail, Codigo: code })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                showAlert(`❌ ${data.error || 'Código inválido.'}`, 'error');
+                btn.disabled = false;
+                return;
+            }
+
+            sessionStorage.setItem('resetVerified', 'true');
+            showAlert('✅ Código verificado! Redirecionando…', 'success');
+            setTimeout(() => window.location.href = 'nova-senha.html', 800);
+        } catch (err) {
+            showAlert('❌ Servidor offline.', 'error');
+            btn.disabled = false;
+        }
+    });
+
+    document.getElementById('resendLink').addEventListener('click', async (event) => {
+        event.preventDefault();
+        showAlert('<span class="spin"></span>Reenviando…', 'loading');
+
+        try {
+            const res = await fetch(`${API}/usuario/authcode`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Email: resetEmail })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Falha ao reenviar.');
+
+            showAlert('✅ Código reenviado com sucesso.', 'success');
+        } catch (err) {
+            showAlert(`❌ ${err.message}`, 'error');
+        }
+    });
+
+    function showAlert(message, type) {
+        document.getElementById('alertBox').innerHTML = `<div class="alert ${type}">${message}</div>`;
+    }
+</script>
+<script src="../../js/theme.js"></script>
+</body>
+</html>

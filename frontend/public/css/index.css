@@ -1,0 +1,222 @@
+/* Dashboard Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f0f0f0;
+    min-height: 100vh;
+}
+
+/* Header */
+.dash-header {
+    background: linear-gradient(135deg, #4b19e6, #6a2ee0);
+    padding: 0 40px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+
+.dash-header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.dash-logo {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.dash-user {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: rgba(255,255,255,0.9);
+    font-size: 0.95rem;
+}
+
+.btn-logout {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s ease;
+}
+
+.btn-logout:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* Main */
+.dash-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.dash-welcome {
+    margin-bottom: 36px;
+}
+
+.dash-welcome h2 {
+    font-size: 1.8rem;
+    color: #222;
+    margin-bottom: 6px;
+}
+
+.dash-welcome p {
+    color: #777;
+    font-size: 1rem;
+}
+
+/* Cards Grid */
+.dash-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 24px;
+}
+
+.dash-card {
+    background: white;
+    border-radius: 12px;
+    padding: 32px 28px;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dash-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 24px rgba(75, 25, 230, 0.15);
+}
+
+.dash-card-icon {
+    font-size: 2.2rem;
+}
+
+.dash-card h3 {
+    font-size: 1.1rem;
+    color: #222;
+    font-weight: 700;
+}
+
+.dash-card p {
+    font-size: 0.9rem;
+    color: #888;
+    line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .dash-header {
+        padding: 0 20px;
+    }
+
+    .dash-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dash-welcome h2 {
+        font-size: 1.4rem;
+    }
+}
+
+/* ── MODO ESCURO (index.css) ── */
+[data-theme="dark"] body { background: var(--bg); color: var(--text); }
+[data-theme="dark"] .dash-main { background: var(--bg); }
+[data-theme="dark"] .dash-welcome { color: var(--text); }
+[data-theme="dark"] .dash-welcome h2 { color: var(--text); }
+[data-theme="dark"] .dash-welcome p { color: var(--muted); }
+[data-theme="dark"] .dash-card {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: var(--shadow-md);
+}
+[data-theme="dark"] .dash-card h3 { color: var(--text); }
+[data-theme="dark"] .dash-card p { color: var(--muted); }
+[data-theme="dark"] .dash-card:hover { box-shadow: var(--shadow-lg); }
+body, .dash-card, .dash-main { transition: background 0.25s, color 0.25s, border-color 0.25s; }
+
+/* ── Theme toggle dentro do dash-header (fundo roxo gradiente) ── */
+.dash-header .theme-toggle {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.35);
+    flex-shrink: 0;
+}
+.dash-header .theme-toggle:hover {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.55);
+}
+.dash-header .theme-toggle .tt-ball {
+    background: #ffffff;
+    box-shadow: 0 0 6px 2px rgba(255,255,255,0.5);
+}
+[data-theme="dark"] .dash-header .theme-toggle .tt-ball {
+    background: #a594fb;
+    box-shadow: 0 0 8px 3px rgba(165,148,251,0.65);
+}
+.dash-header .theme-toggle .tt-track {
+    background: rgba(255,255,255,0.25);
+}
+
+/* ── Dark mode: dashboard ── */
+[data-theme="dark"] body {
+    background: var(--bg) !important;
+    background-image: none !important;
+}
+
+[data-theme="dark"] .dash-header {
+    background: #0d1b2e !important;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.55);
+}
+
+[data-theme="dark"] .dash-main {
+    background: transparent;
+}
+
+[data-theme="dark"] .dash-welcome h2 {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .dash-welcome p {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .dash-card {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+[data-theme="dark"] .dash-card h3 {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .dash-card p {
+    color: var(--muted) !important;
+}
+
+[data-theme="dark"] .dash-card:hover {
+    background: var(--surface) !important;
+    border-color: var(--purple) !important;
+    box-shadow: 0 6px 20px rgba(124,111,247,0.25) !important;
+}
+
+[data-theme="dark"] .dash-card-icon {
+    filter: brightness(1.1);
+}

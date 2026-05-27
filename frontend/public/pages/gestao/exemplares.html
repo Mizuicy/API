@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/darkmode-global.css">
+    <script>(function(){var t=localStorage.getItem('kairos-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kairos — Exemplares</title>
+    <link rel="stylesheet" href="../../css/exemplares.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">🏛️ Kairos</h1>
+            <nav class="nav">
+                <a href="../../index.html" class="nav-link">Início</a>
+                <a href="livros.html" class="nav-link">Adicionar Livro</a>
+                <a href="../admin/admin.html" class="nav-link">Catálogo</a>
+                <div class="nav-dropdown">
+                    <button class="nav-link nav-dropdown-btn">Gestão ▾</button>
+                    <div class="nav-dropdown-menu">
+                        <a href="autores.html" class="dropdown-item">✍️ Autores</a>
+                        <a href="exemplares.html" class="dropdown-item active">📦 Exemplares</a>
+                        <a href="emprestimos.html" class="dropdown-item">🔄 Empréstimos</a>
+                    </div>
+                </div>
+                <a href="../perfil.html" class="nav-link nav-link-perfil" title="Perfil">👤</a>
+                <button class="theme-toggle" title="Alternar tema" style="margin-left:8px">
+                    <span class="tt-icon tt-sun">☀️</span>
+                    <span class="tt-track"><span class="tt-ball"></span></span>
+                    <span class="tt-icon tt-moon">🌙</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1>📦 Exemplares</h1>
+            <p>Gerenciamento de exemplares físicos da biblioteca</p>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn btn-secondary" onclick="abrirPainelLote()">
+                <span class="btn-icon">📋</span> Cadastro em Lote
+            </button>
+            <button class="btn btn-primary" onclick="abrirPainelCadastro()">
+                <span class="btn-icon">＋</span> Cadastrar Exemplar
+            </button>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+        <div class="stat-card total">
+            <div class="stat-icon">📚</div>
+            <div class="stat-value" id="statTotal">—</div>
+            <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card disponivel">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value" id="statDisponivel">—</div>
+            <div class="stat-label">Disponíveis</div>
+        </div>
+        <div class="stat-card emprestado">
+            <div class="stat-icon">📤</div>
+            <div class="stat-value" id="statEmprestado">—</div>
+            <div class="stat-label">Emprestados</div>
+        </div>
+        <div class="stat-card reservado">
+            <div class="stat-icon">🔖</div>
+            <div class="stat-value" id="statReservado">—</div>
+            <div class="stat-label">Reservados</div>
+        </div>
+        <div class="stat-card manutencao">
+            <div class="stat-icon">🔧</div>
+            <div class="stat-value" id="statManutencao">—</div>
+            <div class="stat-label">Manutenção</div>
+        </div>
+    </div>
+
+    <!-- TABELA PRINCIPAL -->
+    <div class="main-section">
+        <div class="section-toolbar">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="inputBusca" class="search-input"
+                       placeholder="Buscar por título, tombo ou localização…"
+                       oninput="debouncarBusca()">
+            </div>
+            <select id="filtroStatus" class="filter-select" onchange="aplicarFiltros()">
+                <option value="">Todos os status</option>
+                <option value="Disponivel">Disponível</option>
+                <option value="Emprestado">Emprestado</option>
+                <option value="Reservado">Reservado</option>
+                <option value="Manutencao">Manutenção</option>
+            </select>
+            <select id="filtroOrdem" class="filter-select" onchange="aplicarFiltros()">
+                <option value="recente">Mais recentes</option>
+                <option value="tombo_asc">Tombo ↑</option>
+                <option value="tombo_desc">Tombo ↓</option>
+                <option value="titulo">Título A–Z</option>
+            </select>
+        </div>
+
+        <div class="tabela-wrapper">
+            <table class="ex-table">
+                <thead>
+                    <tr>
+                        <th>Livro</th>
+                        <th>Nº de Tombo</th>
+                        <th>Localização</th>
+                        <th>Status</th>
+                        <th>Cadastro</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaCorpo">
+                    <tr>
+                        <td colspan="6" class="loading-cell">
+                            <div class="loading-spinner"></div>
+                            Carregando exemplares…
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="tabela-footer">
+            <span class="tabela-info" id="tabelaInfo">Carregando…</span>
+            <div class="paginacao" id="paginacao"></div>
+        </div>
+    </div>
+</div>
+
+<!-- PAINEL: Cadastrar / Editar Exemplar -->
+<div class="panel-overlay" id="overlayIndividual" onclick="fecharPainelCadastro()"></div>
+<aside class="side-panel" id="painelCadastro">
+    <div class="panel-header">
+        <h2 id="painelCadastroTitulo">📦 Cadastrar Exemplar</h2>
+        <button class="panel-close" onclick="fecharPainelCadastro()">×</button>
+    </div>
+    <div class="panel-body">
+        <input type="hidden" id="exemplarEditandoId">
+
+        <p class="form-section-title">📚 Livro Relacionado</p>
+        <div class="form-group">
+            <label for="livroSelect">Livro *</label>
+            <select id="livroSelect">
+                <option value="">Selecione um livro cadastrado…</option>
+            </select>
+        </div>
+
+        <hr class="form-divider">
+        <p class="form-section-title">🏷️ Identificação</p>
+        <div class="form-group">
+            <label for="tomboInput">Número de Tombo *</label>
+            <input type="text" id="tomboInput" placeholder="Ex: TMB-000252"
+                   oninput="atualizarPreviewTombo(this.value)">
+            <div class="tombo-preview">
+                <span class="tombo-preview-label">Prévia:</span>
+                <span class="tombo-preview-value" id="tomboPreviewVal">TMB-______</span>
+            </div>
+        </div>
+
+        <hr class="form-divider">
+        <p class="form-section-title">📍 Localização &amp; Status</p>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="localizacaoInput">Localização *</label>
+                <input type="text" id="localizacaoInput" list="sugestoesLocalizacao"
+                       placeholder="Ex: Biblioteca Central – Estante A – Prat. 3"
+                       autocomplete="off" maxlength="100">
+                <datalist id="sugestoesLocalizacao">
+                    <option>Estante A – Prat. 1</option>
+                    <option>Estante A – Prat. 2</option>
+                    <option>Estante A – Prat. 3</option>
+                    <option>Estante B – Prat. 1</option>
+                    <option>Estante B – Prat. 2</option>
+                    <option>Estante B – Prat. 3</option>
+                    <option>Estante C – Prat. 1</option>
+                    <option>Estante C – Prat. 4</option>
+                    <option>Sala de Leitura</option>
+                    <option>Setor Infantil</option>
+                </datalist>
+            </div>
+            <div class="form-group">
+                <label for="statusInput">Status *</label>
+                <select id="statusInput">
+                    <option value="Disponivel">Disponível</option>
+                    <option value="Reservado">Reservado</option>
+                    <option value="Manutencao">Manutenção</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="obsInput">Observações</label>
+            <textarea id="obsInput" rows="3"
+                      placeholder="Anotações sobre o estado físico, origem, etc…"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="dataAquisicao">Data de Aquisição</label>
+            <input type="date" id="dataAquisicao">
+        </div>
+        <div id="painelErro" class="form-erro" style="display:none"></div>
+    </div>
+    <div class="panel-footer">
+        <button class="btn btn-primary" style="flex:1" id="btnSalvarExemplar"
+                onclick="salvarExemplar()">✅ Salvar Exemplar</button>
+        <button class="btn btn-secondary" onclick="fecharPainelCadastro()">Cancelar</button>
+    </div>
+</aside>
+
+<!-- PAINEL: Cadastro em Lote -->
+<div class="panel-overlay" id="overlayLote" onclick="fecharPainelLote()"></div>
+<aside class="side-panel lote-panel" id="painelLote">
+    <div class="panel-header">
+        <h2>📋 Cadastro em Lote</h2>
+        <button class="panel-close" onclick="fecharPainelLote()">×</button>
+    </div>
+    <div class="panel-body">
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:20px;line-height:1.6">
+            Selecione um livro e defina a quantidade para cadastrar múltiplos exemplares de uma vez.
+            Os números de tombo serão gerados automaticamente.
+        </p>
+        <p class="form-section-title">📚 Livro</p>
+        <div class="form-group">
+            <label for="lotelivro">Livro a ser vinculado *</label>
+            <select id="lotelivro" onchange="atualizarPreviewLote()">
+                <option value="">Selecione um livro cadastrado…</option>
+            </select>
+        </div>
+        <hr class="form-divider">
+        <p class="form-section-title">🔢 Quantidade &amp; Tombo Inicial</p>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="loteQtd">Quantidade de Exemplares *</label>
+                <input type="number" id="loteQtd" min="1" max="100"
+                       placeholder="Ex: 10" value="5" oninput="atualizarPreviewLote()">
+            </div>
+            <div class="form-group">
+                <label for="loteTomboInicio">Tombo Inicial *</label>
+                <input type="text" id="loteTomboInicio"
+                       placeholder="TMB-000252" value="TMB-000252" oninput="atualizarPreviewLote()">
+            </div>
+        </div>
+        <hr class="form-divider">
+        <p class="form-section-title">📍 Localização &amp; Status</p>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="loteLocal">Localização Física *</label>
+                <input type="text" id="loteLocal" list="sugestoesLocalizacaoLote"
+                       placeholder="Ex: Sala de Leitura – Armário 2"
+                       autocomplete="off" maxlength="100"
+                       oninput="atualizarPreviewLote()">
+                <datalist id="sugestoesLocalizacaoLote">
+                    <option>Estante A – Prat. 1</option>
+                    <option>Estante A – Prat. 2</option>
+                    <option>Estante B – Prat. 1</option>
+                    <option>Estante B – Prat. 3</option>
+                    <option>Sala de Leitura</option>
+                    <option>Setor Infantil</option>
+                </datalist>
+            </div>
+            <div class="form-group">
+                <label for="loteStatus">Status Inicial *</label>
+                <select id="loteStatus" onchange="atualizarPreviewLote()">
+                    <option value="Disponivel">Disponível</option>
+                    <option value="Reservado">Reservado</option>
+                    <option value="Manutencao">Manutenção</option>
+                </select>
+            </div>
+        </div>
+        <hr class="form-divider">
+        <div class="lote-preview-card">
+            <h4>👁 Pré-visualização do Lote</h4>
+            <div class="lote-preview-grid">
+                <div class="lote-preview-item">
+                    <div class="lpi-label">Livro</div>
+                    <div class="lpi-value" id="prev-livro">—</div>
+                </div>
+                <div class="lote-preview-item">
+                    <div class="lpi-label">Quantidade</div>
+                    <div class="lpi-value" id="prev-qtd">5 exemplares</div>
+                </div>
+                <div class="lote-preview-item">
+                    <div class="lpi-label">Localização</div>
+                    <div class="lpi-value" id="prev-local">—</div>
+                </div>
+                <div class="lote-preview-item">
+                    <div class="lpi-label">Status Inicial</div>
+                    <div class="lpi-value" id="prev-status">Disponível</div>
+                </div>
+            </div>
+            <div class="lote-exemplares-gerados">
+                <div class="leg-label">Tombos que serão gerados</div>
+                <div class="tombos-lista" id="tombosLista"></div>
+            </div>
+        </div>
+        <div id="loteErro" class="form-erro" style="display:none;margin-top:12px"></div>
+    </div>
+    <div class="panel-footer">
+        <button class="btn btn-primary" id="btnConfirmarLote" style="flex:1"
+                onclick="confirmarLote()">✅ Confirmar Cadastro em Lote</button>
+        <button class="btn btn-secondary" onclick="fecharPainelLote()">Cancelar</button>
+    </div>
+</aside>
+
+<!-- MODAL: Visualizar Exemplar -->
+<div class="modal-overlay" id="modalVisualizar">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>📦 Detalhes do Exemplar</h3>
+            <button class="panel-close" onclick="fecharModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-livro-header">
+                <img class="modal-capa" id="modalCapa" src="" alt="Capa"
+                     onerror="this.style.display='none';document.getElementById('modalCapaPlaceholder').style.display='flex'">
+                <div class="modal-capa-placeholder" id="modalCapaPlaceholder" style="display:none">📖</div>
+                <div class="modal-livro-info">
+                    <h4 id="modalTitulo">—</h4>
+                    <div class="autor" id="modalAutor">—</div>
+                    <span class="badge" id="modalStatusBadge">—</span>
+                </div>
+            </div>
+            <div class="modal-detail-grid">
+                <div class="modal-detail-item">
+                    <div class="mdi-label">Número de Tombo</div>
+                    <div class="mdi-value">
+                        <span class="tombo-badge" id="modalTombo">
+                            <span class="tombo-dot"></span> —
+                        </span>
+                    </div>
+                </div>
+                <div class="modal-detail-item">
+                    <div class="mdi-label">Localização</div>
+                    <div class="mdi-value" id="modalLocal">—</div>
+                </div>
+                <div class="modal-detail-item">
+                    <div class="mdi-label">Data de Aquisição</div>
+                    <div class="mdi-value" id="modalAquisicao">—</div>
+                </div>
+                <div class="modal-detail-item">
+                    <div class="mdi-label">Situação Atual</div>
+                    <div class="mdi-value" id="modalSituacao">—</div>
+                </div>
+                <div class="modal-detail-item" style="grid-column: 1 / -1;">
+                    <div class="mdi-label">Observações</div>
+                    <div class="mdi-value" id="modalObs" style="font-weight:400;color:var(--muted)">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Confirmação de exclusão -->
+<div class="modal-overlay" id="modalConfirmarExclusao">
+    <div class="modal-box" style="max-width:420px">
+        <div class="modal-header">
+            <h3>🗑 Confirmar Exclusão</h3>
+            <button class="panel-close" onclick="fecharModalExclusao()">×</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text);line-height:1.6">
+                Tem certeza que deseja excluir o exemplar
+                <strong id="excluirTombo">—</strong>?
+                <br><span style="color:var(--muted);font-size:.85rem">Esta ação não pode ser desfeita.</span>
+            </p>
+        </div>
+        <div class="panel-footer">
+            <button class="btn btn-primary" style="flex:1;background:linear-gradient(135deg,#ef4444,#b91c1c);box-shadow:0 3px 10px rgba(239,68,68,.35)"
+                    id="btnConfirmarExclusao" onclick="excluirExemplarConfirmado()">
+                🗑 Sim, excluir
+            </button>
+            <button class="btn btn-secondary" onclick="fecharModalExclusao()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ESTILOS EXTRAS (loading, erro) -->
+<style>
+.loading-cell {
+    text-align: center;
+    padding: 48px 20px !important;
+    color: var(--muted, #888);
+    font-size: .9rem;
+}
+.loading-spinner {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border: 3px solid var(--border, #eee);
+    border-top-color: var(--purple, #667eea);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.form-erro {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: .85rem;
+    margin-top: 8px;
+}
+[data-theme="dark"] .form-erro {
+    background: #3b0f0f;
+    border-color: #7f1d1d;
+    color: #fca5a5;
+}
+.btn-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,.5);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+</style>
+
+<!-- SCRIPTS -->
+<script src="../../js/nav.js"></script>
+<script src="../../js/kairos-notificacoes-admin.js"></script>
+<script src="../../js/theme.js"></script>
+<script>
+// ── Configuração da API ──────────────────────────────────────
+const API = '';   // mesmo origin; se for outro domínio: 'http://localhost:3000'
+
+// ── Estado da aplicação ──────────────────────────────────────
+let todosExemplares  = [];   // cache local da lista
+let livrosCadastrados = [];  // cache de livros para o <select>
+let paginaAtual      = 1;
+const ITENS_POR_PAGINA = 15;
+let timerBusca       = null;
+let exemplarParaExcluir = null;
+
+// ── Inicialização ────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    carregarLivros();
+    carregarExemplares();
+    carregarStats();
+
+    // Fechar modais com Escape
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            fecharPainelCadastro();
+            fecharPainelLote();
+            fecharModal();
+            fecharModalExclusao();
+        }
+    });
+
+    document.getElementById('modalVisualizar').addEventListener('click', function(e) {
+        if (e.target === this) fecharModal();
+    });
+    document.getElementById('modalConfirmarExclusao').addEventListener('click', function(e) {
+        if (e.target === this) fecharModalExclusao();
+    });
+});
+
+// ── Carregamento de livros (para selects) ────────────────────
+async function carregarLivros() {
+    try {
+        const resp = await fetch(`${API}/livro`);
+        if (!resp.ok) throw new Error('Falha ao buscar livros');
+        livrosCadastrados = await resp.json();
+        preencherSelectsLivros();
+    } catch (e) {
+        console.error('Erro ao carregar livros:', e);
+    }
+}
+
+function preencherSelectsLivros() {
+    const selects = ['livroSelect', 'lotelivro'];
+    selects.forEach(id => {
+        const sel = document.getElementById(id);
+        // mantém a primeira opção placeholder
+        while (sel.options.length > 1) sel.remove(1);
+        livrosCadastrados.forEach(l => {
+            const opt = document.createElement('option');
+            opt.value = l.Livro_id;
+            opt.textContent = `${l.Nome}${l.Autor ? ' — ' + l.Autor : ''}`;
+            sel.appendChild(opt);
+        });
+    });
+}
+
+// ── Carregar e renderizar exemplares ────────────────────────
+async function carregarExemplares() {
+    mostrarLoading();
+    try {
+        const params = new URLSearchParams();
+        const busca  = document.getElementById('inputBusca').value.trim();
+        const status = document.getElementById('filtroStatus').value;
+        if (busca)  params.set('busca', busca);
+        if (status) params.set('status', status);
+
+        const resp = await fetch(`${API}/exemplar?${params}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const dados = await resp.json();
+        // Suporta tanto array direto quanto objeto paginado { data: [...] }
+        todosExemplares = ordenar(Array.isArray(dados) ? dados : (dados.data || []));
+        paginaAtual = 1;
+        renderizarTabela();
+    } catch (e) {
+        console.error('Erro ao carregar exemplares:', e);
+        document.getElementById('tabelaCorpo').innerHTML = `
+            <tr><td colspan="6" class="loading-cell" style="color:#ef4444">
+                ⚠️ Erro ao carregar exemplares. Verifique se o servidor está rodando.
+            </td></tr>`;
+    }
+}
+
+async function carregarStats() {
+    try {
+        const resp = await fetch(`${API}/exemplar/stats`);
+        if (!resp.ok) return;
+        const s = await resp.json();
+        document.getElementById('statTotal').textContent     = s.total      || 0;
+        document.getElementById('statDisponivel').textContent = s.disponivel || 0;
+        document.getElementById('statEmprestado').textContent = s.emprestado || 0;
+        document.getElementById('statReservado').textContent  = s.reservado  || 0;
+        document.getElementById('statManutencao').textContent = s.manutencao || 0;
+    } catch (e) {
+        console.warn('Erro ao carregar stats:', e);
+    }
+}
+
+function ordenar(lista) {
+    const ordem = document.getElementById('filtroOrdem').value;
+    return [...lista].sort((a, b) => {
+        if (ordem === 'tombo_asc')  return (a.NumeroTombo || '').localeCompare(b.NumeroTombo || '');
+        if (ordem === 'tombo_desc') return (b.NumeroTombo || '').localeCompare(a.NumeroTombo || '');
+        if (ordem === 'titulo')     return (a.NomeLivro   || '').localeCompare(b.NomeLivro   || '');
+        // default: recente (CriadoEm desc)
+        return new Date(b.CriadoEm || 0) - new Date(a.CriadoEm || 0);
+    });
+}
+
+function renderizarTabela() {
+    const corpo   = document.getElementById('tabelaCorpo');
+    const inicio  = (paginaAtual - 1) * ITENS_POR_PAGINA;
+    const pagina  = todosExemplares.slice(inicio, inicio + ITENS_POR_PAGINA);
+
+    if (pagina.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="6" class="loading-cell">
+            📭 Nenhum exemplar encontrado. Cadastre o primeiro!
+        </td></tr>`;
+        document.getElementById('tabelaInfo').innerHTML = 'Nenhum resultado';
+        document.getElementById('paginacao').innerHTML  = '';
+        return;
+    }
+
+    corpo.innerHTML = pagina.map(ex => linhaExemplar(ex)).join('');
+
+    document.getElementById('tabelaInfo').innerHTML =
+        `Mostrando <strong>${inicio + 1}–${Math.min(inicio + ITENS_POR_PAGINA, todosExemplares.length)}</strong>
+         de <strong>${todosExemplares.length}</strong> exemplar(es)`;
+
+    renderizarPaginacao();
+}
+
+function linhaExemplar(ex) {
+    const badgeMap = {
+        'Disponivel': ['badge-disponivel', 'Disponível'],
+        'Emprestado': ['badge-emprestado', 'Emprestado'],
+        'Reservado':  ['badge-reservado',  'Reservado'],
+        'Manutencao': ['badge-manutencao', 'Manutenção'],
+    };
+    const [badgeClass, badgeLabel] = badgeMap[ex.Status] || ['', ex.Status || '—'];
+    const dataFormatada = ex.CriadoEm
+        ? new Date(ex.CriadoEm).toLocaleDateString('pt-BR')
+        : '—';
+
+    const capaHtml = ex.CapaLivro
+        ? `<img class="livro-capa-thumb" src="${escapeHtml(ex.CapaLivro)}" alt="${escapeHtml(ex.NomeLivro || '')}"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : '';
+    const placeholderStyle = ex.CapaLivro ? 'display:none' : '';
+
+    return `
+    <tr>
+        <td>
+            <div class="livro-cell">
+                ${capaHtml}
+                <div class="livro-capa-placeholder" style="${placeholderStyle}">📖</div>
+                <div class="livro-info">
+                    <div class="livro-titulo" title="${escapeHtml(ex.NomeLivro || '—')}">
+                        ${escapeHtml(ex.NomeLivro || '—')}
+                    </div>
+                    <div class="livro-autor">${escapeHtml(ex.AutorLivro || '')}</div>
+                </div>
+            </div>
+        </td>
+        <td>
+            <span class="tombo-badge">
+                <span class="tombo-dot"></span>
+                ${escapeHtml(ex.NumeroTombo || '—')}
+            </span>
+        </td>
+        <td>
+            <span class="localizacao-cell">
+                <span class="localizacao-icon">📍</span>
+                ${escapeHtml(ex.Localizacao || '—')}
+            </span>
+        </td>
+        <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+        <td><span class="data-cell">${dataFormatada}</span></td>
+        <td>
+            <div class="acoes-cell">
+                <button class="btn-acao btn-visualizar" title="Visualizar"
+                        onclick="abrirModalVisualizar(${ex.Exemplar_id})">👁</button>
+                <button class="btn-acao btn-editar" title="Editar"
+                        onclick="abrirPainelEdicao(${ex.Exemplar_id})">✏️</button>
+                <button class="btn-acao btn-excluir" title="Excluir"
+                        onclick="confirmarExclusao(${ex.Exemplar_id}, '${escapeHtml(ex.NumeroTombo || '')}')">🗑</button>
+            </div>
+        </td>
+    </tr>`;
+}
+
+function renderizarPaginacao() {
+    const total   = todosExemplares.length;
+    const totalPag = Math.ceil(total / ITENS_POR_PAGINA);
+    const pag     = document.getElementById('paginacao');
+
+    if (totalPag <= 1) { pag.innerHTML = ''; return; }
+
+    let html = `<button class="pag-btn" onclick="irParaPagina(${paginaAtual - 1})"
+                        ${paginaAtual === 1 ? 'disabled' : ''}>‹</button>`;
+
+    for (let i = 1; i <= totalPag; i++) {
+        if (totalPag > 7 && i > 3 && i < totalPag - 1 && Math.abs(i - paginaAtual) > 1) {
+            if (i === 4 || i === totalPag - 2) html += `<span style="padding:0 6px;color:var(--muted)">…</span>`;
+            continue;
+        }
+        html += `<button class="pag-btn ${i === paginaAtual ? 'active' : ''}"
+                         onclick="irParaPagina(${i})">${i}</button>`;
+    }
+
+    html += `<button class="pag-btn" onclick="irParaPagina(${paginaAtual + 1})"
+                     ${paginaAtual === totalPag ? 'disabled' : ''}>›</button>`;
+    pag.innerHTML = html;
+}
+
+function irParaPagina(n) {
+    const total = Math.ceil(todosExemplares.length / ITENS_POR_PAGINA);
+    if (n < 1 || n > total) return;
+    paginaAtual = n;
+    renderizarTabela();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function mostrarLoading() {
+    document.getElementById('tabelaCorpo').innerHTML = `
+        <tr><td colspan="6" class="loading-cell">
+            <div class="loading-spinner"></div>Carregando exemplares…
+        </td></tr>`;
+}
+
+// ── Filtros e busca ──────────────────────────────────────────
+function debouncarBusca() {
+    clearTimeout(timerBusca);
+    timerBusca = setTimeout(aplicarFiltros, 380);
+}
+
+function aplicarFiltros() {
+    todosExemplares = ordenar(todosExemplares); // reordena no cliente
+    paginaAtual = 1;
+    carregarExemplares(); // busca na API com os filtros
+}
+
+// ── Painel de Cadastro / Edição ──────────────────────────────
+function abrirPainelCadastro() {
+    document.getElementById('exemplarEditandoId').value = '';
+    document.getElementById('painelCadastroTitulo').textContent = '📦 Cadastrar Exemplar';
+    document.getElementById('btnSalvarExemplar').textContent = '✅ Salvar Exemplar';
+    document.getElementById('livroSelect').value = '';
+    document.getElementById('tomboInput').value = '';
+    document.getElementById('localizacaoInput').value = '';
+    document.getElementById('statusInput').value = 'Disponivel';
+    document.getElementById('obsInput').value = '';
+    document.getElementById('dataAquisicao').value = '';
+    document.getElementById('tomboPreviewVal').textContent = 'TMB-______';
+    document.getElementById('painelErro').style.display = 'none';
+
+    document.getElementById('overlayIndividual').classList.add('open');
+    document.getElementById('painelCadastro').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function abrirPainelEdicao(id) {
+    const ex = todosExemplares.find(e => e.Exemplar_id === id);
+    if (!ex) return mostrarToast('Exemplar não encontrado.', 'error');
+
+    document.getElementById('exemplarEditandoId').value = id;
+    document.getElementById('painelCadastroTitulo').textContent = '✏️ Editar Exemplar';
+    document.getElementById('btnSalvarExemplar').textContent = '💾 Atualizar Exemplar';
+    document.getElementById('livroSelect').value   = ex.Livro_id || '';
+    document.getElementById('tomboInput').value    = ex.NumeroTombo || '';
+    document.getElementById('localizacaoInput').value = ex.Localizacao || '';
+    document.getElementById('statusInput').value   = ex.Status || 'Disponivel';
+    document.getElementById('obsInput').value      = ex.Observacoes || '';
+    document.getElementById('dataAquisicao').value = ex.DataAquisicao
+        ? ex.DataAquisicao.split('T')[0] : '';
+    atualizarPreviewTombo(ex.NumeroTombo || '');
+    document.getElementById('painelErro').style.display = 'none';
+
+    document.getElementById('overlayIndividual').classList.add('open');
+    document.getElementById('painelCadastro').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function fecharPainelCadastro() {
+    document.getElementById('overlayIndividual').classList.remove('open');
+    document.getElementById('painelCadastro').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+async function salvarExemplar() {
+    const id = document.getElementById('exemplarEditandoId').value;
+    const Livro_id     = document.getElementById('livroSelect').value;
+    const NumeroTombo  = document.getElementById('tomboInput').value.trim();
+    const Localizacao  = document.getElementById('localizacaoInput').value;
+    const Status       = document.getElementById('statusInput').value;
+    const Observacoes  = document.getElementById('obsInput').value.trim();
+    const DataAquisicao = document.getElementById('dataAquisicao').value;
+    const erroEl = document.getElementById('painelErro');
+
+    // Validações no cliente
+    if (!Livro_id)    return mostrarErroForm(erroEl, 'Selecione um livro.');
+    if (!NumeroTombo) return mostrarErroForm(erroEl, 'Informe o Número de Tombo.');
+    if (!Localizacao) return mostrarErroForm(erroEl, 'Informe a Localização.');
+
+    const btn = document.getElementById('btnSalvarExemplar');
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner"></span>Salvando…';
+    erroEl.style.display = 'none';
+
+    try {
+        const body = { Livro_id, NumeroTombo, Localizacao, Status, Observacoes, DataAquisicao };
+        const isEdicao = !!id;
+        const url    = isEdicao ? `${API}/exemplar/${id}` : `${API}/exemplar`;
+        const method = isEdicao ? 'PUT' : 'POST';
+
+        const resp = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Erro ao salvar exemplar.');
+
+        mostrarToast(isEdicao ? 'Exemplar atualizado com sucesso!' : 'Exemplar cadastrado com sucesso!', 'success');
+        fecharPainelCadastro();
+        await carregarExemplares();
+        await carregarStats();
+    } catch (e) {
+        mostrarErroForm(erroEl, e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+    }
+}
+
+// ── Painel Lote ──────────────────────────────────────────────
+function abrirPainelLote() {
+    document.getElementById('loteErro').style.display = 'none';
+    document.getElementById('overlayLote').classList.add('open');
+    document.getElementById('painelLote').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    atualizarPreviewLote();
+}
+
+function fecharPainelLote() {
+    document.getElementById('overlayLote').classList.remove('open');
+    document.getElementById('painelLote').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+function gerarTombos() {
+    const base  = document.getElementById('loteTomboInicio').value.trim() || 'TMB-000000';
+    const qtd   = Math.max(1, Math.min(100, parseInt(document.getElementById('loteQtd').value) || 1));
+    const match = base.match(/^([A-Za-z\-]+)(\d+)$/);
+    const prefixo = match ? match[1] : 'TMB-';
+    const numBase = match ? parseInt(match[2]) : 0;
+    const digits  = match ? match[2].length : 6;
+    return Array.from({ length: qtd }, (_, i) =>
+        prefixo + String(numBase + i).padStart(digits, '0')
+    );
+}
+
+function atualizarPreviewLote() {
+    const livroEl = document.getElementById('lotelivro');
+    const qtd     = Math.max(1, parseInt(document.getElementById('loteQtd').value) || 1);
+    const local   = document.getElementById('loteLocal').value || '—';
+    const status  = document.getElementById('loteStatus').options[document.getElementById('loteStatus').selectedIndex].text;
+    const livroTxt = livroEl.value ? livroEl.options[livroEl.selectedIndex].text.split(' — ')[0] : '—';
+
+    document.getElementById('prev-livro').textContent  = livroTxt;
+    document.getElementById('prev-qtd').textContent    = qtd + ' exemplar' + (qtd !== 1 ? 'es' : '');
+    document.getElementById('prev-local').textContent  = local;
+    document.getElementById('prev-status').textContent = status;
+
+    const tombos = gerarTombos();
+    const lista  = document.getElementById('tombosLista');
+    lista.innerHTML = '';
+    tombos.slice(0, 12).forEach(t => {
+        const chip = document.createElement('span');
+        chip.className = 'tombo-chip';
+        chip.textContent = t;
+        lista.appendChild(chip);
+    });
+    if (tombos.length > 12) {
+        const more = document.createElement('span');
+        more.className = 'tombo-chip';
+        more.textContent = '+' + (tombos.length - 12) + ' mais…';
+        more.style.opacity = '0.6';
+        lista.appendChild(more);
+    }
+
+    const btn = document.getElementById('btnConfirmarLote');
+    btn.textContent = `✅ Confirmar Cadastro em Lote (${qtd} exemplar${qtd !== 1 ? 'es' : ''})`;
+}
+
+async function confirmarLote() {
+    const Livro_id    = document.getElementById('lotelivro').value;
+    const Localizacao = document.getElementById('loteLocal').value;
+    const Status      = document.getElementById('loteStatus').value;
+    const tombos      = gerarTombos();
+    const erroEl      = document.getElementById('loteErro');
+
+    if (!Livro_id)    return mostrarErroForm(erroEl, 'Selecione um livro.');
+    if (!Localizacao) return mostrarErroForm(erroEl, 'Informe a localização.');
+    if (tombos.length === 0) return mostrarErroForm(erroEl, 'Defina a quantidade de exemplares.');
+
+    const btn = document.getElementById('btnConfirmarLote');
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner"></span>Cadastrando…';
+    erroEl.style.display = 'none';
+
+    try {
+        const resp = await fetch(`${API}/exemplar/lote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ Livro_id, tombos, Localizacao, Status })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Erro ao cadastrar lote.');
+
+        mostrarToast(data.message || `${tombos.length} exemplar(es) cadastrado(s)!`, 'success');
+        fecharPainelLote();
+        await carregarExemplares();
+        await carregarStats();
+    } catch (e) {
+        mostrarErroForm(erroEl, e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+    }
+}
+
+// ── Modal Visualizar ─────────────────────────────────────────
+function abrirModalVisualizar(id) {
+    const ex = todosExemplares.find(e => e.Exemplar_id === id);
+    if (!ex) return mostrarToast('Exemplar não encontrado.', 'error');
+
+    const badgeMap = {
+        'Disponivel': ['badge-disponivel', 'Disponível'],
+        'Emprestado': ['badge-emprestado', 'Emprestado'],
+        'Reservado':  ['badge-reservado',  'Reservado'],
+        'Manutencao': ['badge-manutencao', 'Manutenção'],
+    };
+    const [cls, label] = badgeMap[ex.Status] || ['', ex.Status || '—'];
+
+    document.getElementById('modalTitulo').textContent = ex.NomeLivro || '—';
+    document.getElementById('modalAutor').textContent  = ex.AutorLivro || '—';
+    document.getElementById('modalLocal').textContent  = ex.Localizacao ? `📍 ${ex.Localizacao}` : '—';
+    document.getElementById('modalTombo').innerHTML    = `<span class="tombo-dot"></span> ${escapeHtml(ex.NumeroTombo || '—')}`;
+    document.getElementById('modalSituacao').textContent = label;
+    document.getElementById('modalObs').textContent   = ex.Observacoes || '—';
+
+    const dataAq = ex.DataAquisicao
+        ? new Date(ex.DataAquisicao).toLocaleDateString('pt-BR')
+        : '—';
+    document.getElementById('modalAquisicao').textContent = dataAq;
+
+    const capaImg = document.getElementById('modalCapa');
+    const capaPlh = document.getElementById('modalCapaPlaceholder');
+    if (ex.CapaLivro) {
+        capaImg.src = ex.CapaLivro;
+        capaImg.style.display = '';
+        capaPlh.style.display = 'none';
+    } else {
+        capaImg.style.display = 'none';
+        capaPlh.style.display = 'flex';
+    }
+
+    const badgeEl = document.getElementById('modalStatusBadge');
+    badgeEl.className = `badge ${cls}`;
+    badgeEl.textContent = label;
+
+    document.getElementById('modalVisualizar').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function fecharModal() {
+    document.getElementById('modalVisualizar').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+// ── Exclusão ─────────────────────────────────────────────────
+function confirmarExclusao(id, tombo) {
+    exemplarParaExcluir = id;
+    document.getElementById('excluirTombo').textContent = tombo || `#${id}`;
+    document.getElementById('modalConfirmarExclusao').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function fecharModalExclusao() {
+    exemplarParaExcluir = null;
+    document.getElementById('modalConfirmarExclusao').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+async function excluirExemplarConfirmado() {
+    if (!exemplarParaExcluir) return;
+    const btn = document.getElementById('btnConfirmarExclusao');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner"></span>Excluindo…';
+
+    try {
+        const resp = await fetch(`${API}/exemplar/${exemplarParaExcluir}`, { method: 'DELETE' });
+        if (resp.status === 204) {
+            mostrarToast('Exemplar excluído com sucesso.', 'success');
+            fecharModalExclusao();
+            await carregarExemplares();
+            await carregarStats();
+        } else {
+            const data = await resp.json();
+            mostrarToast(data.error || 'Erro ao excluir exemplar.', 'error');
+            fecharModalExclusao();
+        }
+    } catch (e) {
+        mostrarToast('Erro de conexão ao excluir.', 'error');
+        fecharModalExclusao();
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '🗑 Sim, excluir';
+    }
+}
+
+// ── Utilitários ──────────────────────────────────────────────
+function atualizarPreviewTombo(valor) {
+    document.getElementById('tomboPreviewVal').textContent = valor.trim() || 'TMB-______';
+}
+
+function mostrarErroForm(el, msg) {
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+let toastTimer = null;
+function mostrarToast(msg, tipo = 'info') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `toast ${tipo} show`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>

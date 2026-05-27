@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/darkmode-global.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kairos — Editar Perfil</title>
+    <link rel="stylesheet" href="../css/perfil.css">
+    <script>
+        (function () {
+            var t = localStorage.getItem('kairos-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="perfil-header">
+        <div class="perfil-header-inner">
+            <a href="../index.html" class="perfil-logo">🏛️ Kairos</a>
+            <div style="display:flex;align-items:center;gap:14px;">
+                <span class="perfil-breadcrumb">Configurações / Perfil</span>
+                <button class="theme-toggle" title="Alternar tema" aria-label="Alternar tema claro/escuro">
+                    <span class="tt-icon tt-sun">☀️</span>
+                    <span class="tt-track"><span class="tt-ball"></span></span>
+                    <span class="tt-icon tt-moon">🌙</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page -->
+    <main class="perfil-main">
+        <div class="perfil-container">
+
+            <!-- Page Title -->
+            <div class="perfil-title-row">
+                <button class="btn-back" onclick="history.back()" title="Voltar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    Voltar
+                </button>
+                <h1 class="perfil-title">Editar Perfil</h1>
+            </div>
+
+            <!-- CARD: Perfil -->
+            <section class="perfil-card">
+                <div class="card-section-label">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M3 21a9 9 0 0 1 18 0"/></svg>
+                    Perfil
+                </div>
+
+                <div class="avatar-area">
+                    <div class="avatar-wrapper">
+                        <div class="avatar-circle" id="avatarCircle">
+                            <img id="avatarImg" src="" alt="Foto de perfil" style="display:none;">
+                            <span id="avatarInitials" class="avatar-initials">US</span>
+                        </div>
+                        <label class="avatar-change-btn" for="avatarInput" title="Alterar foto">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        </label>
+                        <input type="file" id="avatarInput" accept="image/*" style="display:none;" onchange="handleAvatarChange(event)">
+                    </div>
+                    <div class="avatar-meta">
+                        <p class="avatar-hint">Clique no ícone para alterar a foto</p>
+                        <p class="avatar-hint-sub">JPG, PNG ou GIF · Máx. 5MB</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="nomeInput">Nome de exibição</label>
+                    <input type="text" id="nomeInput" placeholder="Seu nome completo" autocomplete="name">
+                </div>
+            </section>
+
+            <!-- CARD: Segurança -->
+            <section class="perfil-card">
+                <div class="card-section-label">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Segurança
+                </div>
+
+                <div class="form-group">
+                    <label for="senhaInput">Nova senha <span style="font-size:0.8rem;color:var(--muted,#888);font-weight:400;">(deixe em branco para não alterar)</span></label>
+                    <div class="input-with-icon">
+                        <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <input type="password" id="senhaInput" placeholder="••••••••" autocomplete="new-password">
+                        <button class="toggle-pwd" type="button" onclick="togglePassword('senhaInput', this)" tabindex="-1">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmarSenhaInput">Confirmar nova senha</label>
+                    <div class="input-with-icon">
+                        <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <input type="password" id="confirmarSenhaInput" placeholder="••••••••" autocomplete="new-password">
+                        <button class="toggle-pwd" type="button" onclick="togglePassword('confirmarSenhaInput', this)" tabindex="-1">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Actions -->
+            <div class="perfil-actions">
+                <button class="btn-cancelar" onclick="history.back()">Cancelar</button>
+                <button class="btn-salvar" onclick="salvarAlteracoes()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Salvar alterações
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="../js/theme.js"></script>
+    <script>
+        const API = 'http://localhost:3000';
+
+        // ── Proteção de rota ──────────────────────────────────────────────
+        const authToken = sessionStorage.getItem('authToken');
+        const usuarioId = sessionStorage.getItem('usuarioId');
+
+        if (!authToken || !usuarioId) {
+            window.location.replace('auth/login.html');
+        }
+
+        // ── Pré-preenche campos imediatamente via sessionStorage ──────────
+        // Evita race condition: campo fica preenchido antes da API responder
+        const nomeSession = sessionStorage.getItem('nomeUsuario') || '';
+        document.getElementById('nomeInput').value = nomeSession;
+
+        function getInitials(name) {
+            if (name && name.trim()) {
+                const parts = name.trim().split(' ').filter(Boolean);
+                return parts.length >= 2
+                    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                    : parts[0].slice(0, 2).toUpperCase();
+            }
+            return 'US';
+        }
+
+        document.getElementById('avatarInitials').textContent = getInitials(nomeSession);
+
+        // Exibe avatar salvo no sessionStorage enquanto aguarda API
+        const savedAvatar = sessionStorage.getItem('avatarDataUrl');
+        if (savedAvatar) {
+            mostrarFoto(savedAvatar);
+        }
+
+        // ── Carrega dados reais do backend ────────────────────────────────
+        if (usuarioId) {
+            fetch(`${API}/usuario/${usuarioId}`)
+                .then(res => {
+                    if (!res.ok) throw new Error('Erro ' + res.status);
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
+
+                    document.getElementById('nomeInput').value = data.Nome || '';
+                    document.getElementById('avatarInitials').textContent = getInitials(data.Nome);
+
+                    if (data.FotoPerfil) {
+                        mostrarFoto(data.FotoPerfil);
+                        sessionStorage.setItem('avatarDataUrl', data.FotoPerfil);
+                    }
+
+                    sessionStorage.setItem('nomeUsuario', data.Nome || '');
+                    window.originalData = data;
+                })
+                .catch(err => {
+                    console.error('Erro ao carregar perfil:', err);
+                    showToast('❌ Não foi possível carregar os dados do perfil.', 'error');
+                });
+        }
+
+        function mostrarFoto(src) {
+            const img      = document.getElementById('avatarImg');
+            const initials = document.getElementById('avatarInitials');
+            img.src = src;
+            img.style.display    = 'block';
+            initials.style.display = 'none';
+        }
+
+        // ── Avatar upload preview ─────────────────────────────────────────
+        function handleAvatarChange(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                showToast('❌ Selecione um arquivo de imagem válido.', 'error');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('❌ Imagem muito grande. Máximo 5MB.', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                mostrarFoto(e.target.result);
+                sessionStorage.setItem('avatarDataUrl', e.target.result);
+                window._novaFoto = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ── Toggle password visibility ────────────────────────────────────
+        function togglePassword(inputId, btn) {
+            const input  = document.getElementById(inputId);
+            const isHidden = input.type === 'password';
+            input.type   = isHidden ? 'text' : 'password';
+            btn.classList.toggle('active', isHidden);
+        }
+
+        // ── Validation helpers ────────────────────────────────────────────
+        function setFieldError(inputId, msg) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            input.classList.add('input-error');
+            let errEl = document.getElementById(inputId + '-error');
+            if (!errEl) {
+                errEl = document.createElement('span');
+                errEl.id = inputId + '-error';
+                errEl.className = 'field-error';
+                input.closest('.input-with-icon, .form-group').appendChild(errEl);
+            }
+            errEl.textContent = msg;
+            errEl.style.display = 'block';
+        }
+
+        function clearFieldError(inputId) {
+            const input = document.getElementById(inputId);
+            if (input) input.classList.remove('input-error');
+            const errEl = document.getElementById(inputId + '-error');
+            if (errEl) errEl.style.display = 'none';
+        }
+
+        function clearAllErrors() {
+            ['nomeInput', 'senhaInput', 'confirmarSenhaInput'].forEach(clearFieldError);
+        }
+
+        ['nomeInput', 'senhaInput', 'confirmarSenhaInput'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', () => clearFieldError(id));
+        });
+
+        // ── Salvar alterações ─────────────────────────────────────────────
+        async function salvarAlteracoes() {
+            clearAllErrors();
+
+            const nomeVal     = document.getElementById('nomeInput').value.trim();
+            const senhaVal    = document.getElementById('senhaInput').value;
+            const confirmaVal = document.getElementById('confirmarSenhaInput').value;
+            const uid         = sessionStorage.getItem('usuarioId');
+
+            if (!uid) {
+                showToast('❌ Sessão expirada. Faça login novamente.', 'error');
+                setTimeout(() => window.location.replace('auth/login.html'), 1500);
+                return;
+            }
+
+            // ── Detecta o que mudou ───────────────────────────────────────
+            const originalNome = ((window.originalData ? (window.originalData.Nome || '') : (nomeSession || ''))).trim();
+            // Nome é considerado alterado apenas quando o campo tem valor não-vazio E difere do original
+            const nomeAlterado = nomeVal.length > 0 && nomeVal !== originalNome;
+            const fotoAlterada = !!window._novaFoto;
+            const senhaAlterada = !!(senhaVal || confirmaVal);
+
+            if (!nomeAlterado && !fotoAlterada && !senhaAlterada) {
+                showToast('ℹ️ Nenhuma alteração realizada.', 'info');
+                return;
+            }
+
+            // ── Valida nome (apenas se foi alterado) ──────────────────────
+            let hasError = false;
+
+            if (nomeAlterado && nomeVal.length < 2) {
+                setFieldError('nomeInput', 'O nome deve ter pelo menos 2 caracteres.');
+                hasError = true;
+            }
+
+            // ── Valida senha (apenas se algum campo de senha foi preenchido) ──
+            if (senhaAlterada) {
+                if (senhaVal.length < 6) {
+                    setFieldError('senhaInput', 'A senha deve ter pelo menos 6 caracteres.');
+                    hasError = true;
+                } else if (!/[A-Za-z]/.test(senhaVal) || !/[0-9]/.test(senhaVal)) {
+                    setFieldError('senhaInput', 'A senha deve conter letras e números.');
+                    hasError = true;
+                }
+                if (senhaVal !== confirmaVal) {
+                    setFieldError('confirmarSenhaInput', 'As senhas não coincidem.');
+                    hasError = true;
+                }
+            }
+
+            if (hasError) {
+                showToast('❌ Corrija os erros antes de salvar.', 'error');
+                return;
+            }
+
+            // ── Monta payload ─────────────────────────────────────────────
+            // Nome: usa o valor do campo; se não alterado, mantém o original
+            const nomeEnviar = nomeVal || originalNome;
+
+            const payload = {
+                Nome:           nomeEnviar,
+                Telefone:       window.originalData ? (window.originalData.Telefone || null) : null,
+                CPF:            window.originalData ? (window.originalData.CPF || null) : null,
+                DataNascimento: window.originalData ? (window.originalData.DataNascimento || null) : null,
+                FotoPerfil:     window._novaFoto || (window.originalData ? (window.originalData.FotoPerfil || null) : null)
+            };
+            if (senhaVal) payload.Senha = senhaVal;
+
+            try {
+                const res  = await fetch(`${API}/usuario/${uid}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showToast(`❌ ${data.error || 'Erro ao salvar.'}`, 'error');
+                    return;
+                }
+
+                // Atualiza estado local com resposta confirmada do servidor
+                const nomeConfirmado = data.Nome || nomeEnviar;
+                sessionStorage.setItem('nomeUsuario', nomeConfirmado);
+
+                if (data.FotoPerfil) {
+                    sessionStorage.setItem('avatarDataUrl', data.FotoPerfil);
+                    mostrarFoto(data.FotoPerfil);
+                }
+
+                document.getElementById('nomeInput').value = nomeConfirmado;
+                document.getElementById('avatarInitials').textContent = getInitials(nomeConfirmado);
+                window.originalData = data;
+                window._novaFoto = null;
+
+                // Limpa campos de senha após salvar com sucesso
+                document.getElementById('senhaInput').value = '';
+                document.getElementById('confirmarSenhaInput').value = '';
+
+                // Notifica outras páginas na sessão para re-renderizarem o avatar
+                window.dispatchEvent(new CustomEvent('kairos:avatarUpdated'));
+
+                showToast('✅ Alterações salvas com sucesso!', 'success');
+
+            } catch (err) {
+                console.error('Erro ao salvar:', err);
+                showToast('❌ Erro ao conectar com o servidor.', 'error');
+            }
+        }
+
+        // ── Toast ─────────────────────────────────────────────────────────
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show' + (type === 'error' ? ' toast-error' : type === 'info' ? ' toast-info' : '');
+            setTimeout(() => t.classList.remove('show'), 3200);
+        }
+    </script>
+</body>
+</html>
