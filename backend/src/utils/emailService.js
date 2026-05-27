@@ -4,179 +4,246 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname  = path.dirname(__filename);
 
+// Carrega o .env a partir da raiz do projeto (API/.env)
+// emailService está em backend/src/utils/ → três níveis acima = API/
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
-// Transporter criado após o dotenv carregar as variáveis
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,        // false para STARTTLS na porta 587
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD  // App Password do Gmail (16 caracteres, sem espaços)
-    }
-});
+// Lê e sanitiza as variáveis APÓS o dotenv carregar
+// .trim() remove \r residual de CRLF (Windows) ou espaços acidentais
+const EMAIL_USER     = (process.env.EMAIL_USER     || '').trim();
+const EMAIL_PASSWORD = (process.env.EMAIL_PASSWORD || '').trim();
 
-// Validar configuração ao iniciar
-transporter.verify((error) => {
-    if (error) {
-        console.error('❌ [emailService] Falha na conexão SMTP:', error.message);
-        console.error('   Verifique EMAIL_USER e EMAIL_PASSWORD no arquivo .env');
-    } else {
-        console.log('✅ [emailService] Conexão SMTP verificada com sucesso!');
-    }
-});
+// ─── Diagnóstico de configuração ─────────────────────────────
+// Exibido uma vez na inicialização para ajudar a detectar problemas de .env
+console.log('[emailService] Configuração carregada:');
+console.log('  EMAIL_USER     :', EMAIL_USER     || '❌ VAZIO — verifique API/.env');
+console.log('  EMAIL_PASSWORD :', EMAIL_PASSWORD ? `✅ ${EMAIL_PASSWORD.length} caracteres` : '❌ VAZIO — verifique API/.env');
 
-// Função para validar email
-export function validateEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+// ─── Transporter ─────────────────────────────────────────────
+// "service: gmail" resolve automaticamente host=smtp.gmail.com, port=465, secure=true
+// Compatível com Nodemailer v8 + Gmail App Password (senha de aplicativo de 16 chars)
+// REQUISITO Google: a conta Gmail DEVE ter Verificação em 2 etapas ativa
+//                  e a App Password deve ser gerada em myaccount.google.com/apppasswords
+function criarTransporter() {
+    return nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: EMAIL_USER,
+            pass: EMAIL_PASSWORD
+        }
+    });
 }
 
-// Função para gerar código de autenticação (6 dígitos)
+const transporter = criarTransporter();
+
+// ─── Verificação SMTP na inicialização ───────────────────────
+// Testa a conexão com o servidor Gmail no startup.
+// Falha aqui = App Password inválida ou 2FA desativado na conta Google.
+transporter.verify((error) => {
+    if (error) {
+        console.error('\n❌ [emailService] FALHA NA CONEXÃO SMTP — E-mails NÃO serão enviados!');
+        console.error('   Código do erro  :', error.code);
+        console.error('   Mensagem        :', error.message);
+        console.error('\n   COMO CORRIGIR:');
+        console.error('   1. Acesse https://myaccount.google.com/security');
+        console.error('   2. Confirme que "Verificação em 2 etapas" está ATIVA');
+        console.error('   3. Acesse https://myaccount.google.com/apppasswords');
+        console.error('   4. Gere uma nova "Senha de app" para "Email" / "Outro"');
+        console.error('   5. Cole a senha gerada (16 chars, sem espaços) em API/.env');
+        console.error('   6. EMAIL_PASSWORD=<senha_de_16_caracteres_sem_espacos>');
+        console.error('   7. Reinicie o servidor\n');
+    } else {
+        console.log('\n✅ [emailService] Conexão SMTP Gmail verificada com sucesso!');
+        console.log('   Conta autenticada:', EMAIL_USER, '\n');
+    }
+});
+
+// ── Utilitários ──────────────────────────────────────────────
+
+export function validateEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export function generateAuthCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Função para enviar email de autenticação (código de acesso)
+// ── Emails ───────────────────────────────────────────────────
+
+// Código de autenticação (fluxo de 2FA pós-login e recuperação de senha)
 export async function sendAuthEmail(email, authCode) {
+    if (!EMAIL_USER || !EMAIL_PASSWORD) {
+        console.error('[sendAuthEmail] ❌ Abortado: EMAIL_USER ou EMAIL_PASSWORD não configurados no .env');
+        return false;
+    }
+
     try {
         console.log('[sendAuthEmail] Enviando código para:', email);
 
-        const mailOptions = {
-            from: `"Kairos Biblioteca" <${process.env.EMAIL_USER}>`,
+        await transporter.sendMail({
+            from: `"Kairos Biblioteca" <${EMAIL_USER}>`,
             to: email,
             subject: 'Código de Autenticação - Kairos',
             html: `
-                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px; background: #ffffff;">
+                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;
+                            border: 1px solid #e0e0e0; border-radius: 8px; background: #ffffff;">
                     <h2 style="color: #1a1a2e; margin-bottom: 8px;">🔐 Código de Autenticação</h2>
-                    <p style="color: #333;">Olá, seja bem-vindo(a) novamente! Seu código de autenticação é:</p>
-                    <div style="background: #f0f4ff; border-radius: 6px; padding: 16px; text-align: center; margin: 20px 0;">
-                        <span style="font-size: 2rem; font-weight: bold; color: #2563eb; letter-spacing: 10px;">${authCode}</span>
+                    <p style="color: #333;">Olá, seja bem-vindo(a)! Seu código de acesso é:</p>
+                    <div style="background: #f0f4ff; border-radius: 6px; padding: 16px;
+                                text-align: center; margin: 20px 0;">
+                        <span style="font-size: 2rem; font-weight: bold; color: #2563eb;
+                                     letter-spacing: 10px;">${authCode}</span>
                     </div>
                     <p style="color: #666;">⏰ Este código é válido por <strong>10 minutos</strong>.</p>
-                    <p style="color: #999; font-size: 0.85rem;">Se você não tentou acessar sua conta, ignore este email.</p>
+                    <p style="color: #999; font-size: 0.85rem;">
+                        Se você não tentou acessar sua conta, ignore este email.
+                    </p>
                 </div>
             `
-        };
+        });
 
-        await transporter.sendMail(mailOptions);
-        console.log('[sendAuthEmail] ✅ Email enviado com sucesso para:', email);
+        console.log('[sendAuthEmail] ✅ Código enviado com sucesso para:', email);
         return true;
     } catch (error) {
-        console.error('[sendAuthEmail] ❌ Erro ao enviar email:', error.message);
-        console.error('[sendAuthEmail] Detalhes:', error);
+        console.error('[sendAuthEmail] ❌ Falha ao enviar código:');
+        console.error('   Código :', error.code);
+        console.error('   Mensagem:', error.message);
+        if (error.response) console.error('   Resposta SMTP:', error.response);
         return false;
     }
 }
 
-
-// Função para enviar email de código de login (validação de conta)
+// Código de acesso (login com 2FA)
 export async function sendLoginCodeEmail(email, authCode) {
+    if (!EMAIL_USER || !EMAIL_PASSWORD) {
+        console.error('[sendLoginCodeEmail] ❌ Abortado: credenciais não configuradas no .env');
+        return false;
+    }
+
     try {
         console.log('[sendLoginCodeEmail] Enviando código para:', email);
 
-        const mailOptions = {
-            from: `"Kairos Biblioteca" <${process.env.EMAIL_USER}>`,
+        await transporter.sendMail({
+            from: `"Kairos Biblioteca" <${EMAIL_USER}>`,
             to: email,
             subject: 'Código de Acesso - Kairos',
             html: `
-                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;
+                            padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
                     <h2 style="color: #1a1a2e;">🔐 Código de Acesso</h2>
-                    <p>Olá! Seu código de verificação para acessar a <strong>Biblioteca Kairos</strong> é:</p>
-                    <div style="background: #f0f4ff; border-radius: 6px; padding: 16px; text-align: center; margin: 20px 0;">
-                        <span style="font-size: 2rem; font-weight: bold; color: #2563eb; letter-spacing: 10px;">${authCode}</span>
+                    <p>Seu código de verificação para acessar a <strong>Biblioteca Kairos</strong> é:</p>
+                    <div style="background: #f0f4ff; border-radius: 6px; padding: 16px;
+                                text-align: center; margin: 20px 0;">
+                        <span style="font-size: 2rem; font-weight: bold; color: #2563eb;
+                                     letter-spacing: 10px;">${authCode}</span>
                     </div>
                     <p style="color: #666;">⏰ Este código é válido por <strong>10 minutos</strong>.</p>
-                    <p style="color: #999; font-size: 0.85rem;">Se você não tentou acessar sua conta, ignore este email.</p>
+                    <p style="color: #999; font-size: 0.85rem;">
+                        Se você não tentou acessar sua conta, ignore este email.
+                    </p>
                 </div>
             `
-        };
+        });
 
-        await transporter.sendMail(mailOptions);
         console.log('[sendLoginCodeEmail] ✅ Email enviado com sucesso para:', email);
         return true;
     } catch (error) {
         console.error('[sendLoginCodeEmail] ❌ Erro ao enviar email:', error.message);
+        if (error.response) console.error('   Resposta SMTP:', error.response);
         return false;
     }
 }
 
- 
-// Função para enviar email de aviso de vencimento de empréstimo (2 dias)
+// Aviso de vencimento de empréstimo (2 dias antes)
 export async function sendLoanExpiryEmail(email, nomeUsuario, nomeLivro, dataPrevista) {
+    if (!EMAIL_USER || !EMAIL_PASSWORD) {
+        console.error('[sendLoanExpiryEmail] ❌ Abortado: credenciais não configuradas no .env');
+        return false;
+    }
+
     try {
         const dataFormatada = new Date(dataPrevista).toLocaleDateString('pt-BR', {
             day: '2-digit', month: 'long', year: 'numeric'
         });
- 
-        const mailOptions = {
-            from: `"Kairos Biblioteca" <${process.env.EMAIL_USER}>`,
+
+        await transporter.sendMail({
+            from: `"Kairos Biblioteca" <${EMAIL_USER}>`,
             to: email,
-            subject: '\u26a0\ufe0f Prazo de devolução se aproximando \u2014 Kairos Biblioteca',
+            subject: '⚠️ Prazo de devolução se aproximando — Kairos Biblioteca',
             html: `
-                <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 28px; border: 1px solid #e0e0e0; border-radius: 10px; background: #ffffff;">
+                <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto;
+                            padding: 28px; border: 1px solid #e0e0e0; border-radius: 10px; background: #ffffff;">
                     <div style="text-align:center; margin-bottom: 24px;">
-                        <span style="font-size: 2.5rem;">\ud83d\udcda</span>
+                        <span style="font-size: 2.5rem;">📚</span>
                         <h2 style="color: #1a1a2e; margin-top: 8px; font-size: 1.4rem;">Aviso de Devolução</h2>
                         <p style="color: #666; font-size: 0.9rem;">Biblioteca Kairos</p>
                     </div>
                     <p style="font-size: 1rem; color: #333;">Olá, <strong>${nomeUsuario}</strong>!</p>
-                    <br/>
-                    <p style="color: #555;">Este é um lembrete amigável: o prazo de devolução do livro abaixo está se aproximando.</p>
-                    <div style="background: #fef9ec; border-left: 4px solid #f59e0b; border-radius: 6px; padding: 16px 20px; margin: 20px 0;">
-                        <p style="margin: 0; font-size: 0.85rem; color: #92400e; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Livro</p>
-                        <p style="margin: 4px 0 12px; font-size: 1.1rem; font-weight: bold; color: #1a1a2e;">${nomeLivro}</p>
-                        <p style="margin: 0; font-size: 0.85rem; color: #92400e; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Data prevista de devolução</p>
-                        <p style="margin: 4px 0 0; font-size: 1rem; font-weight: bold; color: #d97706;">\ud83d\udcc5 ${dataFormatada}</p>
+                    <p style="color: #555;">Lembrete: o prazo de devolução do livro abaixo está próximo.</p>
+                    <div style="background: #fef9ec; border-left: 4px solid #f59e0b;
+                                border-radius: 6px; padding: 16px 20px; margin: 20px 0;">
+                        <p style="margin: 0; font-size: 0.85rem; color: #92400e;
+                                  text-transform: uppercase; font-weight: 600;">Livro</p>
+                        <p style="margin: 4px 0 12px; font-size: 1.1rem; font-weight: bold;
+                                  color: #1a1a2e;">${nomeLivro}</p>
+                        <p style="margin: 0; font-size: 0.85rem; color: #92400e;
+                                  text-transform: uppercase; font-weight: 600;">Data prevista de devolução</p>
+                        <p style="margin: 4px 0 0; font-size: 1rem; font-weight: bold;
+                                  color: #d97706;">📅 ${dataFormatada}</p>
                     </div>
-                    <div style="background: #fff3f3; border-radius: 6px; padding: 14px 18px; border: 1px solid #fecaca; margin-bottom: 20px;">
+                    <div style="background: #fff3f3; border-radius: 6px; padding: 14px 18px;
+                                border: 1px solid #fecaca; margin-bottom: 20px;">
                         <p style="margin: 0; color: #b91c1c; font-size: 0.95rem;">
-                            \u23f0 <strong>Faltam apenas 2 dias</strong> para o vencimento deste empréstimo.
-                            Por favor, devolva o livro até a data indicada para evitar atrasos.
+                            ⏰ <strong>Faltam apenas 2 dias</strong> para o vencimento.
+                            Por favor, devolva o livro até a data indicada.
                         </p>
                     </div>
-                    <p style="color: #555; font-size: 0.9rem;">Caso já tenha realizado a devolução, desconsidere este aviso.</p>
-                    <br/>
-                    <p style="color: #888; font-size: 0.8rem; border-top: 1px solid #eee; padding-top: 14px;">
-                        Obrigado por usar a <strong>Biblioteca Kairos</strong>. \ud83c\udfd9\ufe0f<br/>
-                        Este é um email automático \u2014 não responda a esta mensagem.
+                    <p style="color: #555; font-size: 0.9rem;">
+                        Caso já tenha devolvido, desconsidere este aviso.
+                    </p>
+                    <p style="color: #888; font-size: 0.8rem; border-top: 1px solid #eee;
+                              padding-top: 14px;">
+                        Obrigado por usar a <strong>Biblioteca Kairos</strong>. 🏛️<br/>
+                        Este é um email automático — não responda a esta mensagem.
                     </p>
                 </div>
             `
-        };
- 
-        await transporter.sendMail(mailOptions);
-        console.log(`[sendLoanExpiryEmail] \u2705 Aviso de vencimento enviado para: ${email} (livro: ${nomeLivro})`);
+        });
+
+        console.log(`[sendLoanExpiryEmail] ✅ Aviso enviado para: ${email} (${nomeLivro})`);
         return true;
     } catch (error) {
-        console.error('[sendLoanExpiryEmail] \u274c Erro ao enviar email:', error.message);
+        console.error('[sendLoanExpiryEmail] ❌ Erro ao enviar email:', error.message);
         return false;
     }
 }
- 
-// Função para enviar email de boas-vindas
+
+// Email de boas-vindas
 export async function sendWelcomeEmail(email, name) {
+    if (!EMAIL_USER || !EMAIL_PASSWORD) {
+        console.error('[sendWelcomeEmail] ❌ Abortado: credenciais não configuradas no .env');
+        return false;
+    }
+
     try {
-        const mailOptions = {
-            from: `"Kairos Biblioteca" <${process.env.EMAIL_USER}>`,
+        await transporter.sendMail({
+            from: `"Kairos Biblioteca" <${EMAIL_USER}>`,
             to: email,
             subject: 'Bem-vindo à Biblioteca Kairos! 🏛️',
             html: `
-                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;
+                            padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
                     <h2 style="color: #1a1a2e;">🏛️ Bem-vindo, ${name}!</h2>
-                    <p>Sua conta foi criada com sucesso no sistema da <strong>Biblioteca Kairos</strong>.</p>
-                    <p>Agora você pode acessar todos os recursos disponíveis: consultar o catálogo, fazer empréstimos e muito mais.</p>
-                    <br/>
+                    <p>Sua conta foi criada com sucesso na <strong>Biblioteca Kairos</strong>.</p>
+                    <p>Agora você pode consultar o catálogo, fazer empréstimos e muito mais.</p>
                     <p style="color: #666;">Obrigado por se registrar!</p>
                 </div>
             `
-        };
+        });
 
-        await transporter.sendMail(mailOptions);
-        console.log('[sendWelcomeEmail] ✅ Email de boas-vindas enviado para:', email);
+        console.log('[sendWelcomeEmail] ✅ Boas-vindas enviado para:', email);
         return true;
     } catch (error) {
         console.error('[sendWelcomeEmail] ❌ Erro ao enviar email de boas-vindas:', error.message);
