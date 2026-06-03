@@ -335,7 +335,7 @@ function abrirModal(id) {
 
 function fecharModal() { document.getElementById('modal').classList.remove('open'); }
 
-function solicitarEmprestimo(livroId, titulo) {
+async function solicitarEmprestimo(livroId, titulo) {
     const usuarioId = sessionStorage.getItem('usuarioId');
     if (!usuarioId) {
         mostrarToast('Faça login para solicitar um empréstimo.', 'error');
@@ -343,26 +343,25 @@ function solicitarEmprestimo(livroId, titulo) {
     }
 
     const btn = document.querySelector('.btn-emprestimo');
-    if (btn) { btn.disabled = true; btn.textContent = 'Solicitando...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando solicitação...'; }
 
-    fetch('http://localhost:3000/emprestimo', {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body   : JSON.stringify({ Usuario_id: parseInt(usuarioId), Livro_id: livroId })
-    })
-    .then(async res => {
+    try {
+        const res = await fetch('http://localhost:3000/solicitacao', {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({ Usuario_id: parseInt(usuarioId), Livro_id: livroId })
+        });
         const data = await res.json();
         fecharModal();
         if (res.ok) {
-            mostrarToast(`✅ Empréstimo de "${titulo}" solicitado! Você tem 14 dias para devolver.`, 'success');
+            mostrarToast(`📋 Solicitação de "${titulo}" enviada! Aguarde a aprovação do administrador.`, 'success');
         } else {
-            mostrarToast(data.error || 'Não foi possível realizar o empréstimo.', 'error');
+            mostrarToast(data.error || 'Não foi possível enviar a solicitação.', 'error');
         }
-    })
-    .catch(() => {
+    } catch {
         fecharModal();
         mostrarToast('Erro de conexão com o servidor.', 'error');
-    });
+    }
 }
 
 // ── Painel de notificação lateral ────────────────────────────

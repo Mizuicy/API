@@ -1231,6 +1231,412 @@ app.patch('/notificacoes/marcar-todas-lidas', (req, res) => {
     });
 });
 
+// ══════════════════════════════════════════════════════════════
+//  ROTAS DE SOLICITAÇÃO DE EMPRÉSTIMOS
+//  Fluxo correto: usuário solicita → pendente → admin aprova/reprova → empréstimo ativo
+//  CORRIGIDO: rotas estavam ausentes do servidor em execução (backend/src/server.js)
+// ══════════════════════════════════════════════════════════════
+
+// GET /solicitacao — lista solicitações (admin: todas; usuário: suas)
+// Query params: ?usuario=ID  e/ou  ?status=pendente|aprovado|reprovado
+app.get('/solicitacao', (req, res) => {
+    const usuarioId = req.query.usuario ? parseInt(req.query.usuario, 10) : null;
+    const status    = req.query.status  || null;
+
+    let sql = `
+        SELECT
+            s.Solicitacao_id,
+            s.Usuario_id,
+            s.Livro_id,
+            s.Status,
+            s.DataSolicitacao,
+            s.DataDecisao,
+            s.AdminDecisao_id,
+            s.ObservacaoAdmin,
+            s.Emprestimo_id,
+            u.Nome   AS NomeUsuario,
+            u.Email  AS EmailUsuario,
+            l.Nome   AS NomeLivro,
+            l.Imagem AS CapaLivro,
+            l.Autor  AS AutorLivro
+        FROM SolicitacaoEmprestimo s
+        JOIN Usuario u ON s.Usuario_id = u.Usuario_id
+        JOIN Livro   l ON s.Livro_id   = l.Livro_id
+        WHERE 1=1
+    `;
+    const params = [];
+
+    if (usuarioId) { sql += ' AND s.Usuario_id = ?'; params.push(usuarioId); }
+    if (status)    { sql += ' AND s.Status = ?';     params.push(status); }
+
+    sql += ' ORDER BY s.DataSolicitacao DESC LIMIT 200';
+
+    dbconfig.query(sql, params, (err, results) => {
+        if (err) {
+            console.error('[GET /solicitacao] Erro:', err.sqlMessage || err.message);
+            return res.status(500).json({ error: 'Erro interno ao buscar solicitações.', detalhe: err.sqlMessage || err.message });
+        }
+        res.json(results);
+    });
+});
+
+// GET /solicitacao/:id — detalhes de uma solicitação específica
+app.get('/solicitacao/:id', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
+
+    const sql = `
+        SELECT
+            s.Solicitacao_id, s.Usuario_id, s.Livro_id, s.Status,
+            s.DataSolicitacao, s.DataDecisao, s.AdminDecisao_id,
+            s.ObservacaoAdmin, s.Emprestimo_id,
+            u.Nome  AS NomeUsuario, u.Email AS EmailUsuario,
+            l.Nome  AS NomeLivro,  l.Imagem AS CapaLivro, l.Autor AS AutorLivro
+        FROM SolicitacaoEmprestimo s
+        JOIN Usuario u ON s.Usuario_id = u.Usuario_id
+        JOIN Livro   l ON s.Livro_id   = l.Livro_id
+        WHERE s.Solicitacao_id = ?
+    `;
+    dbconfig.query(sql, [id], (err, rows) => {
+        if (err) {
+            console.error('[GET /solicitacao/:id] Erro:', err.sqlMessage || err.message);
+            return res.status(500).json({ error: 'Erro interno.', detalhe: err.sqlMessage || err.message });
+        }
+        if (!rows.length) return res.status(404).json({ error: 'Solicitação não encontrada.' });
+        res.json(rows[0]);
+    });
+});
+
+// POST /solicitacao — usuário registra pedido de empréstimo (NÃO cria empréstimo ativo)
+// Body: { Usuario_id, Livro_id }
+app.post('/solicitacao', (req, res) => {
+    const { Usuario_id, Livro_id } = req.body;
+
+    console.log(`[POST /solicitacao] Recebido: Usuario_id=${Usuario_id}, Livro_id=${Livro_id}`);
+
+    if (!Usuario_id || !Livro_id) {
+        return res.status(400).json({ error: 'Usuario_id e Livro_id são obrigatórios.' });
+    }
+
+    // 1) Verifica se já existe solicitação pendente deste livro por este usuário
+    dbconfig.query(
+        "SELECT Solicitacao_id FROM SolicitacaoEmprestimo WHERE Usuario_id = ? AND Livro_id = ? AND Status = 'pendente'",
+        [Usuario_id, Livro_id],
+        (err, pendentes) => {
+            if (err) {
+                console.error('[POST /solicitacao] Erro ao checar pendentes:', err.sqlMessage || err.message);
+                return res.status(500).json({ error: 'Erro interno ao verificar solicitações.', detalhe: err.sqlMessage || err.message });
+            }
+            if (pendentes.length > 0) {
+                return res.status(400).json({ error: 'Você já possui uma solicitação pendente para este livro.' });
+            }
+
+            // 2) Verifica se já tem empréstimo ativo deste livro
+            dbconfig.query(
+                `SELECT e.Emprestimo_id FROM Emprestimo e
+                 JOIN Exemplar ex ON e.Exemplar_id = ex.Exemplar_id
+                 WHERE e.Usuario_id = ? AND ex.Livro_id = ? AND e.Status IN ('ativo','atrasado')`,
+                [Usuario_id, Livro_id],
+                (err2, ativos) => {
+                    if (err2) {
+                        console.error('[POST /solicitacao] Erro ao checar ativos:', err2.sqlMessage || err2.message);
+                        return res.status(500).json({ error: 'Erro interno ao verificar empréstimos.', detalhe: err2.sqlMessage || err2.message });
+                    }
+                    if (ativos.length > 0) {
+                        return res.status(400).json({ error: 'Você já possui um empréstimo ativo deste livro.' });
+                    }
+
+                    // 3) Verifica se há exemplar disponível
+                    dbconfig.query(
+                        "SELECT COUNT(*) AS total FROM Exemplar WHERE Livro_id = ? AND Status = 'Disponivel'",
+                        [Livro_id],
+                        (err3, countRows) => {
+                            if (err3) {
+                                console.error('[POST /solicitacao] Erro ao checar exemplares:', err3.sqlMessage || err3.message);
+                                return res.status(500).json({ error: 'Erro interno ao verificar exemplares.', detalhe: err3.sqlMessage || err3.message });
+                            }
+                            if (!countRows[0].total) {
+                                return res.status(409).json({ error: 'Não há exemplares disponíveis para este livro no momento.' });
+                            }
+
+                            // 4) Cria a solicitação com status 'pendente' — NÃO cria empréstimo
+                            dbconfig.query(
+                                "INSERT INTO SolicitacaoEmprestimo (Usuario_id, Livro_id, Status) VALUES (?, ?, 'pendente')",
+                                [Usuario_id, Livro_id],
+                                (err4, result) => {
+                                    if (err4) {
+                                        console.error('[POST /solicitacao] Erro ao inserir solicitação:', err4.sqlMessage || err4.message);
+                                        return res.status(500).json({ error: 'Erro interno ao registrar a solicitação.', detalhe: err4.sqlMessage || err4.message });
+                                    }
+
+                                    const solicitacaoId = result.insertId;
+                                    console.log(`[POST /solicitacao] Solicitação #${solicitacaoId} criada com sucesso (pendente).`);
+
+                                    // 5) Notifica todos os admins (fire-and-forget — não bloqueia a resposta)
+                                    dbconfig.query('SELECT Nome FROM Usuario WHERE Usuario_id = ?', [Usuario_id], (errUN, rowsUN) => {
+                                        const nomeUsuario = (!errUN && rowsUN.length) ? rowsUN[0].Nome : `Usuário #${Usuario_id}`;
+                                        dbconfig.query('SELECT Nome FROM Livro WHERE Livro_id = ?', [Livro_id], (errLN, rowsLN) => {
+                                            const nomeLivro = (!errLN && rowsLN.length) ? rowsLN[0].Nome : `Livro #${Livro_id}`;
+                                            const msgAdmin  = `Novo pedido de empréstimo solicitado por ${nomeUsuario}. Livro: "${nomeLivro}".`;
+                                            dbconfig.query("SELECT Usuario_id FROM Usuario WHERE Tipo = 'admin'", (errAdm, admins) => {
+                                                if (!errAdm && admins.length) {
+                                                    admins.forEach(adm => {
+                                                        dbconfig.query(
+                                                            'INSERT INTO Notificacao (Usuario_id, Solicitacao_id, Tipo, Mensagem) VALUES (?, ?, ?, ?)',
+                                                            [adm.Usuario_id, solicitacaoId, 'admin_solicitacao', msgAdmin],
+                                                            (errN) => { if (errN) console.error('[POST /solicitacao] Erro ao notificar admin:', errN.sqlMessage || errN.message); }
+                                                        );
+                                                    });
+                                                }
+                                            });
+                                        });
+                                    });
+
+                                    res.status(201).json({
+                                        Solicitacao_id : solicitacaoId,
+                                        Usuario_id,
+                                        Livro_id,
+                                        Status         : 'pendente',
+                                        message        : 'Solicitação enviada com sucesso! Aguarde a aprovação do administrador.'
+                                    });
+                                }
+                            );
+                        }
+                    );
+                }
+            );
+        }
+    );
+});
+
+// POST /solicitacao/:id/aprovar — admin aprova a solicitação e cria o empréstimo ativo
+// Body: { admin_id, DataPrevista? }
+app.post('/solicitacao/:id/aprovar', (req, res) => {
+    const id      = parseInt(req.params.id, 10);
+    const adminId = req.body.admin_id ? parseInt(req.body.admin_id, 10) : null;
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
+
+    console.log(`[POST /solicitacao/${id}/aprovar] admin_id=${adminId}`);
+
+    dbconfig.query("SELECT * FROM SolicitacaoEmprestimo WHERE Solicitacao_id = ?", [id], (err, rows) => {
+        if (err) {
+            console.error('[aprovar] Erro ao buscar solicitação:', err.sqlMessage || err.message);
+            return res.status(500).json({ error: 'Erro interno.', detalhe: err.sqlMessage || err.message });
+        }
+        if (!rows.length) return res.status(404).json({ error: 'Solicitação não encontrada.' });
+
+        const solic = rows[0];
+        if (solic.Status !== 'pendente') {
+            return res.status(400).json({ error: `Esta solicitação já foi ${solic.Status}.` });
+        }
+
+        // Busca exemplar disponível
+        dbconfig.query(
+            "SELECT Exemplar_id FROM Exemplar WHERE Livro_id = ? AND Status = 'Disponivel' LIMIT 1",
+            [solic.Livro_id],
+            (err2, exemplares) => {
+                if (err2) {
+                    console.error('[aprovar] Erro ao buscar exemplar:', err2.sqlMessage || err2.message);
+                    return res.status(500).json({ error: 'Erro interno ao buscar exemplar.', detalhe: err2.sqlMessage || err2.message });
+                }
+                if (!exemplares.length) {
+                    return res.status(409).json({ error: 'Não há exemplares disponíveis no momento. Não é possível aprovar.' });
+                }
+
+                const exemplarId = exemplares[0].Exemplar_id;
+                const hoje = new Date();
+                const dataSaida = hoje.toISOString().split('T')[0];
+                const dataPrevista = req.body.DataPrevista || (() => {
+                    const d = new Date(hoje);
+                    d.setDate(d.getDate() + 14);
+                    return d.toISOString().split('T')[0];
+                })();
+
+                // Cria o empréstimo ativo
+                dbconfig.query(
+                    "INSERT INTO Emprestimo (DataSaida, DataPrevista, Status, Usuario_id, Exemplar_id) VALUES (?, ?, 'ativo', ?, ?)",
+                    [dataSaida, dataPrevista, solic.Usuario_id, exemplarId],
+                    (err3, empResult) => {
+                        if (err3) {
+                            console.error('[aprovar] Erro ao criar empréstimo:', err3.sqlMessage || err3.message);
+                            return res.status(500).json({ error: 'Erro interno ao criar empréstimo.', detalhe: err3.sqlMessage || err3.message });
+                        }
+
+                        const emprestimoId = empResult.insertId;
+                        console.log(`[aprovar] Empréstimo #${emprestimoId} criado para solicitação #${id}.`);
+
+                        // Atualiza exemplar para Emprestado
+                        dbconfig.query(
+                            "UPDATE Exemplar SET Status = 'Emprestado' WHERE Exemplar_id = ?",
+                            [exemplarId],
+                            (err4) => { if (err4) console.error('[aprovar] Aviso: falha ao atualizar exemplar:', err4.message); }
+                        );
+
+                        // Atualiza solicitação para aprovado
+                        dbconfig.query(
+                            "UPDATE SolicitacaoEmprestimo SET Status='aprovado', DataDecisao=NOW(), AdminDecisao_id=?, Emprestimo_id=? WHERE Solicitacao_id=?",
+                            [adminId, emprestimoId, id],
+                            (err5) => { if (err5) console.error('[aprovar] Erro ao atualizar solicitação:', err5.message); }
+                        );
+
+                        // Notifica o usuário (fire-and-forget)
+                        dbconfig.query('SELECT Nome FROM Livro WHERE Livro_id = ?', [solic.Livro_id], (errL, rowsL) => {
+                            const nomeLivro = (!errL && rowsL.length) ? rowsL[0].Nome : 'Livro';
+                            const msgUsuario = `Seu pedido de empréstimo do livro "${nomeLivro}" foi APROVADO! Prazo de devolução: ${dataPrevista}.`;
+                            dbconfig.query(
+                                'INSERT INTO Notificacao (Usuario_id, Emprestimo_id, Solicitacao_id, Tipo, Mensagem) VALUES (?, ?, ?, ?, ?)',
+                                [solic.Usuario_id, emprestimoId, id, 'aprovacao_emprestimo', msgUsuario],
+                                (errN) => { if (errN) console.error('[aprovar] Erro ao notificar usuário:', errN.message); }
+                            );
+                            dbconfig.query(
+                                "UPDATE Notificacao SET Lida=1 WHERE Solicitacao_id=? AND Tipo='admin_solicitacao'",
+                                [id], () => {}
+                            );
+                        });
+
+                        res.json({
+                            message        : 'Solicitação aprovada. Empréstimo criado com sucesso.',
+                            Solicitacao_id : id,
+                            Emprestimo_id  : emprestimoId,
+                            Status         : 'aprovado',
+                            DataSaida      : dataSaida,
+                            DataPrevista   : dataPrevista
+                        });
+                    }
+                );
+            }
+        );
+    });
+});
+
+// POST /solicitacao/:id/reprovar — admin reprova a solicitação
+// Body: { admin_id, observacao? }
+app.post('/solicitacao/:id/reprovar', (req, res) => {
+    const id         = parseInt(req.params.id, 10);
+    const adminId    = req.body.admin_id   ? parseInt(req.body.admin_id, 10) : null;
+    const observacao = req.body.observacao || null;
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
+
+    console.log(`[POST /solicitacao/${id}/reprovar] admin_id=${adminId}`);
+
+    dbconfig.query("SELECT * FROM SolicitacaoEmprestimo WHERE Solicitacao_id = ?", [id], (err, rows) => {
+        if (err) {
+            console.error('[reprovar] Erro ao buscar solicitação:', err.sqlMessage || err.message);
+            return res.status(500).json({ error: 'Erro interno.', detalhe: err.sqlMessage || err.message });
+        }
+        if (!rows.length) return res.status(404).json({ error: 'Solicitação não encontrada.' });
+
+        const solic = rows[0];
+        if (solic.Status !== 'pendente') {
+            return res.status(400).json({ error: `Esta solicitação já foi ${solic.Status}.` });
+        }
+
+        dbconfig.query(
+            "UPDATE SolicitacaoEmprestimo SET Status='reprovado', DataDecisao=NOW(), AdminDecisao_id=?, ObservacaoAdmin=? WHERE Solicitacao_id=?",
+            [adminId, observacao, id],
+            (err2) => {
+                if (err2) {
+                    console.error('[reprovar] Erro ao atualizar solicitação:', err2.sqlMessage || err2.message);
+                    return res.status(500).json({ error: 'Erro interno ao reprovar.', detalhe: err2.sqlMessage || err2.message });
+                }
+
+                // Notifica o usuário (fire-and-forget)
+                dbconfig.query('SELECT Nome FROM Livro WHERE Livro_id = ?', [solic.Livro_id], (errL, rowsL) => {
+                    const nomeLivro = (!errL && rowsL.length) ? rowsL[0].Nome : 'Livro';
+                    const obs = observacao ? ` Motivo: ${observacao}` : '';
+                    const msgUsuario = `Seu pedido de empréstimo do livro "${nomeLivro}" foi reprovado.${obs}`;
+                    dbconfig.query(
+                        'INSERT INTO Notificacao (Usuario_id, Solicitacao_id, Tipo, Mensagem) VALUES (?, ?, ?, ?)',
+                        [solic.Usuario_id, id, 'reprovacao_emprestimo', msgUsuario],
+                        (errN) => { if (errN) console.error('[reprovar] Erro ao notificar usuário:', errN.message); }
+                    );
+                    dbconfig.query(
+                        "UPDATE Notificacao SET Lida=1 WHERE Solicitacao_id=? AND Tipo='admin_solicitacao'",
+                        [id], () => {}
+                    );
+                });
+
+                res.json({
+                    message        : 'Solicitação reprovada.',
+                    Solicitacao_id : id,
+                    Status         : 'reprovado'
+                });
+            }
+        );
+    });
+});
+
+// ══════════════════════════════════════════════════════════════
+//  ROTAS DE NOTIFICAÇÕES DO ADMINISTRADOR
+//  CORRIGIDO: ausentes do servidor em execução
+// ══════════════════════════════════════════════════════════════
+
+// GET /admin/notificacoes?admin=ID
+app.get('/admin/notificacoes', (req, res) => {
+    const adminId = parseInt(req.query.admin, 10);
+    if (!adminId || isNaN(adminId)) return res.status(400).json({ error: 'Parâmetro admin é obrigatório.' });
+
+    const sql = `
+        SELECT
+            n.Notificacao_id, n.Usuario_id, n.Emprestimo_id,
+            n.Solicitacao_id, n.Tipo, n.Mensagem, n.Lida, n.CriadaEm,
+            s.Status        AS StatusSolicitacao,
+            s.DataSolicitacao,
+            us.Nome         AS NomeSolicitante,
+            us.Email        AS EmailSolicitante,
+            l.Nome          AS NomeLivro,
+            l.Imagem        AS CapaLivro
+        FROM Notificacao n
+        LEFT JOIN SolicitacaoEmprestimo s  ON n.Solicitacao_id = s.Solicitacao_id
+        LEFT JOIN Usuario               us ON s.Usuario_id     = us.Usuario_id
+        LEFT JOIN Livro                 l  ON s.Livro_id       = l.Livro_id
+        WHERE n.Usuario_id = ? AND n.Tipo LIKE 'admin_%'
+        ORDER BY n.CriadaEm DESC
+        LIMIT 50
+    `;
+    dbconfig.query(sql, [adminId], (err, results) => {
+        if (err) {
+            console.error('[GET /admin/notificacoes] Erro:', err.sqlMessage || err.message);
+            return res.status(500).json({ error: 'Erro interno.', detalhe: err.sqlMessage || err.message });
+        }
+        res.json(results);
+    });
+});
+
+// PATCH /admin/notificacoes/:id/lida
+app.patch('/admin/notificacoes/:id/lida', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
+    dbconfig.query('UPDATE Notificacao SET Lida = 1 WHERE Notificacao_id = ?', [id], (err) => {
+        if (err) return handleQuery(res, err);
+        res.json({ ok: true });
+    });
+});
+
+// PATCH /admin/notificacoes/:id/nao-lida
+app.patch('/admin/notificacoes/:id/nao-lida', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
+    dbconfig.query('UPDATE Notificacao SET Lida = 0 WHERE Notificacao_id = ?', [id], (err) => {
+        if (err) return handleQuery(res, err);
+        res.json({ ok: true });
+    });
+});
+
+// PATCH /admin/notificacoes/marcar-todas-lidas?admin=ID
+app.patch('/admin/notificacoes/marcar-todas-lidas', (req, res) => {
+    const adminId = parseInt(req.query.admin, 10);
+    if (!adminId || isNaN(adminId)) return res.status(400).json({ error: 'admin obrigatório.' });
+    dbconfig.query(
+        "UPDATE Notificacao SET Lida = 1 WHERE Usuario_id = ? AND Tipo LIKE 'admin_%'",
+        [adminId],
+        (err) => {
+            if (err) return handleQuery(res, err);
+            res.json({ ok: true });
+        }
+    );
+});
+
 // ── Cron interno: roda às 07h todo dia ────────────────────────
 cron.schedule('0 7 * * *', async () => {
     console.log('[CRON 07h] Verificando emprestimos vencendo em 2 dias...');

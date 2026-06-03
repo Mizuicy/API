@@ -434,7 +434,7 @@
             <div class="stats-row">
                 <div class="stat-card total">
                     <div class="stat-value" id="statTotal">—</div>
-                    <div class="stat-label">Total</div>
+                    <div class="stat-label">Empréstimos</div>
                 </div>
                 <div class="stat-card ativo">
                     <div class="stat-value" id="statAtivo">—</div>
@@ -448,10 +448,20 @@
                     <div class="stat-value" id="statDevolvido">—</div>
                     <div class="stat-label">Devolvidos</div>
                 </div>
+                <div class="stat-card" style="border-top-color:#f59e0b">
+                    <div class="stat-value" id="statPendente" style="color:#d97706">—</div>
+                    <div class="stat-label">Pendentes</div>
+                </div>
             </div>
 
-            <!-- Filtros -->
-            <div class="filtros-bar">
+            <!-- Abas: Empréstimos | Solicitações -->
+            <div style="display:flex; gap:8px; margin-bottom:16px; border-bottom:2px solid var(--border,#e4e4e4); padding-bottom:0;">
+                <button id="tabEmprestimos" onclick="mudarAba('emprestimos')" style="padding:8px 18px; border:none; background:none; cursor:pointer; font-size:0.9rem; font-weight:600; color:#667eea; border-bottom:2px solid #667eea; margin-bottom:-2px; font-family:'DM Sans',sans-serif;">📖 Empréstimos</button>
+                <button id="tabSolicitacoes" onclick="mudarAba('solicitacoes')" style="padding:8px 18px; border:none; background:none; cursor:pointer; font-size:0.9rem; font-weight:600; color:#888; border-bottom:2px solid transparent; margin-bottom:-2px; font-family:'DM Sans',sans-serif;">⏳ Solicitações Pendentes <span id="badgePendentes" style="display:none; background:#ef4444; color:white; border-radius:12px; font-size:0.7rem; padding:1px 6px; margin-left:4px;"></span></button>
+            </div>
+
+            <!-- Filtros de Empréstimos -->
+            <div class="filtros-bar" id="filtrosEmprestimos">
                 <input type="text" id="searchInput" class="search-input"
                        placeholder="🔍 Pesquisar por livro ou usuário..."
                        oninput="filtrar()">
@@ -463,7 +473,21 @@
                 </select>
             </div>
 
-            <!-- Tabela -->
+            <!-- Filtros de Solicitações -->
+            <div class="filtros-bar" id="filtrosSolicitacoes" style="display:none">
+                <input type="text" id="searchSolic" class="search-input"
+                       placeholder="🔍 Pesquisar por livro ou usuário..."
+                       oninput="filtrarSolicitacoes()">
+                <select id="statusSolicFilter" class="filter-select" onchange="filtrarSolicitacoes()">
+                    <option value="pendente">Pendentes</option>
+                    <option value="">Todas</option>
+                    <option value="aprovado">Aprovadas</option>
+                    <option value="reprovado">Reprovadas</option>
+                </select>
+            </div>
+
+            <!-- Tabela de Empréstimos -->
+            <div id="secaoEmprestimos">
             <div class="tabela-wrapper">
                 <table class="emp-table">
                     <thead>
@@ -490,11 +514,39 @@
                     </tbody>
                 </table>
             </div>
+            </div>
+
+            <!-- Tabela de Solicitações -->
+            <div id="secaoSolicitacoes" style="display:none">
+            <div class="tabela-wrapper">
+                <table class="emp-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Livro</th>
+                            <th>Usuário</th>
+                            <th>Data Solicitação</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaSolicBody">
+                        <tr>
+                            <td colspan="6">
+                                <div class="table-msg">
+                                    <div class="big-icon">⏳</div>
+                                    Carregando solicitações...
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            </div>
 
         </section>
     </main>
 </div>
-
 <!-- Modal: Novo Empréstimo -->
 <div class="modal-overlay" id="modalNovo">
     <div class="modal-box">
@@ -533,11 +585,45 @@
 
 <script>
 const API = 'http://localhost:3000';
-let todosEmprestimos = [];
-let todosLivros      = [];
-let todosUsuarios    = [];
+let todosEmprestimos  = [];
+let todasSolicitacoes = [];
+let todosLivros       = [];
+let todosUsuarios     = [];
+let abaAtiva          = 'emprestimos';
 
-// ── Formatação ───────────────────────────────────────────────
+// ── Alternância de abas ───────────────────────────────────────
+function mudarAba(aba) {
+    abaAtiva = aba;
+    const tabE = document.getElementById('tabEmprestimos');
+    const tabS = document.getElementById('tabSolicitacoes');
+    const secE = document.getElementById('secaoEmprestimos');
+    const secS = document.getElementById('secaoSolicitacoes');
+    const filE = document.getElementById('filtrosEmprestimos');
+    const filS = document.getElementById('filtrosSolicitacoes');
+
+    if (aba === 'emprestimos') {
+        tabE.style.color       = '#667eea';
+        tabE.style.borderBottom = '2px solid #667eea';
+        tabS.style.color       = '#888';
+        tabS.style.borderBottom = '2px solid transparent';
+        secE.style.display = '';
+        secS.style.display = 'none';
+        filE.style.display = '';
+        filS.style.display = 'none';
+    } else {
+        tabS.style.color       = '#667eea';
+        tabS.style.borderBottom = '2px solid #667eea';
+        tabE.style.color       = '#888';
+        tabE.style.borderBottom = '2px solid transparent';
+        secE.style.display = 'none';
+        secS.style.display = '';
+        filE.style.display = 'none';
+        filS.style.display = '';
+        filtrarSolicitacoes();
+    }
+}
+
+// ── Formatação ────────────────────────────────────────────────
 function fmtData(d) {
     if (!d) return '—';
     const dt = new Date(d);
@@ -547,23 +633,37 @@ function fmtData(d) {
 
 function badgeHtml(status) {
     const map = {
-        ativo:     ['badge-ativo',     '📖 Ativo'],
-        devolvido: ['badge-devolvido', '✅ Devolvido'],
-        atrasado:  ['badge-atrasado',  '⚠️ Atrasado'],
+        ativo:      ['badge-ativo',     '📖 Ativo'],
+        devolvido:  ['badge-devolvido', '✅ Devolvido'],
+        atrasado:   ['badge-atrasado',  '⚠️ Atrasado'],
+        pendente:   ['badge-pendente',  '⏳ Pendente'],
+        aprovado:   ['badge-devolvido', '✅ Aprovado'],
+        reprovado:  ['badge-atrasado',  '❌ Reprovado'],
     };
     const [cls, label] = map[status] || ['badge-ativo', status];
     return `<span class="badge ${cls}">${label}</span>`;
 }
 
-// ── Estatísticas ─────────────────────────────────────────────
-function atualizarStats(dados) {
-    document.getElementById('statTotal').textContent    = dados.length;
-    document.getElementById('statAtivo').textContent    = dados.filter(e => e.Status === 'ativo').length;
-    document.getElementById('statAtrasado').textContent = dados.filter(e => e.Status === 'atrasado').length;
-    document.getElementById('statDevolvido').textContent= dados.filter(e => e.Status === 'devolvido').length;
+// ── Estatísticas ──────────────────────────────────────────────
+function atualizarStats(emprestimos, solicitacoes) {
+    document.getElementById('statTotal').textContent     = emprestimos.length;
+    document.getElementById('statAtivo').textContent     = emprestimos.filter(e => e.Status === 'ativo').length;
+    document.getElementById('statAtrasado').textContent  = emprestimos.filter(e => e.Status === 'atrasado').length;
+    document.getElementById('statDevolvido').textContent = emprestimos.filter(e => e.Status === 'devolvido').length;
+
+    const pendentes = solicitacoes.filter(s => s.Status === 'pendente').length;
+    document.getElementById('statPendente').textContent = pendentes;
+
+    const badge = document.getElementById('badgePendentes');
+    if (pendentes > 0) {
+        badge.textContent = pendentes;
+        badge.style.display = 'inline';
+    } else {
+        badge.style.display = 'none';
+    }
 }
 
-// ── Filtro e renderização ────────────────────────────────────
+// ── Filtro e renderização — Empréstimos ──────────────────────
 function filtrar() {
     const busca  = document.getElementById('searchInput').value.toLowerCase().trim();
     const status = document.getElementById('statusFilter').value;
@@ -571,9 +671,9 @@ function filtrar() {
     const filtrados = todosEmprestimos.filter(e => {
         const matchStatus = !status || e.Status === status;
         const matchBusca  = !busca
-            || (e.NomeLivro   || '').toLowerCase().includes(busca)
-            || (e.NomeUsuario || '').toLowerCase().includes(busca)
-            || (e.EmailUsuario|| '').toLowerCase().includes(busca);
+            || (e.NomeLivro    || '').toLowerCase().includes(busca)
+            || (e.NomeUsuario  || '').toLowerCase().includes(busca)
+            || (e.EmailUsuario || '').toLowerCase().includes(busca);
         return matchStatus && matchBusca;
     });
 
@@ -647,13 +747,87 @@ function renderizarTabela(dados) {
     }).join('');
 }
 
-// ── Carregar dados ───────────────────────────────────────────
+// ── Filtro e renderização — Solicitações ──────────────────────
+function filtrarSolicitacoes() {
+    const busca  = (document.getElementById('searchSolic').value || '').toLowerCase().trim();
+    const status = document.getElementById('statusSolicFilter').value;
+
+    const filtrados = todasSolicitacoes.filter(s => {
+        const matchStatus = !status || s.Status === status;
+        const matchBusca  = !busca
+            || (s.NomeLivro      || '').toLowerCase().includes(busca)
+            || (s.NomeUsuario    || '').toLowerCase().includes(busca)
+            || (s.EmailUsuario   || '').toLowerCase().includes(busca);
+        return matchStatus && matchBusca;
+    });
+
+    renderizarTabelaSolicitacoes(filtrados);
+}
+
+function renderizarTabelaSolicitacoes(dados) {
+    const tbody = document.getElementById('tabelaSolicBody');
+
+    if (!dados.length) {
+        tbody.innerHTML = `
+            <tr><td colspan="6">
+                <div class="table-msg">
+                    <div class="big-icon">✅</div>
+                    Nenhuma solicitação encontrada.
+                </div>
+            </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = dados.map(s => {
+        const capa    = s.CapaLivro || '';
+        const titulo  = s.NomeLivro  || `Livro #${s.Livro_id}`;
+        const autor   = s.AutorLivro || '';
+        const usuario = s.NomeUsuario  || `Usuário #${s.Usuario_id}`;
+        const email   = s.EmailUsuario || '';
+
+        const miniCapa = capa
+            ? `<img class="livro-mini-capa" src="${capa}" alt="${titulo}" onerror="this.style.display='none'">`
+            : `<div class="livro-mini-placeholder"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>`;
+
+        const isPendente = s.Status === 'pendente';
+
+        const botoesAcao = isPendente
+            ? `<button class="btn-devolver" style="background:#16a34a;border-color:#16a34a;color:white"
+                       onclick="aprovarSolicitacao(${s.Solicitacao_id})">✅ Aprovar</button>
+               <button class="btn-excluir" style="background:#dc2626; color:white; padding:4px 10px; border-radius:6px; border:none; cursor:pointer; font-size:0.78rem;"
+                       onclick="reprovarSolicitacao(${s.Solicitacao_id})" title="Reprovar">❌ Reprovar</button>`
+            : `<span style="font-size:0.8rem; color:#888">${s.Status === 'aprovado' ? `Emp. #${s.Emprestimo_id}` : '—'}</span>`;
+
+        return `
+        <tr>
+            <td style="color:#aaa; font-size:0.8rem;">#${s.Solicitacao_id}</td>
+            <td>
+                <div class="livro-cell">
+                    ${miniCapa}
+                    <div>
+                        <div class="livro-nome">${titulo}</div>
+                        <div class="livro-autor">${autor}</div>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div style="font-weight:600">${usuario}</div>
+                <div style="font-size:0.78rem; color:#888">${email}</div>
+            </td>
+            <td>${fmtData(s.DataSolicitacao)}</td>
+            <td>${badgeHtml(s.Status)}</td>
+            <td>${botoesAcao}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ── Carregar dados ────────────────────────────────────────────
 async function carregarEmprestimos() {
     try {
         const res = await fetch(`${API}/emprestimo`);
         if (!res.ok) throw new Error();
         todosEmprestimos = await res.json();
-        atualizarStats(todosEmprestimos);
+        atualizarStats(todosEmprestimos, todasSolicitacoes);
         filtrar();
     } catch {
         document.getElementById('tabelaBody').innerHTML = `
@@ -661,6 +835,24 @@ async function carregarEmprestimos() {
                 <div class="table-msg">
                     <div class="big-icon">⚠️</div>
                     Não foi possível conectar ao servidor.
+                </div>
+            </td></tr>`;
+    }
+}
+
+async function carregarSolicitacoes() {
+    try {
+        const res = await fetch(`${API}/solicitacao`);
+        if (!res.ok) throw new Error();
+        todasSolicitacoes = await res.json();
+        atualizarStats(todosEmprestimos, todasSolicitacoes);
+        if (abaAtiva === 'solicitacoes') filtrarSolicitacoes();
+    } catch {
+        document.getElementById('tabelaSolicBody').innerHTML = `
+            <tr><td colspan="6">
+                <div class="table-msg">
+                    <div class="big-icon">⚠️</div>
+                    Não foi possível carregar as solicitações.
                 </div>
             </td></tr>`;
     }
@@ -696,9 +888,53 @@ async function carregarSelects() {
     }
 }
 
-// ── Modal novo empréstimo ────────────────────────────────────
+// ── Aprovar / Reprovar solicitação (da tabela de gestão) ──────
+async function aprovarSolicitacao(solicitacaoId) {
+    if (!confirm('Confirmar APROVAÇÃO desta solicitação? Um empréstimo ativo será criado.')) return;
+    const adminId = sessionStorage.getItem('usuarioId');
+    try {
+        const res = await fetch(`${API}/solicitacao/${solicitacaoId}/aprovar`, {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({ admin_id: parseInt(adminId) })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast('✅ Solicitação aprovada! Empréstimo criado com sucesso.', 'success');
+            await Promise.all([carregarEmprestimos(), carregarSolicitacoes()]);
+        } else {
+            showToast(data.error || 'Erro ao aprovar solicitação.', 'error');
+        }
+    } catch {
+        showToast('Erro de conexão com o servidor.', 'error');
+    }
+}
+
+async function reprovarSolicitacao(solicitacaoId) {
+    const obs = prompt('Motivo da reprovação (opcional):');
+    if (obs === null) return; // cancelou
+    const adminId = sessionStorage.getItem('usuarioId');
+    try {
+        const res = await fetch(`${API}/solicitacao/${solicitacaoId}/reprovar`, {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({ admin_id: parseInt(adminId), observacao: obs || null })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast('❌ Solicitação reprovada.', 'info');
+            await carregarSolicitacoes();
+            atualizarStats(todosEmprestimos, todasSolicitacoes);
+        } else {
+            showToast(data.error || 'Erro ao reprovar solicitação.', 'error');
+        }
+    } catch {
+        showToast('Erro de conexão com o servidor.', 'error');
+    }
+}
+
+// ── Modal novo empréstimo (pelo admin, direto) ────────────────
 function abrirModalNovo() {
-    // Data default: +14 dias
     const d = new Date();
     d.setDate(d.getDate() + 14);
     document.getElementById('inputDataPrevista').value = d.toISOString().split('T')[0];
@@ -723,67 +959,74 @@ async function criarEmprestimo() {
         erroEl.textContent = 'Selecione o usuário e o livro.';
         return;
     }
-
     erroEl.textContent = '';
 
+    // Admin cria solicitação e aprova em sequência
     try {
-        const res = await fetch(`${API}/emprestimo`, {
+        const resSolic = await fetch(`${API}/solicitacao`, {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({ Usuario_id: parseInt(usuarioId), Livro_id: parseInt(livroId) })
+        });
+        const dataSolic = await resSolic.json();
+        if (!resSolic.ok) {
+            // Se já tem pendente, pode tentar aprovar diretamente
+            if (dataSolic.error && dataSolic.error.includes('pendente')) {
+                erroEl.textContent = dataSolic.error + ' Verifique a aba de Solicitações.';
+            } else {
+                erroEl.textContent = dataSolic.error || 'Erro ao criar solicitação.';
+            }
+            return;
+        }
+
+        const resAprova = await fetch(`${API}/solicitacao/${dataSolic.Solicitacao_id}/aprovar`, {
             method : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body   : JSON.stringify({
-                Usuario_id  : parseInt(usuarioId),
-                Livro_id    : parseInt(livroId),
+                admin_id    : parseInt(sessionStorage.getItem('usuarioId') || 0),
                 DataPrevista: dataPrev || undefined
             })
         });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            erroEl.textContent = data.error || 'Erro ao criar empréstimo.';
+        const dataAprova = await resAprova.json();
+        if (!resAprova.ok) {
+            erroEl.textContent = dataAprova.error || 'Erro ao aprovar empréstimo.';
             return;
         }
 
         fecharModalNovo();
         showToast('Empréstimo registrado com sucesso! ✅', 'success');
-        await carregarEmprestimos();
+        await Promise.all([carregarEmprestimos(), carregarSolicitacoes()]);
 
     } catch {
         erroEl.textContent = 'Erro de conexão com o servidor.';
     }
 }
 
-// ── Devolver livro ───────────────────────────────────────────
+// ── Devolver livro ────────────────────────────────────────────
 async function devolverLivro(id) {
     if (!confirm('Confirmar devolução deste livro?')) return;
-
     const hoje = new Date().toISOString().split('T')[0];
-
     try {
         const res = await fetch(`${API}/emprestimo/${id}`, {
             method : 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body   : JSON.stringify({ Status: 'devolvido', DataDevolucao: hoje })
         });
-
         if (!res.ok) {
             const d = await res.json();
             showToast(d.error || 'Erro ao registrar devolução.', 'error');
             return;
         }
-
         showToast('Devolução registrada com sucesso! ✅', 'success');
         await carregarEmprestimos();
-
     } catch {
         showToast('Erro de conexão com o servidor.', 'error');
     }
 }
 
-// ── Excluir empréstimo ───────────────────────────────────────
+// ── Excluir empréstimo ────────────────────────────────────────
 async function excluirEmprestimo(id) {
-    if (!confirm('Tem certeza que deseja excluir este registro de empréstimo?\nEsta ação não pode ser desfeita.')) return;
-
+    if (!confirm('Tem certeza que deseja excluir este registro?\nEsta ação não pode ser desfeita.')) return;
     try {
         const res = await fetch(`${API}/emprestimo/${id}`, { method: 'DELETE' });
         if (!res.ok && res.status !== 204) {
@@ -797,26 +1040,28 @@ async function excluirEmprestimo(id) {
     }
 }
 
-// ── Toast ────────────────────────────────────────────────────
-function showToast(msg, type = '') {
+// ── Toast ─────────────────────────────────────────────────────
+let _toastTimer;
+function showToast(msg, tipo = 'info') {
     const t = document.getElementById('toast');
     t.textContent = msg;
-    t.className = `toast show ${type}`;
-    setTimeout(() => { t.className = 'toast'; }, 3500);
+    t.className   = `toast show toast-${tipo}`;
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { t.className = 'toast'; }, 4500);
 }
 
-// ── Fechar modal com ESC ─────────────────────────────────────
-document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') fecharModalNovo();
-});
+// ── Inicialização ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    carregarEmprestimos();
+    carregarSolicitacoes();
+    carregarSelects();
 
-document.getElementById('modalNovo').addEventListener('click', e => {
-    if (e.target === document.getElementById('modalNovo')) fecharModalNovo();
+    // Atualiza ao receber decisão do sino de notificações
+    document.addEventListener('kna:solicitacao-decidida', () => {
+        carregarEmprestimos();
+        carregarSolicitacoes();
+    });
 });
-
-// ── Inicialização ────────────────────────────────────────────
-carregarEmprestimos();
-carregarSelects();
 </script>
 
 <script src="../../js/nav.js"></script>

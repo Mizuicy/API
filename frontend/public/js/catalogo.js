@@ -1,4 +1,5 @@
-// JS extraído de catalogo.html
+// JS do catálogo — Kairos Biblioteca
+// Fluxo de solicitação: usuário solicita → pendente → admin aprova/reprova
 
 const API = 'http://localhost:3000';
 let todosLivros    = [];
@@ -49,7 +50,6 @@ function selecionarCategoria(cat, btn) {
     filtrar();
 }
 
-// Pill "Início" reseta
 document.querySelector('.pill[data-cat=""]').onclick = function() {
     categoriaAtiva = '';
     document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
@@ -125,6 +125,7 @@ function abrirModal(id) {
     const desc      = livro.Descricao || livro.resumo || 'Sem descrição disponível.';
     const ano       = livro.DataPublicacao || livro.ano_publicacao || '';
     const capa      = livro.Imagem || livro.capa || '';
+    const livroId   = livro.Livro_id || livro.id;
 
     document.getElementById('modalConteudo').innerHTML = `
         <div class="modal-book-header">
@@ -143,7 +144,8 @@ function abrirModal(id) {
             </div>
         </div>
         <p class="modal-desc">${desc}</p>
-        <button class="btn-emprestimo" onclick="solicitarEmprestimo(${livro.Livro_id || livro.id}, '${titulo.replace(/'/g,"\\'")}')">
+        <button class="btn-emprestimo" id="btnSolicitar"
+                onclick="solicitarEmprestimo(${livroId}, '${titulo.replace(/'/g,"\\'")}')">
             Solicitar Empréstimo
         </button>`;
 
@@ -152,34 +154,33 @@ function abrirModal(id) {
 
 function fecharModal() { document.getElementById('modal').classList.remove('open'); }
 
-function solicitarEmprestimo(id, titulo) {
+async function solicitarEmprestimo(id, titulo) {
     const usuarioId = sessionStorage.getItem('usuarioId');
     if (!usuarioId) {
         mostrarToast('Faça login para solicitar um empréstimo.', 'error');
         return;
     }
 
-    const btn = document.querySelector('.btn-emprestimo');
-    if (btn) { btn.disabled = true; btn.textContent = 'Solicitando...'; }
+    const btn = document.getElementById('btnSolicitar');
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando solicitação...'; }
 
-    fetch('http://localhost:3000/emprestimo', {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body   : JSON.stringify({ Usuario_id: parseInt(usuarioId), Livro_id: id })
-    })
-    .then(async res => {
+    try {
+        const res = await fetch(`${API}/solicitacao`, {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({ Usuario_id: parseInt(usuarioId), Livro_id: id })
+        });
         const data = await res.json();
         fecharModal();
         if (res.ok) {
-            mostrarToast(`✅ Empréstimo de "${titulo}" realizado! Você tem 14 dias para devolver.`, 'success');
+            mostrarToast(`📋 Solicitação de "${titulo}" enviada! Aguarde a aprovação do administrador.`, 'success');
         } else {
-            mostrarToast(data.error || 'Não foi possível realizar o empréstimo.', 'error');
+            mostrarToast(data.error || 'Não foi possível enviar a solicitação.', 'error');
         }
-    })
-    .catch(() => {
+    } catch {
         fecharModal();
         mostrarToast('Erro de conexão com o servidor.', 'error');
-    });
+    }
 }
 
 // ── Toast de feedback ─────────────────────────────────────────
@@ -215,7 +216,7 @@ function mostrarToast(msg, type = 'info') {
     t.textContent = msg;
     t.className = `catalogo-toast show ${type}`;
     clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(() => { t.className = 'catalogo-toast'; }, 4000);
+    _toastTimer = setTimeout(() => { t.className = 'catalogo-toast'; }, 5000);
 }
 
 document.getElementById('modal').addEventListener('click', e => {

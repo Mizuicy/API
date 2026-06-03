@@ -347,7 +347,7 @@ function fecharModal() {
     document.getElementById('modal').classList.remove('open');
 }
 
-function solicitarEmprestimo(id, titulo) {
+async function solicitarEmprestimo(id, titulo) {
     const usuarioId = sessionStorage.getItem('usuarioId');
     if (!usuarioId) {
         mostrarNotif('Faça login para solicitar um empréstimo.', 'error');
@@ -355,26 +355,25 @@ function solicitarEmprestimo(id, titulo) {
     }
 
     const btn = document.querySelector('.btn-emprestimo');
-    if (btn) { btn.disabled = true; btn.textContent = 'Solicitando…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando solicitação...'; }
 
-    fetch('http://localhost:3000/emprestimo', {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body   : JSON.stringify({ Usuario_id: parseInt(usuarioId), Livro_id: id })
-    })
-    .then(async res => {
+    try {
+        const res = await fetch('http://localhost:3000/solicitacao', {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({ Usuario_id: parseInt(usuarioId), Livro_id: id })
+        });
         const data = await res.json();
         fecharModal();
         if (res.ok) {
-            mostrarNotif(`Empréstimo de "${titulo}" solicitado! Você tem 14 dias para devolver.`, 'success');
+            mostrarNotif(`📋 Solicitação de "${titulo}" enviada! Aguarde a aprovação do administrador.`, 'success');
         } else {
-            mostrarNotif(data.error || 'Não foi possível realizar o empréstimo.', 'error');
+            mostrarNotif(data.error || 'Não foi possível enviar a solicitação.', 'error');
         }
-    })
-    .catch(() => {
+    } catch {
         fecharModal();
         mostrarNotif('Erro de conexão com o servidor.', 'error');
-    });
+    }
 }
 
 // ── Painel de notificação lateral ─────────────────────────────

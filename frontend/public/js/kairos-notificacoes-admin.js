@@ -1,8 +1,7 @@
 /**
  * kairos-notificacoes-admin.js — Kairos Biblioteca
  * Sistema de notificações para o painel do administrador.
- * Reutiliza a tabela Notificacao com tipo 'admin_*'.
- * Adaptado de kairos-notificacoes.js (painel do usuário).
+ * Inclui funcionalidade real de aprovar/reprovar solicitações de empréstimo.
  */
 
 (function () {
@@ -36,7 +35,7 @@
         #kna-badge.kna-show { display: flex; }
         #kna-dropdown {
             display: none; position: absolute; top: calc(100% + 10px); right: 0;
-            width: 340px; background: var(--surface, #fff); border: 1px solid var(--border, #e4e4e4);
+            width: 360px; background: var(--surface, #fff); border: 1px solid var(--border, #e4e4e4);
             border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.14);
             z-index: 9999; overflow: hidden; animation: kna-drop .2s ease;
         }
@@ -52,7 +51,7 @@
         .kna-dd-title { font-size: 0.88rem; font-weight: 700; color: var(--text, #333); font-family: 'DM Sans', sans-serif; }
         .kna-dd-clear { font-size: 0.75rem; color: var(--purple, #667eea); cursor: pointer; background: none; border: none; font-family: inherit; padding: 0; }
         .kna-dd-clear:hover { text-decoration: underline; }
-        .kna-list { max-height: 360px; overflow-y: auto; }
+        .kna-list { max-height: 420px; overflow-y: auto; }
         .kna-item {
             display: flex; gap: 10px; align-items: flex-start;
             padding: 12px 18px; border-bottom: 1px solid var(--border, #e4e4e4);
@@ -74,15 +73,35 @@
             font-family: 'DM Sans', sans-serif;
         }
         .kna-item.kna-nao-lida .kna-item-titulo { color: #d97706; }
-        .kna-item-msg { font-size: 0.78rem; color: var(--muted, #888); margin-top: 2px; font-family: 'DM Sans', sans-serif; }
+        .kna-item-msg { font-size: 0.78rem; color: var(--muted, #888); margin-top: 2px; font-family: 'DM Sans', sans-serif; line-height: 1.4; }
         .kna-item-date { font-size: 0.72rem; font-weight: 600; color: var(--muted, #888); margin-top: 4px; }
-        .kna-item-actions { display: flex; gap: 6px; margin-top: 5px; }
+        .kna-item-actions { display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
         .kna-btn-acao {
-            font-size: 0.70rem; padding: 2px 8px; border-radius: 6px; cursor: pointer;
+            font-size: 0.70rem; padding: 3px 10px; border-radius: 6px; cursor: pointer;
             border: 1px solid var(--border, #e4e4e4); background: var(--surface, #fff);
             color: var(--muted, #888); font-family: 'DM Sans', sans-serif; transition: all .15s;
         }
         .kna-btn-acao:hover { background: #fef9ec; color: #92400e; border-color: #fcd34d; }
+        .kna-btn-aprovar {
+            font-size: 0.70rem; padding: 3px 10px; border-radius: 6px; cursor: pointer;
+            border: 1px solid #16a34a; background: #16a34a;
+            color: #fff; font-family: 'DM Sans', sans-serif; font-weight: 600; transition: all .15s;
+        }
+        .kna-btn-aprovar:hover { background: #15803d; border-color: #15803d; }
+        .kna-btn-reprovar {
+            font-size: 0.70rem; padding: 3px 10px; border-radius: 6px; cursor: pointer;
+            border: 1px solid #dc2626; background: #dc2626;
+            color: #fff; font-family: 'DM Sans', sans-serif; font-weight: 600; transition: all .15s;
+        }
+        .kna-btn-reprovar:hover { background: #b91c1c; border-color: #b91c1c; }
+        .kna-btn-aprovar:disabled, .kna-btn-reprovar:disabled { opacity: .5; cursor: not-allowed; }
+        .kna-status-badge {
+            display: inline-block; font-size: 0.68rem; padding: 1px 7px; border-radius: 12px;
+            font-weight: 600; margin-top: 3px;
+        }
+        .kna-status-pendente  { background: #fef9ec; color: #92400e; border: 1px solid #fcd34d; }
+        .kna-status-aprovado  { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+        .kna-status-reprovado { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
         .kna-empty {
             padding: 28px 18px; text-align: center; color: var(--muted, #888);
             font-size: 0.88rem; font-family: 'DM Sans', sans-serif;
@@ -96,7 +115,7 @@
         .kna-dd-footer a:hover { text-decoration: underline; }
         #kna-wrapper { position: relative; display: flex; align-items: center; }
 
-        /* Dark mode overrides */
+        /* Dark mode */
         [data-theme="dark"] #kna-bell-btn { color: var(--muted); }
         [data-theme="dark"] #kna-bell-btn:hover { background: var(--bg); color: var(--text); }
         [data-theme="dark"] #kna-dropdown { background: var(--surface) !important; border-color: var(--border) !important; box-shadow: 0 12px 40px rgba(0,0,0,0.4) !important; }
@@ -125,9 +144,7 @@
     }
 
     function criarSino() {
-        // Se o index.html já criou o wrapper com o id correto, reutiliza
         const wrapperExistente = document.getElementById('kna-wrapper');
-
         const wrapper = wrapperExistente || document.createElement('div');
         if (!wrapperExistente) wrapper.id = 'kna-wrapper';
 
@@ -147,12 +164,11 @@
                 </div>
                 <div class="kna-list" id="kna-list"></div>
                 <div class="kna-dd-footer">
-                    <a href="../gestao/emprestimos.html">Ver todos os empréstimos →</a>
+                    <a href="../gestao/emprestimos.html">Ver gestão de empréstimos →</a>
                 </div>
             </div>
         `;
 
-        // Só insere no DOM se não estiver já inserido pelo index.html
         if (!wrapperExistente) {
             const navLinkPerfil = document.querySelector('.nav-link-perfil');
             const navEl         = document.querySelector('.nav');
@@ -198,16 +214,86 @@
         renderizarLista(_notificacoes);
     }
 
-    async function marcarNaoLida(id) {
-        try { await fetch(`${API}/admin/notificacoes/${id}/nao-lida`, { method: 'PATCH' }); } catch (_) {}
-        const n = _notificacoes.find(n => n.Notificacao_id === id);
-        if (n) n.Lida = 0;
-        renderizarLista(_notificacoes);
+    async function aprovarSolicitacao(solicitacaoId, notifId, btnAprovar, btnReprovar) {
+        const adminId = sessionStorage.getItem('usuarioId');
+        btnAprovar.disabled = true;
+        btnReprovar.disabled = true;
+        btnAprovar.textContent = 'Aprovando...';
+        try {
+            const res = await fetch(`${API}/solicitacao/${solicitacaoId}/aprovar`, {
+                method : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body   : JSON.stringify({ admin_id: parseInt(adminId) })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                // Atualiza notificação como lida
+                await marcarLida(notifId);
+                // Atualiza status na UI
+                const n = _notificacoes.find(n => n.Notificacao_id === notifId);
+                if (n) n.StatusSolicitacao = 'aprovado';
+                renderizarLista(_notificacoes);
+                _mostrarToastAdmin('✅ Solicitação aprovada! Empréstimo criado.', 'success');
+                // Dispara evento para páginas que estejam ouvindo
+                document.dispatchEvent(new CustomEvent('kna:solicitacao-decidida', { detail: { solicitacaoId, decisao: 'aprovado' } }));
+            } else {
+                btnAprovar.disabled = false;
+                btnReprovar.disabled = false;
+                btnAprovar.textContent = 'Aprovar';
+                _mostrarToastAdmin(data.error || 'Erro ao aprovar.', 'error');
+            }
+        } catch (err) {
+            btnAprovar.disabled = false;
+            btnReprovar.disabled = false;
+            btnAprovar.textContent = 'Aprovar';
+            _mostrarToastAdmin('Erro de conexão.', 'error');
+        }
     }
 
-    function iconePorTipo(tipo) {
-        if (tipo && tipo.includes('emprestimo')) return '📋';
-        return '🔔';
+    async function reprovarSolicitacao(solicitacaoId, notifId, btnAprovar, btnReprovar) {
+        const adminId = sessionStorage.getItem('usuarioId');
+        const obs = prompt('Motivo da reprovação (opcional):') ;
+        if (obs === null) return; // cancelou
+        btnAprovar.disabled  = true;
+        btnReprovar.disabled = true;
+        btnReprovar.textContent = 'Reprovando...';
+        try {
+            const res = await fetch(`${API}/solicitacao/${solicitacaoId}/reprovar`, {
+                method : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body   : JSON.stringify({ admin_id: parseInt(adminId), observacao: obs || null })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                await marcarLida(notifId);
+                const n = _notificacoes.find(n => n.Notificacao_id === notifId);
+                if (n) n.StatusSolicitacao = 'reprovado';
+                renderizarLista(_notificacoes);
+                _mostrarToastAdmin('❌ Solicitação reprovada.', 'info');
+                document.dispatchEvent(new CustomEvent('kna:solicitacao-decidida', { detail: { solicitacaoId, decisao: 'reprovado' } }));
+            } else {
+                btnAprovar.disabled  = false;
+                btnReprovar.disabled = false;
+                btnReprovar.textContent = 'Reprovar';
+                _mostrarToastAdmin(data.error || 'Erro ao reprovar.', 'error');
+            }
+        } catch {
+            btnAprovar.disabled  = false;
+            btnReprovar.disabled = false;
+            btnReprovar.textContent = 'Reprovar';
+            _mostrarToastAdmin('Erro de conexão.', 'error');
+        }
+    }
+
+    function _statusBadgeHtml(status) {
+        if (!status) return '';
+        const map = {
+            pendente : ['kna-status-pendente',  '⏳ Pendente'],
+            aprovado : ['kna-status-aprovado',  '✅ Aprovado'],
+            reprovado: ['kna-status-reprovado', '❌ Reprovado'],
+        };
+        const [cls, label] = map[status] || ['kna-status-pendente', status];
+        return `<span class="kna-status-badge ${cls}">${label}</span>`;
     }
 
     function renderizarLista(notificacoes) {
@@ -230,31 +316,93 @@
                 ? new Date(n.CriadaEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
                 : '';
             const lida = n.Lida ? 1 : 0;
-            const icone = iconePorTipo(n.Tipo);
+            const isSolicitacao = n.Tipo === 'admin_solicitacao';
+            const icone = isSolicitacao ? '📋' : '🔔';
+            const statusSolic = n.StatusSolicitacao || null;
+
+            // Monta botões de ação
+            let acoesHtml = '';
+            if (isSolicitacao && n.Solicitacao_id) {
+                if (!statusSolic || statusSolic === 'pendente') {
+                    acoesHtml = `
+                        <button class="kna-btn-aprovar"
+                                data-action="aprovar"
+                                data-solic="${n.Solicitacao_id}"
+                                data-notif="${n.Notificacao_id}">Aprovar</button>
+                        <button class="kna-btn-reprovar"
+                                data-action="reprovar"
+                                data-solic="${n.Solicitacao_id}"
+                                data-notif="${n.Notificacao_id}">Reprovar</button>
+                    `;
+                } else {
+                    acoesHtml = `${_statusBadgeHtml(statusSolic)}`;
+                }
+            } else {
+                acoesHtml = lida
+                    ? `<button class="kna-btn-acao" data-action="nao-lida" data-id="${n.Notificacao_id}">Marcar como não lida</button>`
+                    : `<button class="kna-btn-acao" data-action="lida"     data-id="${n.Notificacao_id}">Marcar como lida</button>`;
+            }
+
+            // Info do solicitante
+            let infoExtra = '';
+            if (isSolicitacao && n.NomeSolicitante) {
+                infoExtra = `<div class="kna-item-msg" style="font-size:0.74rem; margin-top:1px">
+                    👤 ${n.NomeSolicitante}${n.NomeLivro ? ` &nbsp;📚 ${n.NomeLivro}` : ''}
+                </div>`;
+            }
+
             return `
                 <div class="kna-item ${lida ? '' : 'kna-nao-lida'}" data-id="${n.Notificacao_id}">
                     <span class="kna-item-icon">${icone}</span>
                     <div class="kna-item-body">
-                        <div class="kna-item-titulo">Novo Empréstimo</div>
+                        <div class="kna-item-titulo">${isSolicitacao ? 'Nova Solicitação de Empréstimo' : 'Notificação'}</div>
+                        ${infoExtra}
                         <div class="kna-item-msg">${n.Mensagem || ''}</div>
                         ${dataFmt ? `<div class="kna-item-date">🕒 ${dataFmt}</div>` : ''}
-                        <div class="kna-item-actions">
-                            ${lida
-                                ? `<button class="kna-btn-acao" data-action="nao-lida" data-id="${n.Notificacao_id}">Marcar como não lida</button>`
-                                : `<button class="kna-btn-acao" data-action="lida" data-id="${n.Notificacao_id}">Marcar como lida</button>`
-                            }
-                        </div>
+                        <div class="kna-item-actions">${acoesHtml}</div>
                     </div>
                 </div>
             `;
         }).join('');
 
-        list.querySelectorAll('[data-action]').forEach(b => {
+        // Bind dos botões de ação
+        list.querySelectorAll('[data-action="aprovar"]').forEach(b => {
             b.addEventListener('click', (e) => {
                 e.stopPropagation();
+                const solic = parseInt(b.dataset.solic, 10);
+                const notif = parseInt(b.dataset.notif, 10);
+                const row   = b.closest('.kna-item');
+                const btnR  = row.querySelector('[data-action="reprovar"]');
+                aprovarSolicitacao(solic, notif, b, btnR);
+            });
+        });
+
+        list.querySelectorAll('[data-action="reprovar"]').forEach(b => {
+            b.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const solic = parseInt(b.dataset.solic, 10);
+                const notif = parseInt(b.dataset.notif, 10);
+                const row   = b.closest('.kna-item');
+                const btnA  = row.querySelector('[data-action="aprovar"]');
+                reprovarSolicitacao(solic, notif, btnA, b);
+            });
+        });
+
+        list.querySelectorAll('[data-action="lida"]').forEach(b => {
+            b.addEventListener('click', (e) => {
+                e.stopPropagation();
+                marcarLida(parseInt(b.dataset.id, 10));
+            });
+        });
+
+        list.querySelectorAll('[data-action="nao-lida"]').forEach(b => {
+            b.addEventListener('click', async (e) => {
+                e.stopPropagation();
                 const id = parseInt(b.dataset.id, 10);
-                if (b.dataset.action === 'lida') marcarLida(id);
-                else marcarNaoLida(id);
+                try { await fetch(`${API}/admin/notificacoes/${id}/nao-lida`, { method: 'PATCH' }); } catch (_) {}
+                const n = _notificacoes.find(n => n.Notificacao_id === id);
+                if (n) n.Lida = 0;
+                renderizarLista(_notificacoes);
             });
         });
 
@@ -271,7 +419,7 @@
     async function verificarNotificacoes() {
         const adminId = sessionStorage.getItem('usuarioId');
         if (!adminId) {
-            console.warn('[Kairos Admin Notif] usuarioId ausente na sessão — faça login novamente.');
+            console.warn('[Kairos Admin Notif] usuarioId ausente — faça login novamente.');
             return;
         }
         try {
@@ -287,11 +435,34 @@
         }
     }
 
+    // Toast interno para feedback de ações
+    function _mostrarToastAdmin(msg, tipo = 'info') {
+        let t = document.getElementById('kna-toast');
+        if (!t) {
+            t = document.createElement('div');
+            t.id = 'kna-toast';
+            Object.assign(t.style, {
+                position: 'fixed', bottom: '24px', right: '24px', zIndex: '99999',
+                padding: '12px 20px', borderRadius: '10px', fontSize: '0.875rem',
+                fontWeight: '500', boxShadow: '0 4px 20px rgba(0,0,0,.2)',
+                color: 'white', maxWidth: '340px', transition: 'opacity .25s, transform .25s',
+                opacity: '0', transform: 'translateY(12px)', fontFamily: "'DM Sans', sans-serif"
+            });
+            document.body.appendChild(t);
+        }
+        t.textContent = msg;
+        t.style.background = tipo === 'success' ? '#16a34a' : tipo === 'error' ? '#dc2626' : '#1d4ed8';
+        t.style.opacity = '1';
+        t.style.transform = 'translateY(0)';
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(12px)'; }, 4000);
+    }
+
     function init() {
         injetarCSS();
         criarSino();
         verificarNotificacoes();
-        setInterval(verificarNotificacoes, 2 * 60 * 1000); // atualiza a cada 2 min no admin
+        setInterval(verificarNotificacoes, 2 * 60 * 1000); // atualiza a cada 2 min
     }
 
     if (document.readyState === 'loading') {
