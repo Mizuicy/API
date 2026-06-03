@@ -23,7 +23,7 @@ async function adicionarLivro(e) {
     };
 
     if (!dados.Nome) {
-        mostraNotificacao('O título do livro é obrigatório.', 'error');
+        AdminToast.error('O título do livro é obrigatório.');
         return;
     }
 
@@ -37,29 +37,21 @@ async function adicionarLivro(e) {
         const json = await response.json();
 
         if (!response.ok) {
-            mostraNotificacao(json.error || 'Erro ao adicionar livro.', 'error');
+            AdminToast.error(json.error || 'Erro ao adicionar livro.');
             return;
         }
 
-        mostraNotificacao('Livro adicionado com sucesso!', 'success');
+        AdminToast.success('Livro adicionado com sucesso!');
         form.reset();
         if (typeof removeCapa === 'function') removeCapa();
 
     } catch (error) {
         console.error('Erro ao adicionar livro:', error);
-        mostraNotificacao('Erro de conexão. Verifique se o servidor está rodando.', 'error');
+        AdminToast.error('Erro de conexão. Verifique se o servidor está rodando.');
     }
 }
 
+/** @deprecated use AdminToast directly */
 function mostraNotificacao(mensagem, tipo) {
-    document.querySelectorAll('.alert').forEach(a => a.remove());
-
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${tipo} show`;
-    alert.textContent = mensagem;
-
-    const container = document.querySelector('main');
-    container.insertBefore(alert, container.firstChild);
-
-    setTimeout(() => alert.remove(), 5000);
+    AdminToast.show(mensagem, tipo || 'info');
 }

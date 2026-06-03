@@ -36,18 +36,28 @@ async function carregarLivros() {
 }
 
 async function deletarLivro(id) {
-    if (!confirm('Tem certeza que deseja deletar este livro?')) return;
+    const confirmado = await AdminToast.confirm(
+        'Esta ação não pode ser desfeita. O livro será removido permanentemente do catálogo.',
+        {
+            titulo: 'Excluir livro?',
+            tipo: 'error',
+            confirmLabel: 'Sim, excluir',
+            cancelLabel: 'Cancelar',
+            danger: true
+        }
+    );
+    if (!confirmado) return;
 
     try {
         const response = await fetch(`${API_URL}/livro/${id}`, { method: 'DELETE' });
 
         if (!response.ok) throw new Error(`Erro: ${response.statusText}`);
 
-        mostraNotificacao('Livro deletado com sucesso!', 'success');
+        AdminToast.success('Livro excluído com sucesso!');
         carregarLivros();
     } catch (error) {
         console.error('Erro ao deletar livro:', error);
-        mostraNotificacao('Erro ao deletar livro. Tente novamente.', 'error');
+        AdminToast.error('Erro ao excluir livro. Tente novamente.');
     }
 }
 
@@ -139,13 +149,7 @@ function filtrarLivros() {
     renderizarLivros(livrosFiltrados);
 }
 
+/** @deprecated use AdminToast directly */
 function mostraNotificacao(mensagem, tipo) {
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${tipo} show`;
-    alert.textContent = mensagem;
-
-    const container = document.querySelector('main');
-    container.insertBefore(alert, container.firstChild);
-
-    setTimeout(() => alert.remove(), 5000);
+    AdminToast.show(mensagem, tipo || 'info');
 }

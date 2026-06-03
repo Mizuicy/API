@@ -297,28 +297,6 @@
 
         .btn-confirmar:hover { background: #5a6fd6; }
 
-        /* Toast */
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: #333;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 10px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            box-shadow: 0 4px 20px rgba(0,0,0,.2);
-            opacity: 0;
-            transform: translateY(12px);
-            transition: opacity .25s, transform .25s;
-            z-index: 999;
-        }
-
-        .toast.show   { opacity: 1; transform: translateY(0); }
-        .toast.success { background: #16a34a; }
-        .toast.error   { background: #dc2626; }
-
         /* Dark mode básico */
         [data-theme="dark"] .stat-card,
         [data-theme="dark"] .emp-table,
@@ -581,7 +559,6 @@
 </div>
 
 <!-- Toast -->
-<div class="toast" id="toast"></div>
 
 <script>
 const API = 'http://localhost:3000';
@@ -890,7 +867,11 @@ async function carregarSelects() {
 
 // ── Aprovar / Reprovar solicitação (da tabela de gestão) ──────
 async function aprovarSolicitacao(solicitacaoId) {
-    if (!confirm('Confirmar APROVAÇÃO desta solicitação? Um empréstimo ativo será criado.')) return;
+    const confirmado = await AdminToast.confirm(
+        'Um empréstimo ativo será criado e o usuário será notificado.',
+        { titulo: 'Aprovar solicitação?', tipo: 'success', confirmLabel: 'Aprovar', cancelLabel: 'Cancelar', danger: false }
+    );
+    if (!confirmado) return;
     const adminId = sessionStorage.getItem('usuarioId');
     try {
         const res = await fetch(`${API}/solicitacao/${solicitacaoId}/aprovar`, {
@@ -900,18 +881,21 @@ async function aprovarSolicitacao(solicitacaoId) {
         });
         const data = await res.json();
         if (res.ok) {
-            showToast('✅ Solicitação aprovada! Empréstimo criado com sucesso.', 'success');
+            AdminToast.success('Solicitação aprovada! Empréstimo criado com sucesso.');
             await Promise.all([carregarEmprestimos(), carregarSolicitacoes()]);
         } else {
-            showToast(data.error || 'Erro ao aprovar solicitação.', 'error');
+            AdminToast.error(data.error || 'Erro ao aprovar solicitação.');
         }
     } catch {
-        showToast('Erro de conexão com o servidor.', 'error');
+        AdminToast.error('Erro de conexão com o servidor.');
     }
 }
 
 async function reprovarSolicitacao(solicitacaoId) {
-    const obs = prompt('Motivo da reprovação (opcional):');
+    const obs = await AdminToast.prompt(
+        'Informe o motivo da reprovação (opcional):',
+        { titulo: 'Reprovar solicitação', tipo: 'warning', placeholder: 'Ex: exemplar indisponível...', confirmLabel: 'Reprovar', cancelLabel: 'Cancelar' }
+    );
     if (obs === null) return; // cancelou
     const adminId = sessionStorage.getItem('usuarioId');
     try {
@@ -922,14 +906,14 @@ async function reprovarSolicitacao(solicitacaoId) {
         });
         const data = await res.json();
         if (res.ok) {
-            showToast('❌ Solicitação reprovada.', 'info');
+            AdminToast.info('Solicitação reprovada com sucesso.');
             await carregarSolicitacoes();
             atualizarStats(todosEmprestimos, todasSolicitacoes);
         } else {
-            showToast(data.error || 'Erro ao reprovar solicitação.', 'error');
+            AdminToast.error(data.error || 'Erro ao reprovar solicitação.');
         }
     } catch {
-        showToast('Erro de conexão com o servidor.', 'error');
+        AdminToast.error('Erro de conexão com o servidor.');
     }
 }
 
@@ -994,7 +978,7 @@ async function criarEmprestimo() {
         }
 
         fecharModalNovo();
-        showToast('Empréstimo registrado com sucesso! ✅', 'success');
+        AdminToast.success('Empréstimo registrado com sucesso!');
         await Promise.all([carregarEmprestimos(), carregarSolicitacoes()]);
 
     } catch {
@@ -1004,7 +988,11 @@ async function criarEmprestimo() {
 
 // ── Devolver livro ────────────────────────────────────────────
 async function devolverLivro(id) {
-    if (!confirm('Confirmar devolução deste livro?')) return;
+    const confirmDevolver = await AdminToast.confirm(
+        'Confirmar que o livro foi devolvido pelo usuário?',
+        { titulo: 'Registrar devolução?', tipo: 'info', confirmLabel: 'Confirmar devolução', cancelLabel: 'Cancelar', danger: false }
+    );
+    if (!confirmDevolver) return;
     const hoje = new Date().toISOString().split('T')[0];
     try {
         const res = await fetch(`${API}/emprestimo/${id}`, {
@@ -1014,40 +1002,39 @@ async function devolverLivro(id) {
         });
         if (!res.ok) {
             const d = await res.json();
-            showToast(d.error || 'Erro ao registrar devolução.', 'error');
+            AdminToast.error(d.error || 'Erro ao registrar devolução.');
             return;
         }
-        showToast('Devolução registrada com sucesso! ✅', 'success');
+        AdminToast.success('Devolução registrada com sucesso!');
         await carregarEmprestimos();
     } catch {
-        showToast('Erro de conexão com o servidor.', 'error');
+        AdminToast.error('Erro de conexão com o servidor.');
     }
 }
 
 // ── Excluir empréstimo ────────────────────────────────────────
 async function excluirEmprestimo(id) {
-    if (!confirm('Tem certeza que deseja excluir este registro?\nEsta ação não pode ser desfeita.')) return;
+    const confirmExcluir = await AdminToast.confirm(
+        'Esta ação não pode ser desfeita. O registro de empréstimo será removido permanentemente.',
+        { titulo: 'Excluir registro?', tipo: 'error', confirmLabel: 'Sim, excluir', cancelLabel: 'Cancelar', danger: true }
+    );
+    if (!confirmExcluir) return;
     try {
         const res = await fetch(`${API}/emprestimo/${id}`, { method: 'DELETE' });
         if (!res.ok && res.status !== 204) {
-            showToast('Erro ao excluir empréstimo.', 'error');
+            AdminToast.error('Erro ao excluir empréstimo.');
             return;
         }
-        showToast('Empréstimo excluído.', 'success');
+        AdminToast.success('Empréstimo excluído com sucesso.');
         await carregarEmprestimos();
     } catch {
-        showToast('Erro de conexão com o servidor.', 'error');
+        AdminToast.error('Erro de conexão com o servidor.');
     }
 }
 
-// ── Toast ─────────────────────────────────────────────────────
-let _toastTimer;
+// ── Toast (delegado ao AdminToast) ───────────────────────────
 function showToast(msg, tipo = 'info') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className   = `toast show toast-${tipo}`;
-    clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(() => { t.className = 'toast'; }, 4500);
+    AdminToast.show(msg, tipo);
 }
 
 // ── Inicialização ─────────────────────────────────────────────
@@ -1072,6 +1059,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <span class="tt-icon tt-moon">🌙</span>
   </button>
 </div>
+<script src="../../js/admin-toast.js"></script>
 <script src="../../js/kairos-notificacoes-admin.js"></script>
 <script src="../../js/theme.js"></script>
 </body>
