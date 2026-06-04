@@ -233,20 +233,20 @@
                 const n = _notificacoes.find(n => n.Notificacao_id === notifId);
                 if (n) n.StatusSolicitacao = 'aprovado';
                 renderizarLista(_notificacoes);
-                _mostrarToastAdmin('✅ Solicitação aprovada! Empréstimo criado.', 'success');
+                AdminToast.success('Solicitação aprovada! Empréstimo criado.');
                 // Dispara evento para páginas que estejam ouvindo
                 document.dispatchEvent(new CustomEvent('kna:solicitacao-decidida', { detail: { solicitacaoId, decisao: 'aprovado' } }));
             } else {
                 btnAprovar.disabled = false;
                 btnReprovar.disabled = false;
                 btnAprovar.textContent = 'Aprovar';
-                _mostrarToastAdmin(data.error || 'Erro ao aprovar.', 'error');
+                AdminToast.error(data.error || 'Erro ao aprovar.');
             }
         } catch (err) {
             btnAprovar.disabled = false;
             btnReprovar.disabled = false;
             btnAprovar.textContent = 'Aprovar';
-            _mostrarToastAdmin('Erro de conexão.', 'error');
+            AdminToast.error('Erro de conexão.');
         }
     }
 
@@ -269,19 +269,19 @@
                 const n = _notificacoes.find(n => n.Notificacao_id === notifId);
                 if (n) n.StatusSolicitacao = 'reprovado';
                 renderizarLista(_notificacoes);
-                _mostrarToastAdmin('❌ Solicitação reprovada.', 'info');
+                AdminToast.info('Solicitação reprovada com sucesso.');
                 document.dispatchEvent(new CustomEvent('kna:solicitacao-decidida', { detail: { solicitacaoId, decisao: 'reprovado' } }));
             } else {
                 btnAprovar.disabled  = false;
                 btnReprovar.disabled = false;
                 btnReprovar.textContent = 'Reprovar';
-                _mostrarToastAdmin(data.error || 'Erro ao reprovar.', 'error');
+                AdminToast.error(data.error || 'Erro ao reprovar.');
             }
         } catch {
             btnAprovar.disabled  = false;
             btnReprovar.disabled = false;
             btnReprovar.textContent = 'Reprovar';
-            _mostrarToastAdmin('Erro de conexão.', 'error');
+            AdminToast.error('Erro de conexão.');
         }
     }
 
@@ -435,19 +435,17 @@
         }
     }
 
-    // Toast interno para feedback de ações
+    // Toast interno — delegado ao AdminToast global (admin-toast.js)
     function _mostrarToastAdmin(msg, tipo = 'info') {
-        let t = document.getElementById('kna-toast');
-        if (!t) {
-            t = document.createElement('div');
-            t.id = 'kna-toast';
-            Object.assign(t.style, {
-                position: 'fixed', bottom: '24px', right: '24px', zIndex: '99999',
-                padding: '12px 20px', borderRadius: '10px', fontSize: '0.875rem',
-                fontWeight: '500', boxShadow: '0 4px 20px rgba(0,0,0,.2)',
-                color: 'white', maxWidth: '340px', transition: 'opacity .25s, transform .25s',
-                opacity: '0', transform: 'translateY(12px)', fontFamily: "'DM Sans', sans-serif"
-            });
+        if (window.AdminToast) {
+            window.AdminToast.show(msg, tipo);
+        } else {
+            // fallback simples caso admin-toast.js não esteja carregado
+            console.info('[KNA Toast]', tipo, msg);
+        }
+    }
+
+    );
             document.body.appendChild(t);
         }
         t.textContent = msg;

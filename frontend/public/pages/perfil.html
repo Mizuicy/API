@@ -116,9 +116,7 @@
         </div>
     </main>
 
-    <!-- Toast -->
-    <div class="toast" id="toast"></div>
-
+    <script src="../js/admin-toast.js"></script>
     <script src="../js/theme.js"></script>
     <script>
         const API = 'http://localhost:3000';
@@ -177,7 +175,7 @@
                 })
                 .catch(err => {
                     console.error('Erro ao carregar perfil:', err);
-                    showToast('❌ Não foi possível carregar os dados do perfil.', 'error');
+                    AdminToast.error('Não foi possível carregar os dados do perfil.');
                 });
         }
 
@@ -195,11 +193,11 @@
             if (!file) return;
 
             if (!file.type.startsWith('image/')) {
-                showToast('❌ Selecione um arquivo de imagem válido.', 'error');
+                AdminToast.error('Selecione um arquivo de imagem válido.');
                 return;
             }
             if (file.size > 5 * 1024 * 1024) {
-                showToast('❌ Imagem muito grande. Máximo 5MB.', 'error');
+                AdminToast.error('Imagem muito grande. Máximo permitido: 5MB.');
                 return;
             }
 
@@ -262,7 +260,7 @@
             const uid         = sessionStorage.getItem('usuarioId');
 
             if (!uid) {
-                showToast('❌ Sessão expirada. Faça login novamente.', 'error');
+                AdminToast.error('Sessão expirada. Faça login novamente.');
                 setTimeout(() => window.location.replace('auth/login.html'), 1500);
                 return;
             }
@@ -275,7 +273,7 @@
             const senhaAlterada = !!(senhaVal || confirmaVal);
 
             if (!nomeAlterado && !fotoAlterada && !senhaAlterada) {
-                showToast('ℹ️ Nenhuma alteração realizada.', 'info');
+                AdminToast.info('Nenhuma alteração realizada.');
                 return;
             }
 
@@ -303,7 +301,7 @@
             }
 
             if (hasError) {
-                showToast('❌ Corrija os erros antes de salvar.', 'error');
+                AdminToast.error('Corrija os erros antes de salvar.');
                 return;
             }
 
@@ -329,7 +327,7 @@
                 const data = await res.json();
 
                 if (!res.ok) {
-                    showToast(`❌ ${data.error || 'Erro ao salvar.'}`, 'error');
+                    AdminToast.error(data.error || 'Erro ao salvar.');
                     return;
                 }
 
@@ -354,20 +352,17 @@
                 // Notifica outras páginas na sessão para re-renderizarem o avatar
                 window.dispatchEvent(new CustomEvent('kairos:avatarUpdated'));
 
-                showToast('✅ Alterações salvas com sucesso!', 'success');
+                AdminToast.success('Alterações salvas com sucesso!');
 
             } catch (err) {
                 console.error('Erro ao salvar:', err);
-                showToast('❌ Erro ao conectar com o servidor.', 'error');
+                AdminToast.error('Erro ao conectar com o servidor.');
             }
         }
 
-        // ── Toast ─────────────────────────────────────────────────────────
+        // ── Toast (delegado ao AdminToast) ────────────────────────────────
         function showToast(msg, type) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.className = 'toast show' + (type === 'error' ? ' toast-error' : type === 'info' ? ' toast-info' : '');
-            setTimeout(() => t.classList.remove('show'), 3200);
+            AdminToast.show(msg, type || 'info');
         }
     </script>
 </body>

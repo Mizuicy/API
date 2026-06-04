@@ -383,7 +383,6 @@
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"></div>
 
 <!-- ESTILOS EXTRAS (loading, erro) -->
 <style>
@@ -435,6 +434,7 @@
 
 <!-- SCRIPTS -->
 <script src="../../js/nav.js"></script>
+<script src="../../js/admin-toast.js"></script>
 <script src="../../js/kairos-notificacoes-admin.js"></script>
 <script src="../../js/theme.js"></script>
 <script>
@@ -706,7 +706,7 @@ function abrirPainelCadastro() {
 
 function abrirPainelEdicao(id) {
     const ex = todosExemplares.find(e => e.Exemplar_id === id);
-    if (!ex) return mostrarToast('Exemplar não encontrado.', 'error');
+    if (!ex) return AdminToast.error('Exemplar não encontrado.');
 
     document.getElementById('exemplarEditandoId').value = id;
     document.getElementById('painelCadastroTitulo').textContent = '✏️ Editar Exemplar';
@@ -767,7 +767,7 @@ async function salvarExemplar() {
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || 'Erro ao salvar exemplar.');
 
-        mostrarToast(isEdicao ? 'Exemplar atualizado com sucesso!' : 'Exemplar cadastrado com sucesso!', 'success');
+        AdminToast.success(isEdicao ? 'Exemplar atualizado com sucesso!' : 'Exemplar cadastrado com sucesso!');
         fecharPainelCadastro();
         await carregarExemplares();
         await carregarStats();
@@ -865,7 +865,7 @@ async function confirmarLote() {
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || 'Erro ao cadastrar lote.');
 
-        mostrarToast(data.message || `${tombos.length} exemplar(es) cadastrado(s)!`, 'success');
+        AdminToast.success(data.message || `${tombos.length} exemplar(es) cadastrado(s) com sucesso!`);
         fecharPainelLote();
         await carregarExemplares();
         await carregarStats();
@@ -880,7 +880,7 @@ async function confirmarLote() {
 // ── Modal Visualizar ─────────────────────────────────────────
 function abrirModalVisualizar(id) {
     const ex = todosExemplares.find(e => e.Exemplar_id === id);
-    if (!ex) return mostrarToast('Exemplar não encontrado.', 'error');
+    if (!ex) return AdminToast.error('Exemplar não encontrado.');
 
     const badgeMap = {
         'Disponivel': ['badge-disponivel', 'Disponível'],
@@ -949,17 +949,17 @@ async function excluirExemplarConfirmado() {
     try {
         const resp = await fetch(`${API}/exemplar/${exemplarParaExcluir}`, { method: 'DELETE' });
         if (resp.status === 204) {
-            mostrarToast('Exemplar excluído com sucesso.', 'success');
+            AdminToast.success('Exemplar excluído com sucesso.');
             fecharModalExclusao();
             await carregarExemplares();
             await carregarStats();
         } else {
             const data = await resp.json();
-            mostrarToast(data.error || 'Erro ao excluir exemplar.', 'error');
+            AdminToast.error(data.error || 'Erro ao excluir exemplar.');
             fecharModalExclusao();
         }
     } catch (e) {
-        mostrarToast('Erro de conexão ao excluir.', 'error');
+        AdminToast.error('Erro de conexão ao excluir.');
         fecharModalExclusao();
     } finally {
         btn.disabled = false;
@@ -986,11 +986,10 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
-let toastTimer = null;
+// ── Toast (delegado ao AdminToast) ───────────────────────────
 function mostrarToast(msg, tipo = 'info') {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.className = `toast ${tipo} show`;
+    AdminToast.show(msg, tipo);
+} show`;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
 }
