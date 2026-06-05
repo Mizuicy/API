@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import dbconfig from './db/dbconfig.js';
 import { validarUsuario, validarLivro, validarAutor } from './utils/validacoes.js';
 import { validateEmail, generateAuthCode, sendAuthEmail, sendWelcomeEmail, sendLoanExpiryEmail } from './utils/emailService.js';
+import chatRoutes from './chat/routes/chatRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +36,12 @@ app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} -> ${req.method} ${req.url}`);
     next();
 });
+
+// ══════════════════════════════════════════════════════════════
+//  MÓDULO WEBCHAT IA — Kairos Assistente Virtual
+//  Rota base: /api/chat
+// ══════════════════════════════════════════════════════════════
+app.use('/api/chat', chatRoutes);
 
 function handleQuery(res, err, results) {
     if (err) {
