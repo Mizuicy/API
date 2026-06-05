@@ -122,7 +122,7 @@
                 </thead>
                 <tbody id="tabelaCorpo">
                     <tr>
-                        <td colspan="6" class="loading-cell">
+                        <td colspan="7" class="loading-cell">
                             <div class="loading-spinner"></div>
                             Carregando exemplares…
                         </td>
@@ -851,7 +851,7 @@ async function carregarExemplares() {
     } catch (e) {
         console.error('Erro ao carregar exemplares:', e);
         document.getElementById('tabelaCorpo').innerHTML = `
-            <tr><td colspan="6" class="loading-cell" style="color:#ef4444">
+            <tr><td colspan="7" class="loading-cell" style="color:#ef4444">
                 ⚠️ Erro ao carregar exemplares. Verifique se o servidor está rodando.
             </td></tr>`;
     }
@@ -889,7 +889,7 @@ function renderizarTabela() {
     const pagina  = todosExemplares.slice(inicio, inicio + ITENS_POR_PAGINA);
 
     if (pagina.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="6" class="loading-cell">
+        corpo.innerHTML = `<tr><td colspan="7" class="loading-cell">
             📭 Nenhum exemplar encontrado. Cadastre o primeiro!
         </td></tr>`;
         document.getElementById('tabelaInfo').innerHTML = 'Nenhum resultado';
@@ -1006,7 +1006,7 @@ function irParaPagina(n) {
 
 function mostrarLoading() {
     document.getElementById('tabelaCorpo').innerHTML = `
-        <tr><td colspan="6" class="loading-cell">
+        <tr><td colspan="7" class="loading-cell">
             <div class="loading-spinner"></div>Carregando exemplares…
         </td></tr>`;
 }
@@ -1363,9 +1363,6 @@ function escapeHtml(str) {
 // ── Toast (delegado ao AdminToast) ───────────────────────────
 function mostrarToast(msg, tipo = 'info') {
     AdminToast.show(msg, tipo);
-} show`;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
 }
 </script>
 </body>

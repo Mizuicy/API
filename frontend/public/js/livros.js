@@ -269,3 +269,77 @@ async function adicionarLivro(e) {
 function mostraNotificacao(mensagem, tipo) {
     AdminToast.show(mensagem, tipo || 'info');
 }
+
+// ── Imagem da Capa: toggle URL / Arquivo ─────────────────────
+function setCapaMode(mode) {
+    const urlMode  = document.getElementById('capaUrlMode');
+    const fileMode = document.getElementById('capaFileMode');
+    const tabUrl   = document.getElementById('tabUrl');
+    const tabFile  = document.getElementById('tabFile');
+    if (!urlMode || !fileMode) return;
+
+    if (mode === 'url') {
+        urlMode.style.display  = '';
+        fileMode.style.display = 'none';
+        tabUrl.classList.add('active');
+        tabFile.classList.remove('active');
+        const capaFile = document.getElementById('capaFile');
+        if (capaFile) capaFile.value = '';
+    } else {
+        urlMode.style.display  = 'none';
+        fileMode.style.display = '';
+        tabFile.classList.add('active');
+        tabUrl.classList.remove('active');
+        const capaUrl = document.getElementById('capaUrl');
+        if (capaUrl) capaUrl.value = '';
+    }
+    atualizarPreviewCapa();
+}
+
+function atualizarPreviewCapa() {
+    const preview  = document.getElementById('capaPreview');
+    if (!preview) return;
+    const capaUrl  = document.getElementById('capaUrl');
+    const capaFile = document.getElementById('capaFile');
+    const url = capaUrl && capaUrl.offsetParent !== null ? capaUrl.value.trim() : '';
+
+    if (capaFile && capaFile.files && capaFile.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.innerHTML = `
+                <div class="capa-preview-container">
+                    <img src="${e.target.result}" class="capa-preview-img" alt="Prévia da capa">
+                    <button type="button" class="capa-preview-remove" onclick="removeCapa()" title="Remover imagem">×</button>
+                </div>`;
+        };
+        reader.readAsDataURL(capaFile.files[0]);
+        return;
+    }
+    if (url) {
+        preview.innerHTML = `
+            <div class="capa-preview-container">
+                <img src="${url}" class="capa-preview-img" alt="Prévia da capa"
+                     onerror="this.parentElement.innerHTML='<span class=\\'capa-preview-error\\'>Imagem não encontrada</span>'">
+                <button type="button" class="capa-preview-remove" onclick="removeCapa()" title="Remover imagem">×</button>
+            </div>`;
+        return;
+    }
+    preview.innerHTML = '';
+}
+
+function removeCapa() {
+    const capaUrl  = document.getElementById('capaUrl');
+    const capaFile = document.getElementById('capaFile');
+    const preview  = document.getElementById('capaPreview');
+    if (capaUrl)  capaUrl.value  = '';
+    if (capaFile) capaFile.value = '';
+    if (preview)  preview.innerHTML = '';
+}
+
+// Atualiza prévia ao digitar URL
+document.addEventListener('DOMContentLoaded', () => {
+    const capaUrl  = document.getElementById('capaUrl');
+    const capaFile = document.getElementById('capaFile');
+    if (capaUrl)  capaUrl.addEventListener('input',  atualizarPreviewCapa);
+    if (capaFile) capaFile.addEventListener('change', atualizarPreviewCapa);
+});

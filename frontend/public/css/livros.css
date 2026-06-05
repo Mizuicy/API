@@ -711,3 +711,192 @@ body, .header, .form-section, .list-section, input, select, textarea, table, th,
 /* ── STATUS TAGS ── */
 [data-theme="dark"] .badge-disponivel { background: var(--success-bg); color: var(--success); }
 [data-theme="dark"] .badge-indisponivel { background: var(--error-bg); color: var(--error); }
+
+/* ═══════════════════════════════════════════════════════════
+   IMAGEM DA CAPA — seletor URL / Arquivo
+   ═══════════════════════════════════════════════════════════ */
+
+/* Container do campo inteiro */
+.form-group.full-width .capa-tabs,
+.capa-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+/* Botões de alternância URL / Arquivo */
+.capa-tab {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 9px;
+    background: var(--surface, #fff);
+    color: var(--muted, #6b7280);
+    font-size: .85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color .18s, background .18s, color .18s, box-shadow .18s;
+    white-space: nowrap;
+}
+
+.capa-tab:hover {
+    border-color: var(--purple, #667eea);
+    color: var(--purple, #667eea);
+}
+
+.capa-tab.active {
+    border-color: var(--purple, #667eea);
+    background: linear-gradient(135deg, #667eea14, #764ba214);
+    color: var(--purple, #667eea);
+    font-weight: 600;
+    box-shadow: 0 0 0 3px rgba(102,126,234,.12);
+}
+
+/* Campo de URL — ocupa toda a largura */
+#capaUrlMode input[type="url"],
+#capaUrl {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 9px;
+    background: var(--surface, #fff);
+    color: var(--text, #111);
+    font-size: .9rem;
+    outline: none;
+    transition: border-color .18s, box-shadow .18s;
+    box-sizing: border-box;
+}
+
+#capaUrlMode input[type="url"]:focus,
+#capaUrl:focus {
+    border-color: var(--purple, #667eea);
+    box-shadow: 0 0 0 3px rgba(102,126,234,.12);
+}
+
+/* Campo de arquivo */
+#capaFileMode {
+    display: flex;
+    align-items: center;
+}
+
+#capaFileMode input[type="file"],
+#capaFile {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 9px;
+    background: var(--surface, #fff);
+    color: var(--text, #111);
+    font-size: .85rem;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: border-color .18s;
+}
+
+#capaFileMode input[type="file"]:focus,
+#capaFile:focus {
+    border-color: var(--purple, #667eea);
+    outline: none;
+}
+
+/* Área de prévia da imagem */
+#capaPreview {
+    margin-top: 10px;
+}
+
+.capa-preview-container {
+    position: relative;
+    display: inline-block;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,.12);
+    max-width: 160px;
+}
+
+.capa-preview-img {
+    display: block;
+    width: 100%;
+    max-width: 160px;
+    height: auto;
+    border-radius: 10px;
+    object-fit: cover;
+}
+
+.capa-preview-remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,.55);
+    color: white;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background .15s;
+    padding: 0;
+}
+
+.capa-preview-remove:hover {
+    background: rgba(239,68,68,.85);
+}
+
+.capa-preview-error {
+    display: block;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #fee2e2;
+    color: #b91c1c;
+    font-size: .8rem;
+    border: 1px solid #fecaca;
+}
+
+/* Dark mode */
+[data-theme="dark"] .capa-tab {
+    background: var(--surface, #1e1e2e);
+    border-color: var(--border, #374151);
+    color: var(--muted, #9ca3af);
+}
+
+[data-theme="dark"] .capa-tab:hover {
+    border-color: var(--purple, #667eea);
+    color: var(--purple, #a5b4fc);
+}
+
+[data-theme="dark"] .capa-tab.active {
+    background: rgba(102,126,234,.15);
+    border-color: var(--purple, #667eea);
+    color: #a5b4fc;
+}
+
+[data-theme="dark"] #capaUrlMode input[type="url"],
+[data-theme="dark"] #capaUrl,
+[data-theme="dark"] #capaFileMode input[type="file"],
+[data-theme="dark"] #capaFile {
+    background: var(--surface, #1e1e2e);
+    border-color: var(--border, #374151);
+    color: var(--text, #f3f4f6);
+}
+
+[data-theme="dark"] .capa-preview-error {
+    background: #3b0f0f;
+    color: #fca5a5;
+    border-color: #7f1d1d;
+}
+
+/* Responsivo */
+@media (max-width: 480px) {
+    .capa-tab {
+        padding: 8px 10px;
+        font-size: .8rem;
+    }
+}
