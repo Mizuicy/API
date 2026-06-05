@@ -1,0 +1,486 @@
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  KAIROS — navbar.css  (v2 — refatoração completa)
+ *  Substituir ou incluir APÓS o CSS de cada página.
+ *  Compatível com: livros.html, autores.html, exemplares.html,
+ *                  emprestimos.html, solicitacoes.html, admin.html
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+/* ── Design tokens ─────────────────────────────────────────── */
+:root {
+  --nav-h:           64px;
+  --nav-bg:          #1a1528;          /* fundo escuro elegante   */
+  --nav-border:      rgba(124,111,247,.20);
+  --nav-shadow:      0 2px 20px rgba(0,0,0,.35);
+
+  --nav-purple:      #7c6ff7;
+  --nav-purple-dim:  rgba(124,111,247,.15);
+  --nav-purple-glow: rgba(124,111,247,.30);
+
+  --nav-text:        #c8c5e8;          /* links inativos           */
+  --nav-text-hover:  #ffffff;          /* links em hover           */
+  --nav-text-active: #ffffff;          /* link ativo               */
+
+  --nav-drop-bg:     #211c35;
+  --nav-drop-border: rgba(124,111,247,.25);
+  --nav-drop-shadow: 0 12px 40px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.25);
+
+  --nav-radius:      10px;
+  --nav-trans:       0.18s cubic-bezier(.4,0,.2,1);
+}
+
+/* modo claro: navbar continua escura (estilo dashboard) */
+[data-theme="light"] {
+  --nav-bg:         #1a1528;
+  --nav-border:     rgba(124,111,247,.18);
+  --nav-drop-bg:    #211c35;
+}
+
+/* ── Reset do container antigo ────────────────────────────── */
+/*  Removemos padding excessivo do .container que envolvia o header  */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;        /* só padding lateral — sem margin-top para o header */
+}
+
+/* ── Barra principal ─────────────────────────────────────── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
+  box-shadow: var(--nav-shadow);
+
+  /* sobrescreve estilos antigos que quebravam o layout */
+  padding: 0 !important;
+  margin-bottom: 0 !important;
+  border-radius: 0 !important;
+  height: var(--nav-h);
+
+  /* sem transição de background — evita flash ao mudar tema */
+  transition: none;
+}
+
+.header-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 28px;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  gap: 0;                 /* controlamos espaço manualmente via margin */
+
+  /* CRÍTICO: flex-direction deve ser row (nunca column) */
+  flex-direction: row;
+  flex-wrap: nowrap;      /* proíbe quebra de linha */
+}
+
+/* ── Bloco esquerdo: logo ─────────────────────────────────── */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Lora', 'Georgia', serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  text-decoration: none;
+  flex-shrink: 0;
+  margin-right: 32px;
+
+  /* remove herança de margin/padding do h1 */
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 0;
+  line-height: 1;
+}
+
+.logo svg,
+.logo .logo-icon {
+  flex-shrink: 0;
+  color: var(--nav-purple);
+}
+
+/* ── Bloco central: links de navegação ───────────────────── */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;                /* ocupa o espaço restante entre logo e direita */
+
+  /* CRÍTICO: nunca deixar isso virar column */
+  flex-direction: row;
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+
+/* Links base */
+.nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--nav-radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--nav-text);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background var(--nav-trans),
+    color var(--nav-trans);
+
+  /* remove border-bottom padrão antigo */
+  border-bottom: none !important;
+}
+
+.nav-link:hover {
+  background: var(--nav-purple-dim);
+  color: var(--nav-text-hover);
+  border-bottom: none !important;
+}
+
+/* Item ativo — linha inferior roxa */
+.nav-link.active {
+  color: var(--nav-text-active);
+  background: var(--nav-purple-dim);
+  font-weight: 600;
+  border-bottom: none !important;
+}
+
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;           /* alinha com a borda inferior do header */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: var(--nav-purple);
+  border-radius: 2px 2px 0 0;
+}
+
+/* ── Dropdown de Gestão ──────────────────────────────────── */
+.nav-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--nav-radius);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--nav-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--nav-trans),
+    color var(--nav-trans);
+
+  /* remove border-bottom antigo */
+  border-bottom: none !important;
+  padding-bottom: 8px !important; /* sobrescreve padding-bottom:5px antigo */
+}
+
+.nav-dropdown-btn:hover,
+.nav-dropdown:hover .nav-dropdown-btn {
+  background: var(--nav-purple-dim);
+  color: var(--nav-text-hover);
+}
+
+/* Seta rotacionável */
+.nav-dropdown-btn .arrow {
+  display: inline-block;
+  font-style: normal;
+  transition: transform var(--nav-trans);
+  font-size: 0.7rem;
+  opacity: .7;
+}
+.nav-dropdown:hover .nav-dropdown-btn .arrow {
+  transform: rotate(180deg);
+}
+
+/* Menu flutuante */
+.nav-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 200px;
+  background: var(--nav-drop-bg);
+  border: 1px solid var(--nav-drop-border);
+  border-radius: 12px;
+  box-shadow: var(--nav-drop-shadow);
+  overflow: hidden;
+  z-index: 2000;
+  animation: dropIn .15s ease forwards;
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.nav-dropdown:hover .nav-dropdown-menu {
+  display: block;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 18px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--nav-text);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition:
+    background var(--nav-trans),
+    color var(--nav-trans),
+    border-left-color var(--nav-trans);
+}
+
+.dropdown-item:hover {
+  background: var(--nav-purple-dim);
+  color: var(--nav-text-hover);
+  border-left-color: var(--nav-purple);
+}
+
+.dropdown-item.active {
+  background: var(--nav-purple-dim);
+  color: var(--nav-purple);
+  border-left-color: var(--nav-purple);
+  font-weight: 600;
+}
+
+/* ── Bloco direito: notificações + perfil + tema ─────────── */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Botão ícone genérico (notificação, perfil) */
+.nav-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: none;
+  border: none;
+  color: var(--nav-text);
+  cursor: pointer;
+  transition:
+    background var(--nav-trans),
+    color var(--nav-trans);
+  text-decoration: none;
+  font-size: 1.1rem;
+}
+
+.nav-icon-btn:hover {
+  background: var(--nav-purple-dim);
+  color: var(--nav-text-hover);
+}
+
+/* Badge de notificação */
+.nav-icon-btn .badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  border: 1.5px solid var(--nav-bg);
+}
+
+/* Avatar de perfil */
+.nav-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--nav-purple), #9d94f9);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  text-decoration: none;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  transition: box-shadow var(--nav-trans), transform var(--nav-trans);
+}
+
+.nav-avatar:hover {
+  box-shadow: 0 0 0 3px var(--nav-purple-glow);
+  transform: scale(1.06);
+}
+
+/* ── Alternador de tema (reutiliza as classes tt-* do theme.js) */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 999px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background var(--nav-trans), border-color var(--nav-trans);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.theme-toggle:hover {
+  background: var(--nav-purple-dim);
+  border-color: var(--nav-purple);
+}
+
+.tt-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: opacity var(--nav-trans);
+}
+
+.tt-track {
+  position: relative;
+  width: 28px;
+  height: 14px;
+  background: rgba(255,255,255,.15);
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+
+.tt-ball {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-radius: 50%;
+  transition: left var(--nav-trans);
+}
+
+[data-theme="dark"] .tt-ball { left: 16px; }
+
+/* ── Separador vertical ───────────────────────────────────── */
+.nav-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255,255,255,.12);
+  margin: 0 8px;
+  flex-shrink: 0;
+}
+
+/* ── Hambúrguer para mobile ──────────────────────────────── */
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  margin-left: auto;
+}
+
+.nav-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--nav-text);
+  border-radius: 2px;
+  transition: transform var(--nav-trans), opacity var(--nav-trans);
+}
+
+/* ── Responsividade ──────────────────────────────────────── */
+@media (max-width: 900px) {
+  .header-content { padding: 0 16px; }
+  .logo { margin-right: 16px; }
+  .nav-link,
+  .nav-dropdown-btn { padding: 8px 10px; font-size: 0.82rem; }
+}
+
+@media (max-width: 720px) {
+  /* Mostrar hambúrguer, esconder nav central */
+  .nav-hamburger { display: flex; }
+
+  .nav {
+    display: none;
+    position: fixed;
+    top: var(--nav-h);
+    left: 0; right: 0;
+    background: var(--nav-drop-bg);
+    border-bottom: 1px solid var(--nav-drop-border);
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+    gap: 4px;
+    z-index: 999;
+  }
+
+  .nav.open { display: flex; }
+
+  .nav-link,
+  .nav-dropdown-btn {
+    width: 100%;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+  }
+
+  .nav-link.active::after { display: none; }
+
+  .nav-dropdown { flex-direction: column; align-items: stretch; }
+
+  .nav-dropdown-menu {
+    position: static;
+    transform: none;
+    border-radius: 8px;
+    margin-top: 4px;
+    animation: none;
+    box-shadow: none;
+    border-color: rgba(124,111,247,.15);
+  }
+
+  /* Manter actions visíveis */
+  .nav-actions { margin-left: 8px; }
+  .nav-sep { display: none; }
+  .theme-toggle { padding: 5px 8px; }
+}
+
+@media (max-width: 480px) {
+  .logo { font-size: 1rem; }
+  .nav-actions .nav-icon-btn:not(.keep) { display: none; }
+}
+
+/* ── Margem após o header (para o container principal) ─────── */
+.container > *:not(.header):first-of-type,
+.main { margin-top: 28px; }
