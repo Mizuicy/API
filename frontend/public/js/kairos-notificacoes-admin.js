@@ -164,7 +164,7 @@
                 </div>
                 <div class="kna-list" id="kna-list"></div>
                 <div class="kna-dd-footer">
-                    <a href="../gestao/emprestimos.html">Ver gestão de empréstimos →</a>
+                    <a href="../gestao/solicitacoes.html">Ver todas as solicitações →</a>
                 </div>
             </div>
         `;
@@ -416,22 +416,80 @@
         }
     }
 
+    // ── Dados mockados para demonstração visual (sem backend) ────
+    const MOCK_NOTIFICACOES = [
+        {
+            Notificacao_id: 101,
+            Tipo: 'admin_solicitacao',
+            Mensagem: 'Solicitação de empréstimo recebida e aguardando análise.',
+            Lida: 0,
+            CriadaEm: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+            Solicitacao_id: 1,
+            NomeSolicitante: 'João Silva',
+            NomeLivro: '1984 — George Orwell',
+            StatusSolicitacao: 'pendente'
+        },
+        {
+            Notificacao_id: 102,
+            Tipo: 'admin_solicitacao',
+            Mensagem: 'Solicitação de empréstimo recebida e aguardando análise.',
+            Lida: 0,
+            CriadaEm: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
+            Solicitacao_id: 2,
+            NomeSolicitante: 'Maria Oliveira',
+            NomeLivro: 'O Senhor dos Anéis — J.R.R. Tolkien',
+            StatusSolicitacao: 'pendente'
+        },
+        {
+            Notificacao_id: 103,
+            Tipo: 'admin_solicitacao',
+            Mensagem: 'Solicitação de empréstimo recebida e aguardando análise.',
+            Lida: 0,
+            CriadaEm: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+            Solicitacao_id: 3,
+            NomeSolicitante: 'Carlos Mendes',
+            NomeLivro: 'A Arte da Guerra — Sun Tzu',
+            StatusSolicitacao: 'pendente'
+        },
+        {
+            Notificacao_id: 104,
+            Tipo: 'admin_solicitacao',
+            Mensagem: 'Solicitação de empréstimo recebida e aprovada anteriormente.',
+            Lida: 1,
+            CriadaEm: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+            Solicitacao_id: 4,
+            NomeSolicitante: 'Ana Santos',
+            NomeLivro: 'Dom Casmurro — Machado de Assis',
+            StatusSolicitacao: 'aprovado'
+        }
+    ];
+
     async function verificarNotificacoes() {
         const adminId = sessionStorage.getItem('usuarioId');
-        if (!adminId) {
-            console.warn('[Kairos Admin Notif] usuarioId ausente — faça login novamente.');
-            return;
-        }
         try {
-            const res = await fetch(`${API}/admin/notificacoes?admin=${adminId}`);
-            if (!res.ok) {
-                console.warn('[Kairos Admin Notif] Erro na API:', res.status, res.statusText);
-                return;
+            // Tenta buscar do backend real
+            if (adminId) {
+                const res = await fetch(`${API}/admin/notificacoes?admin=${adminId}`);
+                if (res.ok) {
+                    _notificacoes = await res.json();
+                    renderizarLista(_notificacoes);
+                    return;
+                }
             }
-            _notificacoes = await res.json();
-            renderizarLista(_notificacoes);
+            // Fallback visual: usa dados mockados quando backend não está disponível
+            // (modo demonstração — remover quando backend estiver pronto)
+            if (_notificacoes.length === 0) {
+                _notificacoes = MOCK_NOTIFICACOES;
+                renderizarLista(_notificacoes);
+                console.info('[Kairos Admin Notif] Usando dados mockados para demonstração visual.');
+            }
         } catch (err) {
-            console.warn('[Kairos Admin Notif] Falha ao buscar notificações:', err.message);
+            // Backend indisponível — exibe mock para demonstração
+            if (_notificacoes.length === 0) {
+                _notificacoes = MOCK_NOTIFICACOES;
+                renderizarLista(_notificacoes);
+                console.info('[Kairos Admin Notif] Backend indisponível — usando dados de demonstração.');
+            }
         }
     }
 
@@ -443,17 +501,6 @@
             // fallback simples caso admin-toast.js não esteja carregado
             console.info('[KNA Toast]', tipo, msg);
         }
-    }
-
-    );
-            document.body.appendChild(t);
-        }
-        t.textContent = msg;
-        t.style.background = tipo === 'success' ? '#16a34a' : tipo === 'error' ? '#dc2626' : '#1d4ed8';
-        t.style.opacity = '1';
-        t.style.transform = 'translateY(0)';
-        clearTimeout(t._timer);
-        t._timer = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(12px)'; }, 4000);
     }
 
     function init() {

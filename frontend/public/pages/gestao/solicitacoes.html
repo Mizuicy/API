@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="../../css/darkmode-global.css">
+    <script>(function(){var t=localStorage.getItem('kairos-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kairos — Solicitações de Empréstimo</title>
+    <link rel="stylesheet" href="../../css/livros.css">
+    <link rel="stylesheet" href="../../css/notificacoes.css">
+    <link rel="stylesheet" href="../../css/solicitacoes.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Header de admin -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">🏛️ Kairos</h1>
+            <nav class="nav">
+                <a href="../../index.html" class="nav-link">Início</a>
+                <a href="livros.html" class="nav-link">Adicionar Livro</a>
+                <a href="../admin/admin.html" class="nav-link">Catálogo</a>
+
+                <div class="nav-dropdown">
+                    <button class="nav-link nav-dropdown-btn">Gestão ▾</button>
+                    <div class="nav-dropdown-menu">
+                        <a href="autores.html" class="dropdown-item">✍️ Autores</a>
+                        <a href="exemplares.html" class="dropdown-item">📦 Exemplares</a>
+                        <a href="emprestimos.html" class="dropdown-item">🔄 Empréstimos</a>
+                        <a href="solicitacoes.html" class="dropdown-item active">📋 Solicitações</a>
+                    </div>
+                </div>
+
+                <a href="../perfil.html" class="nav-link nav-link-perfil" title="Perfil">👤</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <section class="form-section">
+
+            <!-- Título + estatísticas -->
+            <div class="solic-header">
+                <div>
+                    <h2 class="solic-titulo">📋 Solicitações de Empréstimo</h2>
+                    <p class="solic-subtitulo">Gerencie as solicitações de empréstimo dos usuários</p>
+                </div>
+                <div class="solic-stats-mini">
+                    <div class="stat-mini stat-mini-pendente">
+                        <span class="stat-mini-valor" id="countPendente">3</span>
+                        <span class="stat-mini-label">Pendentes</span>
+                    </div>
+                    <div class="stat-mini stat-mini-aprovado">
+                        <span class="stat-mini-valor" id="countAprovado">8</span>
+                        <span class="stat-mini-label">Aprovadas</span>
+                    </div>
+                    <div class="stat-mini stat-mini-reprovado">
+                        <span class="stat-mini-valor" id="countReprovado">2</span>
+                        <span class="stat-mini-label">Reprovadas</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="filtros-bar">
+                <input type="text" id="searchSolic" class="search-input"
+                       placeholder="🔍 Pesquisar por usuário ou livro..."
+                       oninput="filtrar()">
+                <select id="statusFilter" class="filter-select" onchange="filtrar()">
+                    <option value="">Todos os status</option>
+                    <option value="pendente" selected>Pendentes</option>
+                    <option value="aprovado">Aprovadas</option>
+                    <option value="reprovado">Reprovadas</option>
+                </select>
+                <button class="btn-filtro-limpar" onclick="limparFiltros()">✕ Limpar</button>
+            </div>
+
+            <!-- Tabela de solicitações -->
+            <div class="tabela-wrapper">
+                <table class="emp-table solic-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Usuário</th>
+                            <th>Livro Solicitado</th>
+                            <th>Data da Solicitação</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaBody">
+                        <!-- preenchido pelo JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Estado vazio -->
+            <div id="estadoVazio" class="estado-vazio" style="display:none">
+                <div class="estado-vazio-icon">📭</div>
+                <div class="estado-vazio-titulo">Nenhuma solicitação encontrada</div>
+                <div class="estado-vazio-sub">Tente ajustar os filtros ou aguarde novas solicitações dos usuários.</div>
+            </div>
+
+        </section>
+    </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MODAL DE ANÁLISE DA SOLICITAÇÃO
+     ═══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalAnalise">
+    <div class="modal-analise-box">
+
+        <!-- Cabeçalho do modal -->
+        <div class="modal-analise-header">
+            <div class="modal-analise-header-left">
+                <div class="modal-analise-icon">📋</div>
+                <div>
+                    <h3 class="modal-analise-titulo">Análise de Solicitação</h3>
+                    <p class="modal-analise-subtitulo" id="modalSolicId">Solicitação #—</p>
+                </div>
+            </div>
+            <button class="modal-analise-fechar" onclick="fecharModal()" title="Fechar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Corpo do modal -->
+        <div class="modal-analise-body">
+
+            <!-- Seção: Dados do Usuário -->
+            <div class="modal-secao">
+                <div class="modal-secao-label">
+                    <span class="modal-secao-icon">👤</span>
+                    Dados do Usuário
+                </div>
+                <div class="modal-info-grid">
+                    <div class="modal-info-item">
+                        <span class="modal-info-label">Nome</span>
+                        <span class="modal-info-valor" id="modalUsuarioNome">—</span>
+                    </div>
+                    <div class="modal-info-item">
+                        <span class="modal-info-label">E-mail</span>
+                        <span class="modal-info-valor" id="modalUsuarioEmail">—</span>
+                    </div>
+                    <div class="modal-info-item">
+                        <span class="modal-info-label">Empréstimos ativos</span>
+                        <span class="modal-info-valor" id="modalUsuarioEmprestimos">—</span>
+                    </div>
+                    <div class="modal-info-item">
+                        <span class="modal-info-label">Histórico</span>
+                        <span class="modal-info-valor" id="modalUsuarioHistorico">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção: Dados do Livro -->
+            <div class="modal-secao">
+                <div class="modal-secao-label">
+                    <span class="modal-secao-icon">📚</span>
+                    Livro Solicitado
+                </div>
+                <div class="modal-livro-card">
+                    <div class="modal-livro-capa" id="modalLivroCapa">📖</div>
+                    <div class="modal-livro-info">
+                        <div class="modal-livro-titulo" id="modalLivroTitulo">—</div>
+                        <div class="modal-livro-autor" id="modalLivroAutor">—</div>
+                        <div class="modal-livro-meta">
+                            <span class="modal-livro-tag" id="modalLivroGenero">—</span>
+                            <span class="modal-livro-exemplares" id="modalLivroExemplares">— exemplares disponíveis</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção: Dados da Solicitação -->
+            <div class="modal-secao">
+                <div class="modal-secao-label">
+                    <span class="modal-secao-icon">📝</span>
+                    Informações do Pedido
+                </div>
+                <div class="modal-info-grid">
+                    <div class="modal-info-item">
+                        <span class="modal-info-label">Data da Solicitação</span>
+                        <span class="modal-info-valor" id="modalDataSolic">—</span>
+                    </div>
+                    <div class="modal-info-item">
+                        <span class="modal-info-label">Prazo sugerido</span>
+                        <span class="modal-info-valor" id="modalPrazo">—</span>
+                    </div>
+                    <div class="modal-info-item">
+                        <span class="modal-info-label">Status atual</span>
+                        <span class="modal-info-valor" id="modalStatus">—</span>
+                    </div>
+                    <div class="modal-info-item">
+                        <span class="modal-info-label">Observações</span>
+                        <span class="modal-info-valor" id="modalObs">Sem observações</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Rodapé com ações -->
+        <div class="modal-analise-footer" id="modalFooter">
+            <button class="modal-btn-cancelar" onclick="fecharModal()">Fechar</button>
+            <div class="modal-acoes-principais" id="modalAcoes">
+                <button class="modal-btn-reprovar" id="btnReprovar" onclick="reprovarSolicitacao()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    Reprovar
+                </button>
+                <button class="modal-btn-aprovar" id="btnAprovar" onclick="aprovarSolicitacao()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    Aprovar Empréstimo
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     DADOS MOCKADOS E LÓGICA VISUAL
+     ═══════════════════════════════════════════════ -->
+<script>
+// ── Dados mockados para demonstração visual ─────────────────────
+const SOLICITACOES_MOCK = [
+    {
+        id: 1,
+        usuario: { nome: 'João Silva', email: 'joao.silva@email.com', emprestimosAtivos: 1, historico: '5 empréstimos (todos devolvidos)' },
+        livro: { titulo: '1984', autor: 'George Orwell', genero: 'Ficção Científica', exemplares: 2, capa: '../../assets/capas/1984.jpg' },
+        dataSolicitacao: '2025-06-01',
+        prazo: '14 dias (padrão)',
+        status: 'pendente',
+        observacoes: null
+    },
+    {
+        id: 2,
+        usuario: { nome: 'Maria Oliveira', email: 'maria.oliveira@email.com', emprestimosAtivos: 0, historico: '12 empréstimos (todos devolvidos)' },
+        livro: { titulo: 'O Senhor dos Anéis', autor: 'J.R.R. Tolkien', genero: 'Fantasia', exemplares: 1, capa: '../../assets/capas/senhor-dos-aneis.jpg' },
+        dataSolicitacao: '2025-06-02',
+        prazo: '14 dias (padrão)',
+        status: 'pendente',
+        observacoes: null
+    },
+    {
+        id: 3,
+        usuario: { nome: 'Carlos Mendes', email: 'carlos.mendes@email.com', emprestimosAtivos: 2, historico: '3 empréstimos (1 com atraso)' },
+        livro: { titulo: 'A Arte da Guerra', autor: 'Sun Tzu', genero: 'Não-Ficção', exemplares: 3, capa: '../../assets/capas/arte-da-guerra.jpg' },
+        dataSolicitacao: '2025-06-03',
+        prazo: '14 dias (padrão)',
+        status: 'pendente',
+        observacoes: null
+    },
+    {
+        id: 4,
+        usuario: { nome: 'Ana Santos', email: 'ana.santos@email.com', emprestimosAtivos: 0, historico: '7 empréstimos (todos devolvidos)' },
+        livro: { titulo: 'Dom Casmurro', autor: 'Machado de Assis', genero: 'Literatura Brasileira', exemplares: 2, capa: null },
+        dataSolicitacao: '2025-05-28',
+        prazo: '14 dias (padrão)',
+        status: 'aprovado',
+        observacoes: null
+    },
+    {
+        id: 5,
+        usuario: { nome: 'Pedro Costa', email: 'pedro.costa@email.com', emprestimosAtivos: 3, historico: '2 empréstimos (2 com atraso)' },
+        livro: { titulo: 'Harry Potter e a Pedra Filosofal', autor: 'J.K. Rowling', genero: 'Fantasia', exemplares: 0, capa: null },
+        dataSolicitacao: '2025-05-25',
+        prazo: '14 dias (padrão)',
+        status: 'reprovado',
+        observacoes: 'Nenhum exemplar disponível no momento.'
+    },
+    {
+        id: 6,
+        usuario: { nome: 'Fernanda Lima', email: 'fernanda.lima@email.com', emprestimosAtivos: 1, historico: '9 empréstimos (todos devolvidos)' },
+        livro: { titulo: 'O Pequeno Príncipe', autor: 'Antoine de Saint-Exupéry', genero: 'Literatura', exemplares: 4, capa: null },
+        dataSolicitacao: '2025-05-20',
+        prazo: '14 dias (padrão)',
+        status: 'aprovado',
+        observacoes: null
+    },
+    {
+        id: 7,
+        usuario: { nome: 'Roberto Alves', email: 'roberto.alves@email.com', emprestimosAtivos: 2, historico: '1 empréstimo (com atraso grave)' },
+        livro: { titulo: 'Sapiens', autor: 'Yuval Noah Harari', genero: 'Não-Ficção', exemplares: 2, capa: null },
+        dataSolicitacao: '2025-05-18',
+        prazo: '14 dias (padrão)',
+        status: 'reprovado',
+        observacoes: 'Usuário possui histórico de atrasos recorrentes.'
+    },
+    {
+        id: 8,
+        usuario: { nome: 'Juliana Rocha', email: 'juliana.rocha@email.com', emprestimosAtivos: 0, historico: '15 empréstimos (todos devolvidos)' },
+        livro: { titulo: 'O Alquimista', autor: 'Paulo Coelho', genero: 'Ficção', exemplares: 3, capa: null },
+        dataSolicitacao: '2025-05-15',
+        prazo: '14 dias (padrão)',
+        status: 'aprovado',
+        observacoes: null
+    }
+];
+
+let solicAtual = null;
+
+// ── Formatação ─────────────────────────────────────────────────
+function fmtData(d) {
+    if (!d) return '—';
+    const partes = d.split('-');
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
+
+function fmtDataPrazo(d) {
+    if (!d) return '—';
+    const data = new Date(d + 'T00:00:00');
+    data.setDate(data.getDate() + 14);
+    return data.toLocaleDateString('pt-BR');
+}
+
+function badgeHtml(status) {
+    const map = {
+        pendente:  ['badge-pendente',  '⏳ Solicitado'],
+        aprovado:  ['badge-devolvido', '✅ Aprovado'],
+        reprovado: ['badge-atrasado',  '❌ Reprovado'],
+    };
+    const [cls, label] = map[status] || ['badge-pendente', status];
+    return `<span class="badge ${cls}">${label}</span>`;
+}
+
+// ── Filtrar e renderizar ────────────────────────────────────────
+function filtrar() {
+    const busca  = (document.getElementById('searchSolic').value || '').toLowerCase().trim();
+    const status = document.getElementById('statusFilter').value;
+
+    const filtrados = SOLICITACOES_MOCK.filter(s => {
+        const matchStatus = !status || s.status === status;
+        const matchBusca  = !busca
+            || s.usuario.nome.toLowerCase().includes(busca)
+            || s.livro.titulo.toLowerCase().includes(busca)
+            || s.usuario.email.toLowerCase().includes(busca);
+        return matchStatus && matchBusca;
+    });
+
+    renderizar(filtrados);
+}
+
+function renderizar(dados) {
+    const tbody     = document.getElementById('tabelaBody');
+    const vazio     = document.getElementById('estadoVazio');
+    const tabela    = document.querySelector('.tabela-wrapper');
+
+    if (!dados.length) {
+        tbody.innerHTML = '';
+        vazio.style.display   = 'flex';
+        tabela.style.display  = 'none';
+        return;
+    }
+
+    vazio.style.display  = 'none';
+    tabela.style.display = '';
+
+    tbody.innerHTML = dados.map(s => {
+        const isPendente = s.status === 'pendente';
+        return `
+        <tr class="${isPendente ? 'row-pendente' : ''}">
+            <td class="td-id">#${s.id}</td>
+            <td>
+                <div class="usuario-cell">
+                    <div class="usuario-avatar">${s.usuario.nome.charAt(0)}</div>
+                    <div>
+                        <div class="usuario-nome">${s.usuario.nome}</div>
+                        <div class="usuario-email">${s.usuario.email}</div>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="livro-cell">
+                    ${s.livro.capa
+                        ? `<img class="livro-mini-capa" src="${s.livro.capa}" alt="${s.livro.titulo}" onerror="this.style.display='none'">`
+                        : `<div class="livro-mini-placeholder">📖</div>`
+                    }
+                    <div>
+                        <div class="livro-nome">${s.livro.titulo}</div>
+                        <div class="livro-autor">${s.livro.autor}</div>
+                    </div>
+                </div>
+            </td>
+            <td class="td-data">${fmtData(s.dataSolicitacao)}</td>
+            <td>${badgeHtml(s.status)}</td>
+            <td>
+                <button class="btn-visualizar" onclick="abrirModal(${s.id})">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Visualizar
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+
+    // Atualizar contadores
+    atualizarContadores();
+}
+
+function atualizarContadores() {
+    document.getElementById('countPendente').textContent  = SOLICITACOES_MOCK.filter(s => s.status === 'pendente').length;
+    document.getElementById('countAprovado').textContent  = SOLICITACOES_MOCK.filter(s => s.status === 'aprovado').length;
+    document.getElementById('countReprovado').textContent = SOLICITACOES_MOCK.filter(s => s.status === 'reprovado').length;
+}
+
+function limparFiltros() {
+    document.getElementById('searchSolic').value  = '';
+    document.getElementById('statusFilter').value = '';
+    filtrar();
+}
+
+// ── Modal de análise ────────────────────────────────────────────
+function abrirModal(id) {
+    const s = SOLICITACOES_MOCK.find(x => x.id === id);
+    if (!s) return;
+    solicAtual = s;
+
+    // Preencher campos
+    document.getElementById('modalSolicId').textContent     = `Solicitação #${s.id}`;
+    document.getElementById('modalUsuarioNome').textContent  = s.usuario.nome;
+    document.getElementById('modalUsuarioEmail').textContent = s.usuario.email;
+    document.getElementById('modalUsuarioEmprestimos').textContent = `${s.usuario.emprestimosAtivos} empréstimo(s)`;
+    document.getElementById('modalUsuarioHistorico').textContent   = s.usuario.historico;
+
+    // Livro
+    document.getElementById('modalLivroTitulo').textContent = s.livro.titulo;
+    document.getElementById('modalLivroAutor').textContent  = s.livro.autor;
+    document.getElementById('modalLivroGenero').textContent = s.livro.genero;
+    document.getElementById('modalLivroExemplares').textContent = `${s.livro.exemplares} exemplar(es) disponível(is)`;
+
+    const capaEl = document.getElementById('modalLivroCapa');
+    if (s.livro.capa) {
+        capaEl.innerHTML = `<img src="${s.livro.capa}" alt="${s.livro.titulo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.parentElement.textContent='📖'">`;
+    } else {
+        capaEl.textContent = '📖';
+    }
+
+    // Solicitação
+    document.getElementById('modalDataSolic').textContent = fmtData(s.dataSolicitacao);
+    document.getElementById('modalPrazo').textContent     = `Devolução até ${fmtDataPrazo(s.dataSolicitacao)}`;
+    document.getElementById('modalObs').textContent       = s.observacoes || 'Sem observações';
+
+    // Status
+    const statusEl = document.getElementById('modalStatus');
+    statusEl.innerHTML = badgeHtml(s.status);
+
+    // Botões de ação — exibir apenas se pendente
+    const acoesEl = document.getElementById('modalAcoes');
+    if (s.status === 'pendente') {
+        acoesEl.style.display = 'flex';
+    } else {
+        acoesEl.style.display = 'none';
+    }
+
+    // Abrir
+    document.getElementById('modalAnalise').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function fecharModal() {
+    document.getElementById('modalAnalise').classList.remove('open');
+    document.body.style.overflow = '';
+    solicAtual = null;
+}
+
+// Fechar ao clicar fora
+document.getElementById('modalAnalise').addEventListener('click', function(e) {
+    if (e.target === this) fecharModal();
+});
+
+// Fechar com ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') fecharModal();
+});
+
+// ── Ações visuais (sem backend) ─────────────────────────────────
+function aprovarSolicitacao() {
+    // Visual-only: atualiza o mock e fecha o modal
+    if (!solicAtual) return;
+    solicAtual.status = 'aprovado';
+    fecharModal();
+    filtrar();
+    if (window.AdminToast) {
+        AdminToast.success('(Visual) Solicitação aprovada! Conecte ao backend para efetivar.');
+    }
+}
+
+function reprovarSolicitacao() {
+    if (!solicAtual) return;
+    solicAtual.status = 'reprovado';
+    solicAtual.observacoes = 'Reprovado pelo administrador.';
+    fecharModal();
+    filtrar();
+    if (window.AdminToast) {
+        AdminToast.info('(Visual) Solicitação reprovada. Conecte ao backend para efetivar.');
+    }
+}
+
+// ── Inicialização ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    // Pré-selecionar "Pendentes" e renderizar
+    filtrar();
+});
+</script>
+
+<script src="../../js/nav.js"></script>
+<div style="position:fixed;top:16px;right:16px;z-index:9999">
+  <button class="theme-toggle" title="Alternar tema">
+    <span class="tt-icon tt-sun">☀️</span>
+    <span class="tt-track"><span class="tt-ball"></span></span>
+    <span class="tt-icon tt-moon">🌙</span>
+  </button>
+</div>
+<script src="../../js/admin-toast.js"></script>
+<script src="../../js/kairos-notificacoes-admin.js"></script>
+<script src="../../js/theme.js"></script>
+</body>
+</html>
