@@ -1,8 +1,14 @@
 /**
- * kairos-chat.js — WebChat IA da Biblioteca Kairos
+ * kairos-chat.js — WebChat IA da Biblioteca Kairos  [v2.0 — CORRIGIDO]
  * Módulo autocontido que injeta o chat em qualquer página.
  * Usa Fetch API para comunicação assíncrona com o backend.
- * O histórico é salvo no sessionStorage (por sessão, não entre abas).
+ * O histórico é salvo no sessionStorage (por sessão) e localStorage (persistente).
+ *
+ * CORREÇÕES v2.0:
+ *  - Chat não fecha mais ao enviar mensagem (stopPropagation nos elementos internos)
+ *  - Histórico persistido em localStorage além de sessionStorage
+ *  - IA expandida: suporte a resumos, perguntas gerais e integração com acervo
+ *  - Sugestões ampliadas para cobrir as novas funcionalidades
  */
 
 (function () {
@@ -12,26 +18,26 @@
     const CONFIG = {
         endpoint:       '/api/chat',
         storageKey:     'kairos_chat_history',
-        maxHistory:     40,       // máx. de mensagens no histórico enviado à API
-        welcomeDelay:   600,      // ms antes de mostrar msg de boas-vindas
+        maxHistory:     40,
+        welcomeDelay:   600,
         suggestions: [
             '📚 Como solicitar empréstimo?',
             '🔄 Como renovar um livro?',
-            '📋 Ver meus empréstimos',
+            '📖 Resuma Dom Casmurro',
+            '🔍 Quais livros estão disponíveis?',
             '🔔 Como funcionam as notificações?',
-            '🔍 Como pesquisar livros?',
         ],
     };
 
     // ── Estado interno ────────────────────────────────────────────────────────
     let isOpen        = false;
-    let isWaiting     = false;   // aguardando resposta da IA
-    let history       = [];      // [ { role, content } ]
+    let isWaiting     = false;
+    let history       = [];
     let unreadCount   = 0;
     let welcomeShown  = false;
 
     // ── Elementos do DOM ──────────────────────────────────────────────────────
-    let btn, window_, messages, input, sendBtn, badge, suggestionsEl, typingEl;
+    let btn, window_, messages, input, sendBtn, badge, suggestionsEl;
 
     // ── Inicialização ─────────────────────────────────────────────────────────
     function init() {
@@ -41,19 +47,15 @@
         bindEvents();
         loadHistory();
 
-        // Mostra boas-vindas se não há histórico
         setTimeout(() => {
             if (history.length === 0) showWelcome();
         }, CONFIG.welcomeDelay);
     }
 
     function injectCSS() {
-        // O CSS já é carregado via <link> nas páginas — não injetar novamente
-        // Mas caso não esteja, injeta dinamicamente
         if (!document.querySelector('link[href*="kairos-chat.css"]')) {
             const link = document.createElement('link');
             link.rel  = 'stylesheet';
-            // Detecta profundidade do caminho atual
             const depth = (window.location.pathname.match(/\//g) || []).length - 1;
             link.href = '../'.repeat(Math.max(depth - 1, 0)) + 'css/kairos-chat.css';
             document.head.appendChild(link);
@@ -63,7 +65,6 @@
     function injectHTML() {
         const div = document.createElement('div');
         div.innerHTML = `
-<!-- ── Botão flutuante ── -->
 <button id="kairos-chat-btn" aria-label="Abrir assistente virtual Kairos" title="Assistente Kairos">
     <svg class="icon-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -74,10 +75,8 @@
     <span id="kairos-chat-badge"></span>
 </button>
 
-<!-- ── Janela do chat ── -->
 <div id="kairos-chat-window" role="dialog" aria-label="Chat Assistente Kairos" aria-modal="true">
 
-    <!-- Header -->
     <div class="kc-header">
         <div class="kc-avatar" aria-hidden="true">✨</div>
         <div class="kc-header-info">
@@ -102,13 +101,10 @@
         </div>
     </div>
 
-    <!-- Mensagens -->
     <div class="kc-messages" id="kc-messages" role="log" aria-live="polite"></div>
 
-    <!-- Sugestões -->
     <div class="kc-suggestions" id="kc-suggestions"></div>
 
-    <!-- Input -->
     <div class="kc-footer">
         <div class="kc-input-wrapper">
             <textarea
@@ -135,55 +131,72 @@
     }
 
     function bindElements() {
-        btn          = document.getElementById('kairos-chat-btn');
-        window_      = document.getElementById('kairos-chat-window');
-        messages     = document.getElementById('kc-messages');
-        input        = document.getElementById('kc-input');
-        sendBtn      = document.getElementById('kc-send-btn');
-        badge        = document.getElementById('kairos-chat-badge');
-        suggestionsEl= document.getElementById('kc-suggestions');
+        btn           = document.getElementById('kairos-chat-btn');
+        window_       = document.getElementById('kairos-chat-window');
+        messages      = document.getElementById('kc-messages');
+        input         = document.getElementById('kc-input');
+        sendBtn       = document.getElementById('kc-send-btn');
+        badge         = document.getElementById('kairos-chat-badge');
+        suggestionsEl = document.getElementById('kc-suggestions');
     }
 
     function bindEvents() {
-        // Abre/fecha ao clicar no botão flutuante
-        btn.addEventListener('click', toggleChat);
+        // ── CORREÇÃO PRINCIPAL: stopPropagation em toda a janela do chat ──────
+        // Impede que cliques dentro do chat alcancem o document click handler
+        window_.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+
+        // O botão flutuante também precisa parar propagação para não conflitar
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleChat();
+        });
 
         // Botão de fechar no header
-        document.getElementById('kc-close-btn').addEventListener('click', closeChat);
+        document.getElementById('kc-close-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            closeChat();
+        });
 
         // Botão de limpar conversa
-        document.getElementById('kc-clear-btn').addEventListener('click', clearChat);
+        document.getElementById('kc-clear-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            clearChat();
+        });
 
-        // Botão enviar
-        sendBtn.addEventListener('click', sendMessage);
+        // Botão enviar — sem preventDefault desnecessário, sem propagation
+        sendBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            sendMessage();
+        });
 
-        // Enter envia (Shift+Enter cria nova linha)
-        input.addEventListener('keydown', (e) => {
+        // Enter envia (Shift+Enter nova linha)
+        input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
+                e.stopPropagation();
                 sendMessage();
             }
         });
 
-        // Habilita/desabilita botão enviar + auto-resize textarea
-        input.addEventListener('input', () => {
+        // Habilita/desabilita botão + auto-resize
+        input.addEventListener('input', function() {
             const hasText = input.value.trim().length > 0;
             sendBtn.disabled = !hasText || isWaiting;
-
-            // Auto-resize
             input.style.height = 'auto';
             input.style.height = Math.min(input.scrollHeight, 120) + 'px';
         });
 
-        // Fecha ao clicar fora da janela (mas não no botão)
-        document.addEventListener('click', (e) => {
+        // Fecha ao clicar fora — apenas quando o clique não veio de dentro do chat
+        document.addEventListener('click', function(e) {
             if (isOpen && !window_.contains(e.target) && !btn.contains(e.target)) {
                 closeChat();
             }
         });
 
         // Fecha com Escape
-        document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && isOpen) closeChat();
         });
     }
@@ -199,17 +212,14 @@
         window_.classList.add('is-open');
         window_.setAttribute('aria-hidden', 'false');
 
-        // Limpa badge de não lidos
         unreadCount = 0;
         updateBadge();
 
-        // Foca no input
-        setTimeout(() => {
+        setTimeout(function() {
             input.focus();
             scrollToBottom();
         }, 280);
 
-        // Carrega sugestões se não há histórico
         if (history.length === 0 || (history.length === 1 && history[0].role === 'assistant')) {
             renderSuggestions();
         }
@@ -230,22 +240,21 @@
         // Esconde sugestões após primeiro envio
         suggestionsEl.innerHTML = '';
 
-        // Adiciona ao DOM e histórico
+        // Adiciona mensagem do usuário imediatamente ao DOM e histórico
         appendMessage('user', text);
         history.push({ role: 'user', content: text });
         saveHistory();
 
-        // Limpa input
+        // Limpa input e mantém o chat ABERTO
         input.value = '';
         input.style.height = 'auto';
         sendBtn.disabled = true;
 
-        // Mostra indicador de digitação
+        // Indicador de digitação
         showTyping();
         isWaiting = true;
 
         try {
-            // Usa os últimos N turnos para não exceder contexto
             const apiMessages = history.slice(-CONFIG.maxHistory);
 
             const res = await fetch(CONFIG.endpoint, {
@@ -258,10 +267,11 @@
 
             hideTyping();
             isWaiting = false;
+            sendBtn.disabled = input.value.trim().length === 0;
 
             if (!res.ok) {
                 const errorMsg = data.error || 'Erro ao processar sua mensagem.';
-                appendMessage('bot', `⚠️ ${errorMsg}`, true);
+                appendMessage('bot', '⚠️ ' + errorMsg, true);
                 console.error('[kairos-chat] Erro da API:', errorMsg);
                 return;
             }
@@ -271,7 +281,6 @@
             history.push({ role: 'assistant', content: reply });
             saveHistory();
 
-            // Incrementa badge se chat estiver fechado
             if (!isOpen) {
                 unreadCount++;
                 updateBadge();
@@ -280,33 +289,33 @@
         } catch (err) {
             hideTyping();
             isWaiting = false;
+            sendBtn.disabled = input.value.trim().length === 0;
             appendMessage('bot', '⚠️ Não foi possível conectar ao assistente. Verifique sua conexão e tente novamente.', true);
             console.error('[kairos-chat] Erro de rede:', err);
         }
     }
 
     // ── Renderização de mensagens ─────────────────────────────────────────────
-    function appendMessage(role, content, isError = false) {
+    function appendMessage(role, content, isError) {
+        isError = isError || false;
         const msgEl = document.createElement('div');
-        msgEl.className = `kc-msg ${role}${isError ? ' error' : ''}`;
+        msgEl.className = 'kc-msg ' + role + (isError ? ' error' : '');
 
         const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         const avatarIcon = role === 'bot' ? '✨' : getUserInitial();
 
-        msgEl.innerHTML = `
-            <div class="kc-msg-avatar" aria-hidden="true">${avatarIcon}</div>
-            <div>
-                <div class="kc-bubble">${formatMessage(content)}</div>
-                <div class="kc-msg-time">${time}</div>
-            </div>
-        `;
+        msgEl.innerHTML =
+            '<div class="kc-msg-avatar" aria-hidden="true">' + avatarIcon + '</div>' +
+            '<div>' +
+                '<div class="kc-bubble">' + formatMessage(content) + '</div>' +
+                '<div class="kc-msg-time">' + time + '</div>' +
+            '</div>';
 
         messages.appendChild(msgEl);
         scrollToBottom();
     }
 
     function formatMessage(text) {
-        // Converte markdown básico para HTML
         return text
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -322,31 +331,30 @@
 
     function getUserInitial() {
         try {
-            const user = JSON.parse(sessionStorage.getItem('usuario') || localStorage.getItem('usuario') || '{}');
+            var user = JSON.parse(sessionStorage.getItem('usuario') || localStorage.getItem('usuario') || '{}');
             if (user && user.Nome) return user.Nome.charAt(0).toUpperCase();
-        } catch {}
+        } catch (e) {}
         return '👤';
     }
 
     // ── Indicador de digitação ────────────────────────────────────────────────
     function showTyping() {
-        typingEl = document.createElement('div');
+        var typingEl = document.createElement('div');
         typingEl.className = 'kc-msg bot';
         typingEl.id = 'kc-typing-indicator';
-        typingEl.innerHTML = `
-            <div class="kc-msg-avatar" aria-hidden="true">✨</div>
-            <div class="kc-typing" aria-label="Assistente está digitando">
-                <div class="kc-typing-dots">
-                    <span></span><span></span><span></span>
-                </div>
-            </div>
-        `;
+        typingEl.innerHTML =
+            '<div class="kc-msg-avatar" aria-hidden="true">✨</div>' +
+            '<div class="kc-typing" aria-label="Assistente está digitando">' +
+                '<div class="kc-typing-dots">' +
+                    '<span></span><span></span><span></span>' +
+                '</div>' +
+            '</div>';
         messages.appendChild(typingEl);
         scrollToBottom();
     }
 
     function hideTyping() {
-        const existing = document.getElementById('kc-typing-indicator');
+        var existing = document.getElementById('kc-typing-indicator');
         if (existing) existing.remove();
     }
 
@@ -355,17 +363,15 @@
         if (welcomeShown) return;
         welcomeShown = true;
 
-        const welcomeEl = document.createElement('div');
+        var welcomeEl = document.createElement('div');
         welcomeEl.className = 'kc-welcome';
-        welcomeEl.innerHTML = `
-            <span class="kc-welcome-icon">📚</span>
-            <h3>Olá! Sou o Assistente Kairos</h3>
-            <p>Estou aqui para ajudar com dúvidas sobre a biblioteca.<br>Selecione uma opção abaixo ou escreva sua pergunta!</p>
-        `;
+        welcomeEl.innerHTML =
+            '<span class="kc-welcome-icon">📚</span>' +
+            '<h3>Olá! Sou o Assistente Kairos</h3>' +
+            '<p>Posso ajudar com a biblioteca, responder perguntas gerais, gerar resumos de livros e muito mais!<br>Selecione uma opção ou escreva sua pergunta.</p>';
         messages.appendChild(welcomeEl);
 
-        // Adiciona mensagem de boas-vindas ao histórico (para contexto)
-        const welcomeMsg = 'Olá! Sou o Assistente Virtual da Biblioteca Kairos 📚. Como posso ajudar você hoje? Posso responder dúvidas sobre empréstimos, devoluções, catálogo de livros e tudo sobre o sistema!';
+        var welcomeMsg = 'Olá! Sou o Assistente Virtual da Biblioteca Kairos 📚. Posso ajudar com:\n\n- **Dúvidas sobre o sistema** (empréstimos, devoluções, catálogo)\n- **Resumos de livros** — experimente: "Resuma Dom Casmurro"\n- **Consulta ao acervo** — "Quais livros estão disponíveis?"\n- **Perguntas gerais** — é só perguntar!\n\nComo posso ajudar você hoje?';
         appendMessage('bot', welcomeMsg);
         history.push({ role: 'assistant', content: welcomeMsg });
         saveHistory();
@@ -376,19 +382,19 @@
     // ── Sugestões rápidas ─────────────────────────────────────────────────────
     function renderSuggestions() {
         suggestionsEl.innerHTML = '';
-        CONFIG.suggestions.forEach((text) => {
-            const btn = document.createElement('button');
-            btn.className = 'kc-suggestion-btn';
-            btn.textContent = text;
-            btn.addEventListener('click', () => {
-                // Remove emoji para enviar texto limpo
-                const cleanText = text.replace(/^[^\w]+/, '').trim();
+        CONFIG.suggestions.forEach(function(text) {
+            var suggBtn = document.createElement('button');
+            suggBtn.className = 'kc-suggestion-btn';
+            suggBtn.textContent = text;
+            suggBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var cleanText = text.replace(/^[^\w]+/, '').trim();
                 input.value = cleanText;
                 input.dispatchEvent(new Event('input'));
                 sendMessage();
                 suggestionsEl.innerHTML = '';
             });
-            suggestionsEl.appendChild(btn);
+            suggestionsEl.appendChild(suggBtn);
         });
     }
 
@@ -404,7 +410,7 @@
 
     // ── Utilidades ────────────────────────────────────────────────────────────
     function scrollToBottom() {
-        requestAnimationFrame(() => {
+        requestAnimationFrame(function() {
             messages.scrollTop = messages.scrollHeight;
         });
     }
@@ -418,36 +424,39 @@
         }
     }
 
-    // ── Persistência do histórico ─────────────────────────────────────────────
+    // ── Persistência do histórico (sessionStorage + localStorage) ─────────────
     function saveHistory() {
         try {
-            // Salva apenas as últimas 20 mensagens para não sobrecarregar
-            const toSave = history.slice(-20);
-            sessionStorage.setItem(CONFIG.storageKey, JSON.stringify(toSave));
-        } catch {}
+            var toSave = history.slice(-20);
+            var serialized = JSON.stringify(toSave);
+            sessionStorage.setItem(CONFIG.storageKey, serialized);
+            // Persiste também no localStorage para sobreviver entre sessões
+            localStorage.setItem(CONFIG.storageKey, serialized);
+        } catch (e) {}
     }
 
     function loadHistory() {
         try {
-            const stored = sessionStorage.getItem(CONFIG.storageKey);
+            // Tenta sessionStorage primeiro, depois localStorage
+            var stored = sessionStorage.getItem(CONFIG.storageKey)
+                      || localStorage.getItem(CONFIG.storageKey);
             if (!stored) return;
 
-            const parsed = JSON.parse(stored);
+            var parsed = JSON.parse(stored);
             if (!Array.isArray(parsed) || parsed.length === 0) return;
 
             history = parsed;
-            welcomeShown = true; // Não mostrar boas-vindas se já há histórico
+            welcomeShown = true;
 
-            // Re-renderiza as mensagens salvas
-            parsed.forEach(msg => {
+            parsed.forEach(function(msg) {
                 if (msg.role === 'user' || msg.role === 'assistant') {
                     appendMessage(msg.role === 'assistant' ? 'bot' : 'user', msg.content);
                 }
             });
 
-        } catch {
-            // Histórico corrompido — limpa silenciosamente
+        } catch (e) {
             sessionStorage.removeItem(CONFIG.storageKey);
+            localStorage.removeItem(CONFIG.storageKey);
         }
     }
 
