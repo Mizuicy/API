@@ -164,7 +164,7 @@
                 </div>
                 <div class="kna-list" id="kna-list"></div>
                 <div class="kna-dd-footer">
-                    <a href="../gestao/solicitacoes.html">Ver todas as solicitações →</a>
+                    <a href="/pages/gestao/solicitacoes.html">Ver todas as solicitações →</a>
                 </div>
             </div>
         `;
