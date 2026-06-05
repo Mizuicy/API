@@ -158,23 +158,23 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="genero">Gênero *</label>
-                        <select id="genero" name="genero" required>
-                            <option value="">Selecione um gênero</option>
-                            <option value="Ficção">Ficção</option>
-                            <option value="Não-Ficção">Não-Ficção</option>
-                            <option value="Ficção Científica">Ficção Científica</option>
-                            <option value="Fantasia">Fantasia</option>
-                            <option value="Romance">Romance</option>
-                            <option value="Mistério">Mistério</option>
-                            <option value="História">História</option>
-                            <option value="Autobiografia">Autobiografia</option>
-                            <option value="Educativo">Educativo</option>
-                            <option value="Infantil">Infantil</option>
-                            <option value="Conto">Conto</option>
-                            <option value="Poesia">Poesia</option>
-                            <option value="Outro">Outro</option>
-                        </select>
+                        <label>Gênero(s) *</label>
+                        <div class="genero-selector" id="generoSelector">
+                            <div class="genero-selected-tags" id="generoTags">
+                                <span class="genero-placeholder" id="generoPlaceholder">Selecione um ou mais gêneros...</span>
+                            </div>
+                            <button type="button" class="genero-toggle-btn" id="generoToggleBtn" aria-expanded="false" aria-haspopup="listbox">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                        </div>
+                        <div class="genero-dropdown" id="generoDropdown" role="listbox" aria-multiselectable="true" style="display:none">
+                            <div class="genero-dropdown-search">
+                                <input type="text" id="generoSearchInput" placeholder="Buscar gênero..." autocomplete="off">
+                            </div>
+                            <div class="genero-options-list" id="generoOptionsList"></div>
+                        </div>
+                        <input type="hidden" id="generosHidden" name="generosHidden">
+                        <small style="color:var(--muted);font-size:12px;margin-top:4px;display:block">Clique para selecionar múltiplos gêneros</small>
                     </div>
                 </div>
 
@@ -208,6 +208,280 @@
     </main>
 </div>
 
+<style>
+/* ── Seletor de múltiplos gêneros ── */
+.genero-selector {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-height: 44px;
+    padding: 6px 10px 6px 12px;
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    background: var(--surface, #fff);
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+    position: relative;
+}
+.genero-selector:focus-within,
+.genero-selector.open {
+    border-color: var(--purple, #667eea);
+    box-shadow: 0 0 0 3px rgba(102,126,234,.15);
+}
+.genero-selected-tags {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    min-height: 30px;
+}
+.genero-placeholder {
+    color: var(--muted, #9ca3af);
+    font-size: .9rem;
+    line-height: 30px;
+}
+.genero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px 3px 10px;
+    background: linear-gradient(135deg, #667eea22, #764ba222);
+    border: 1px solid #667eea55;
+    color: var(--purple, #667eea);
+    border-radius: 20px;
+    font-size: .78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.genero-tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: transparent;
+    color: var(--purple, #667eea);
+    cursor: pointer;
+    border-radius: 50%;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    transition: background .15s;
+}
+.genero-tag-remove:hover { background: #667eea33; }
+.genero-toggle-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted, #9ca3af);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: transform .2s, color .2s;
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+.genero-toggle-btn.open { transform: rotate(180deg); color: var(--purple, #667eea); }
+.genero-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--surface, #fff);
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 12px;
+    z-index: 200;
+    box-shadow: 0 8px 30px rgba(0,0,0,.13);
+    overflow: hidden;
+    max-height: 280px;
+    display: flex;
+    flex-direction: column;
+}
+.genero-dropdown-search {
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    flex-shrink: 0;
+}
+.genero-dropdown-search input {
+    width: 100%;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: .85rem;
+    background: var(--bg, #f9fafb);
+    color: var(--text, #111);
+    outline: none;
+}
+.genero-dropdown-search input:focus { border-color: var(--purple, #667eea); }
+.genero-options-list {
+    overflow-y: auto;
+    padding: 6px 0;
+    flex: 1;
+}
+.genero-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    cursor: pointer;
+    font-size: .9rem;
+    color: var(--text, #111);
+    transition: background .12s;
+    user-select: none;
+}
+.genero-option:hover { background: var(--surface-hover, #f3f4f6); }
+.genero-option.selected { background: linear-gradient(90deg, #667eea12, #764ba212); color: var(--purple, #667eea); font-weight: 600; }
+.genero-option-check {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border, #d1d5db);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background .12s, border-color .12s;
+}
+.genero-option.selected .genero-option-check {
+    background: var(--purple, #667eea);
+    border-color: var(--purple, #667eea);
+}
+.genero-option.selected .genero-option-check::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
+.genero-wrapper { position: relative; }
+/* Dark mode */
+[data-theme="dark"] .genero-selector { background: var(--surface,#1e1e2e); border-color: var(--border,#374151); }
+[data-theme="dark"] .genero-dropdown { background: var(--surface,#1e1e2e); border-color: var(--border,#374151); }
+[data-theme="dark"] .genero-option:hover { background: rgba(255,255,255,.06); }
+[data-theme="dark"] .genero-dropdown-search input { background: var(--bg,#111827); color: var(--text,#f3f4f6); border-color: var(--border,#374151); }
+</style>
+
+<script>
+// ── Seletor de múltiplos gêneros ─────────────────────────────
+const GENEROS_PADRAO = [
+    'Ação','Autobiografia','Aventura','Biografia','Ciências','Conto',
+    'Drama','Educativo','Fantasia','Ficção','Ficção Científica','Filosofia',
+    'História','Infantil','Mangá','Mistério','Não-Ficção','Poesia',
+    'Psicologia','Quadrinhos','Romance','Suspense','Tecnologia','Terror','Autoajuda','Outro'
+];
+
+let generosDisponiveis = [...GENEROS_PADRAO];
+let generosSelecionados = []; // array de strings
+
+async function carregarGenerosDisponiveis() {
+    try {
+        const r = await fetch(`${typeof API_URL !== 'undefined' ? API_URL : 'http://localhost:3000'}/genero`);
+        if (r.ok) {
+            const lista = await r.json();
+            const nomesAPI = lista.map(g => g.Nome);
+            // Mescla, sem duplicatas
+            const set = new Set([...nomesAPI, ...GENEROS_PADRAO]);
+            generosDisponiveis = [...set].sort((a,b) => a.localeCompare(b,'pt-BR'));
+        }
+    } catch(e) { /* usa padrão */ }
+    renderizarOpcoes('');
+}
+
+function renderizarOpcoes(filtro) {
+    const lista = document.getElementById('generoOptionsList');
+    if (!lista) return;
+    const f = filtro.toLowerCase();
+    const opcoesFiltradas = generosDisponiveis.filter(g => g.toLowerCase().includes(f));
+
+    lista.innerHTML = opcoesFiltradas.map(nome => {
+        const sel = generosSelecionados.includes(nome);
+        return `<div class="genero-option${sel?' selected':''}" data-nome="${nome}" onclick="toggleGenero('${nome.replace(/'/g,"\\'")}')">
+            <span class="genero-option-check"></span>
+            <span>${nome}</span>
+        </div>`;
+    }).join('') || '<div style="padding:12px 16px;color:var(--muted);font-size:.85rem">Nenhum gênero encontrado</div>';
+}
+
+function toggleGenero(nome) {
+    const idx = generosSelecionados.indexOf(nome);
+    if (idx === -1) generosSelecionados.push(nome);
+    else generosSelecionados.splice(idx, 1);
+    atualizarTagsGenero();
+    renderizarOpcoes(document.getElementById('generoSearchInput')?.value || '');
+}
+
+function removerGenero(nome, e) {
+    e.stopPropagation();
+    generosSelecionados = generosSelecionados.filter(g => g !== nome);
+    atualizarTagsGenero();
+    renderizarOpcoes(document.getElementById('generoSearchInput')?.value || '');
+}
+
+function atualizarTagsGenero() {
+    const tags = document.getElementById('generoTags');
+    const ph   = document.getElementById('generoPlaceholder');
+    const hid  = document.getElementById('generosHidden');
+    if (!tags) return;
+
+    if (generosSelecionados.length === 0) {
+        tags.innerHTML = '';
+        tags.appendChild(ph || Object.assign(document.createElement('span'), {
+            id:'generoPlaceholder', className:'genero-placeholder',
+            textContent:'Selecione um ou mais gêneros...'
+        }));
+        if (hid) hid.value = '';
+        return;
+    }
+    tags.innerHTML = generosSelecionados.map(g => `
+        <span class="genero-tag">
+            ${g}
+            <button type="button" class="genero-tag-remove" onclick="removerGenero('${g.replace(/'/g,"\\'")}', event)" title="Remover">×</button>
+        </span>`).join('');
+    if (hid) hid.value = generosSelecionados.join(',');
+}
+
+function abrirDropdownGenero(e) {
+    if (e.target.closest('.genero-tag-remove')) return;
+    const dropdown = document.getElementById('generoDropdown');
+    const btn = document.getElementById('generoToggleBtn');
+    const selector = document.getElementById('generoSelector');
+    if (!dropdown) return;
+    const isOpen = dropdown.style.display !== 'none';
+    dropdown.style.display = isOpen ? 'none' : 'flex';
+    btn.classList.toggle('open', !isOpen);
+    selector.classList.toggle('open', !isOpen);
+    btn.setAttribute('aria-expanded', String(!isOpen));
+    if (!isOpen) { document.getElementById('generoSearchInput')?.focus(); renderizarOpcoes(''); }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const sel = document.getElementById('generoSelector');
+    if (sel) sel.addEventListener('click', abrirDropdownGenero);
+
+    const si = document.getElementById('generoSearchInput');
+    if (si) si.addEventListener('input', () => renderizarOpcoes(si.value));
+
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#generoSelector') && !e.target.closest('#generoDropdown')) {
+            const d = document.getElementById('generoDropdown');
+            const b = document.getElementById('generoToggleBtn');
+            const s = document.getElementById('generoSelector');
+            if (d) d.style.display = 'none';
+            if (b) { b.classList.remove('open'); b.setAttribute('aria-expanded','false'); }
+            if (s) s.classList.remove('open');
+        }
+    });
+
+    carregarGenerosDisponiveis();
+
+    // Envolve o seletor em um wrapper relativo
+    const selectorEl = document.getElementById('generoSelector');
+    if (selectorEl) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'genero-wrapper';
+        selectorEl.parentNode.insertBefore(wrapper, selectorEl);
+        wrapper.appendChild(selectorEl);
+        const dropdown = document.getElementById('generoDropdown');
+        if (dropdown) wrapper.appendChild(dropdown);
+    }
+});
+</script>
 <script src="../../js/livros.js"></script>
 <script src="../../js/kairos-toast.js"></script>
 <script src="../../js/theme.js"></script>

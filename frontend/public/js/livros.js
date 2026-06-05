@@ -5,6 +5,11 @@ const form = document.getElementById('livroForm');
 document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', adicionarLivro);
     inicializarAutocompleteAutor();
+
+    // Se veio de edição (query param ?editar=ID), carrega dados do livro
+    const params = new URLSearchParams(window.location.search);
+    const editarId = params.get('editar');
+    if (editarId) carregarLivroParaEditar(parseInt(editarId, 10));
 });
 
 // ══════════════════════════════════════════════════════════
@@ -23,7 +28,7 @@ function inicializarAutocompleteAutor() {
 
     input.addEventListener('input', () => {
         const valor = input.value.trim();
-        autorIdEl.value = '';          // limpa seleção prévia
+        autorIdEl.value = '';
         hintEl.textContent = '';
 
         clearTimeout(timeoutAutocomplete);
@@ -36,14 +41,12 @@ function inicializarAutocompleteAutor() {
         timeoutAutocomplete = setTimeout(() => buscarAutores(valor), 250);
     });
 
-    // Fecha sugestões ao clicar fora
     document.addEventListener('click', (e) => {
         if (!e.target.closest('#autorInput') && !e.target.closest('#autorSuggestions')) {
             sugestoes.style.display = 'none';
         }
     });
 
-    // Fecha sugestões ao pressionar Escape
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') sugestoes.style.display = 'none';
     });
@@ -92,7 +95,52 @@ function selecionarAutor(id, nome) {
 }
 
 // ══════════════════════════════════════════════════════════
-//  ENVIO DO FORMULÁRIO
+//  CARREGAMENTO PARA EDIÇÃO
+// ══════════════════════════════════════════════════════════
+
+async function carregarLivroParaEditar(id) {
+    try {
+        const r = await fetch(`${API_URL}/livro/${id}`);
+        if (!r.ok) return;
+        const livro = await r.json();
+
+        document.getElementById('titulo').value               = livro.Nome || '';
+        document.getElementById('autorInput').value           = livro.Autor || '';
+        document.getElementById('editora').value              = livro.Editora || '';
+        document.getElementById('ano_publicacao').value       = livro.AnoPublicacao || '';
+        document.getElementById('idioma').value               = livro.Idioma || '';
+        document.getElementById('numero_paginas').value       = livro.NumeroPaginas || '';
+        document.getElementById('classificacao_etaria').value = livro.ClassEtaria || '';
+        document.getElementById('resumo').value               = livro.Resumo || '';
+
+        // Carrega gêneros salvos
+        const generosSalvos = Array.isArray(livro.Generos)
+            ? livro.Generos.map(g => (typeof g === 'string' ? g : g.Nome)).filter(Boolean)
+            : (livro.Categoria ? [livro.Categoria] : []);
+
+        if (typeof generosSelecionados !== 'undefined') {
+            generosSelecionados.length = 0;
+            generosSalvos.forEach(g => { if (!generosSelecionados.includes(g)) generosSelecionados.push(g); });
+            if (typeof atualizarTagsGenero === 'function') atualizarTagsGenero();
+        }
+
+        // Botão de submit muda para "Atualizar"
+        const btn = form.querySelector('.btn-submit');
+        if (btn) btn.textContent = 'Atualizar Livro';
+        form.dataset.editarId = id;
+
+        // Capa
+        if (livro.Imagem) {
+            const capaUrl = document.getElementById('capaUrl');
+            if (capaUrl) capaUrl.value = livro.Imagem;
+        }
+    } catch(e) {
+        console.error('Erro ao carregar livro para edição:', e);
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+//  ENVIO DO FORMULÁRIO (CRIAR / ATUALIZAR)
 // ══════════════════════════════════════════════════════════
 
 async function adicionarLivro(e) {
@@ -106,7 +154,17 @@ async function adicionarLivro(e) {
         return;
     }
 
-    // Se o autor digitado não está na lista, cria automaticamente antes do livro
+    // Gêneros selecionados (do seletor múltiplo)
+    const generosArr = (typeof generosSelecionados !== 'undefined' && generosSelecionados.length > 0)
+        ? [...generosSelecionados]
+        : [];
+
+    if (generosArr.length === 0) {
+        AdminToast.error('Selecione pelo menos um gênero.');
+        return;
+    }
+
+    // Cria autor se novo
     if (!autorId) {
         try {
             const resAutor  = await fetch(`${API_URL}/autor`, {
@@ -116,9 +174,7 @@ async function adicionarLivro(e) {
             });
             const jsonAutor = await resAutor.json();
 
-            // 201 = criado, 409 = já existe (pega o ID via nova busca)
             if (resAutor.status === 409) {
-                // Autor já existe: busca o ID
                 const resBusca   = await fetch(`${API_URL}/autor/busca?q=${encodeURIComponent(autorNome)}`);
                 const listaBusca = await resBusca.json();
                 const encontrado = listaBusca.find(a => a.Nome.toLowerCase() === autorNome.toLowerCase());
@@ -136,6 +192,20 @@ async function adicionarLivro(e) {
         }
     }
 
+    // Resolve capa
+    let imagem = null;
+    const capaUrl  = document.getElementById('capaUrl');
+    const capaFile = document.getElementById('capaFile');
+    if (capaFile && capaFile.files && capaFile.files[0]) {
+        imagem = await new Promise((res) => {
+            const reader = new FileReader();
+            reader.onload = () => res(reader.result);
+            reader.readAsDataURL(capaFile.files[0]);
+        });
+    } else if (capaUrl && capaUrl.value.trim()) {
+        imagem = capaUrl.value.trim();
+    }
+
     const dados = {
         Nome:          document.getElementById('titulo').value.trim(),
         Autor:         autorNome,
@@ -145,9 +215,10 @@ async function adicionarLivro(e) {
         Idioma:        document.getElementById('idioma').value,
         NumeroPaginas: parseInt(document.getElementById('numero_paginas').value) || null,
         ClassEtaria:   document.getElementById('classificacao_etaria').value,
-        Categoria:     document.getElementById('genero').value,
+        Categoria:     generosArr[0],   // compatibilidade
+        Generos:       generosArr,       // novo campo N:N
         Resumo:        document.getElementById('resumo').value.trim(),
-        Imagem:        document.getElementById('capa').value || null
+        Imagem:        imagem
     };
 
     if (!dados.Nome) {
@@ -156,8 +227,13 @@ async function adicionarLivro(e) {
     }
 
     try {
-        const response = await fetch(`${API_URL}/livro`, {
-            method:  'POST',
+        const editarId = form.dataset.editarId;
+        const isEdicao = !!editarId;
+        const url    = isEdicao ? `${API_URL}/livro/${editarId}` : `${API_URL}/livro`;
+        const method = isEdicao ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+            method,
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify(dados)
         });
@@ -165,18 +241,26 @@ async function adicionarLivro(e) {
         const json = await response.json();
 
         if (!response.ok) {
-            AdminToast.error(json.error || 'Erro ao adicionar livro.');
+            AdminToast.error(json.error || 'Erro ao salvar livro.');
             return;
         }
 
-        AdminToast.success('Livro adicionado com sucesso!');
+        AdminToast.success(isEdicao ? 'Livro atualizado com sucesso!' : 'Livro adicionado com sucesso!');
         form.reset();
+        delete form.dataset.editarId;
+
+        // Limpa gêneros
+        if (typeof generosSelecionados !== 'undefined') {
+            generosSelecionados.length = 0;
+            if (typeof atualizarTagsGenero === 'function') atualizarTagsGenero();
+        }
+
         document.getElementById('autorId').value  = '';
         document.getElementById('autorHint').textContent = '';
         if (typeof removeCapa === 'function') removeCapa();
 
     } catch (error) {
-        console.error('Erro ao adicionar livro:', error);
+        console.error('Erro ao salvar livro:', error);
         AdminToast.error('Erro de conexão. Verifique se o servidor está rodando.');
     }
 }

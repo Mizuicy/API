@@ -115,6 +115,7 @@
                         <th>Nº de Tombo</th>
                         <th>Localização</th>
                         <th>Status</th>
+                        <th>Gêneros</th>
                         <th>Cadastro</th>
                         <th>Ações</th>
                     </tr>
@@ -206,6 +207,30 @@
             <label for="dataAquisicao">Data de Aquisição</label>
             <input type="date" id="dataAquisicao">
         </div>
+
+        <hr class="form-divider">
+        <p class="form-section-title">🏷️ Gêneros do Exemplar</p>
+        <div class="form-group">
+            <label>Gênero(s) <span style="color:var(--muted);font-weight:400;font-size:.8rem">(opcional)</span></label>
+            <div class="genero-wrapper-ex">
+                <div class="genero-selector" id="exGeneroSelector">
+                    <div class="genero-selected-tags" id="exGeneroTags">
+                        <span class="genero-placeholder" id="exGeneroPlaceholder">Selecione gêneros específicos deste exemplar…</span>
+                    </div>
+                    <button type="button" class="genero-toggle-btn" id="exGeneroToggleBtn" aria-expanded="false">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                </div>
+                <div class="genero-dropdown" id="exGeneroDropdown" style="display:none">
+                    <div class="genero-dropdown-search">
+                        <input type="text" id="exGeneroSearchInput" placeholder="Buscar gênero..." autocomplete="off">
+                    </div>
+                    <div class="genero-options-list" id="exGeneroOptionsList"></div>
+                </div>
+            </div>
+            <small style="color:var(--muted);font-size:.78rem;margin-top:4px;display:block">Deixe vazio para herdar os gêneros do livro-pai</small>
+        </div>
+
         <div id="painelErro" class="form-erro" style="display:none"></div>
     </div>
     <div class="panel-footer">
@@ -382,9 +407,315 @@
     </div>
 </div>
 
-<!-- TOAST -->
+<!-- ── ESTILOS: Seletor de múltiplos gêneros ─────────────── -->
+<style>
+/* Reutiliza as mesmas classes do livros.html */
+.genero-selector {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    min-height: 40px;
+    padding: 5px 8px 5px 10px;
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    background: var(--surface, #fff);
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+}
+.genero-selector.open,
+.genero-selector:focus-within {
+    border-color: var(--purple, #667eea);
+    box-shadow: 0 0 0 3px rgba(102,126,234,.15);
+}
+.genero-selected-tags {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+    min-height: 28px;
+}
+.genero-placeholder { color: var(--muted, #9ca3af); font-size: .82rem; line-height: 28px; }
+.genero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 9px;
+    background: linear-gradient(135deg,#667eea22,#764ba222);
+    border: 1px solid #667eea55;
+    color: var(--purple, #667eea);
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 600;
+}
+.genero-tag-remove {
+    background: none; border: none; cursor: pointer;
+    color: var(--purple, #667eea); font-size: 13px;
+    padding: 0; width: 15px; height: 15px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%; transition: background .15s;
+}
+.genero-tag-remove:hover { background: #667eea33; }
+.genero-toggle-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted, #9ca3af); padding: 3px;
+    display: flex; align-items: center;
+    transition: transform .2s, color .2s; flex-shrink: 0; margin-top: 5px;
+}
+.genero-toggle-btn.open { transform: rotate(180deg); color: var(--purple, #667eea); }
+.genero-wrapper-ex { position: relative; }
+.genero-dropdown {
+    position: absolute;
+    top: calc(100% + 4px); left: 0; right: 0;
+    background: var(--surface, #fff);
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 10px; z-index: 300;
+    box-shadow: 0 8px 30px rgba(0,0,0,.13);
+    overflow: hidden; max-height: 240px;
+    display: flex; flex-direction: column;
+}
+.genero-dropdown-search { padding: 8px 10px 6px; border-bottom: 1px solid var(--border,#e5e7eb); flex-shrink:0; }
+.genero-dropdown-search input {
+    width: 100%; border: 1px solid var(--border,#e5e7eb);
+    border-radius: 7px; padding: 6px 9px; font-size:.82rem;
+    background: var(--bg,#f9fafb); color:var(--text,#111); outline:none;
+}
+.genero-dropdown-search input:focus { border-color: var(--purple,#667eea); }
+.genero-options-list { overflow-y: auto; padding: 4px 0; flex:1; }
+.genero-option {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 14px; cursor: pointer; font-size:.87rem;
+    color: var(--text,#111); transition: background .12s; user-select:none;
+}
+.genero-option:hover { background: var(--surface-hover,#f3f4f6); }
+.genero-option.selected { background: linear-gradient(90deg,#667eea12,#764ba212); color:var(--purple,#667eea); font-weight:600; }
+.genero-option-check {
+    width:16px; height:16px; border:2px solid var(--border,#d1d5db);
+    border-radius:4px; display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; transition: background .12s, border-color .12s;
+}
+.genero-option.selected .genero-option-check { background:var(--purple,#667eea); border-color:var(--purple,#667eea); }
+.genero-option.selected .genero-option-check::after { content:'✓'; color:white; font-size:10px; font-weight:700; }
+/* Dark mode */
+[data-theme="dark"] .genero-selector { background:var(--surface,#1e1e2e); border-color:var(--border,#374151); }
+[data-theme="dark"] .genero-dropdown { background:var(--surface,#1e1e2e); border-color:var(--border,#374151); }
+[data-theme="dark"] .genero-option:hover { background: rgba(255,255,255,.06); }
+[data-theme="dark"] .genero-dropdown-search input { background:var(--bg,#111827); color:var(--text,#f3f4f6); border-color:var(--border,#374151); }
+/* Badges de gênero na tabela */
+.generos-cell { display:flex; flex-wrap:wrap; gap:4px; }
+.genero-badge {
+    display:inline-block; padding:2px 8px;
+    border-radius:12px; font-size:.72rem; font-weight:600;
+    background: linear-gradient(135deg,#667eea22,#764ba222);
+    color: var(--purple,#667eea);
+    border: 1px solid #667eea33;
+    white-space:nowrap;
+}
+[data-theme="dark"] .genero-badge { background:rgba(102,126,234,.18); color:#a5b4fc; border-color:rgba(102,126,234,.3); }
+</style>
 
-<!-- ESTILOS EXTRAS (loading, erro) -->
+<!-- ── SCRIPT: Seletor de múltiplos gêneros para exemplares ─ -->
+<script>
+const GENEROS_PADRAO_EX = [
+    'Ação','Autobiografia','Aventura','Biografia','Ciências','Conto',
+    'Drama','Educativo','Fantasia','Ficção','Ficção Científica','Filosofia',
+    'História','Infantil','Mangá','Mistério','Não-Ficção','Poesia',
+    'Psicologia','Quadrinhos','Romance','Suspense','Tecnologia','Terror','Autoajuda','Outro'
+];
+
+let generosDisponiveisEx = [...GENEROS_PADRAO_EX];
+let generosSelecionadosEx = [];
+
+async function carregarGenerosDisponiveisEx() {
+    try {
+        const r = await fetch(`${API}/genero`);
+        if (r.ok) {
+            const lista = await r.json();
+            const nomesAPI = lista.map(g => g.Nome);
+            const set = new Set([...nomesAPI, ...GENEROS_PADRAO_EX]);
+            generosDisponiveisEx = [...set].sort((a,b) => a.localeCompare(b,'pt-BR'));
+        }
+    } catch(e) {}
+    renderizarOpcoesEx('');
+}
+
+function renderizarOpcoesEx(filtro) {
+    const lista = document.getElementById('exGeneroOptionsList');
+    if (!lista) return;
+    const f = filtro.toLowerCase();
+    const opcoes = generosDisponiveisEx.filter(g => g.toLowerCase().includes(f));
+    lista.innerHTML = opcoes.map(nome => {
+        const sel = generosSelecionadosEx.includes(nome);
+        return `<div class="genero-option${sel?' selected':''}" onclick="toggleGeneroEx('${nome.replace(/'/g,"\\'")}')">
+            <span class="genero-option-check"></span><span>${nome}</span>
+        </div>`;
+    }).join('') || '<div style="padding:10px 14px;color:var(--muted);font-size:.82rem">Nenhum gênero encontrado</div>';
+}
+
+function toggleGeneroEx(nome) {
+    const idx = generosSelecionadosEx.indexOf(nome);
+    if (idx === -1) generosSelecionadosEx.push(nome);
+    else generosSelecionadosEx.splice(idx, 1);
+    atualizarTagsGeneroEx();
+    renderizarOpcoesEx(document.getElementById('exGeneroSearchInput')?.value || '');
+}
+
+function removerGeneroEx(nome, e) {
+    e.stopPropagation();
+    generosSelecionadosEx = generosSelecionadosEx.filter(g => g !== nome);
+    atualizarTagsGeneroEx();
+    renderizarOpcoesEx(document.getElementById('exGeneroSearchInput')?.value || '');
+}
+
+function atualizarTagsGeneroEx() {
+    const tags = document.getElementById('exGeneroTags');
+    const ph   = document.getElementById('exGeneroPlaceholder');
+    if (!tags) return;
+    if (generosSelecionadosEx.length === 0) {
+        tags.innerHTML = '';
+        if (ph) { ph.style.display=''; tags.appendChild(ph); } else {
+            const span = document.createElement('span');
+            span.id = 'exGeneroPlaceholder'; span.className = 'genero-placeholder';
+            span.textContent = 'Selecione gêneros específicos deste exemplar…';
+            tags.appendChild(span);
+        }
+        return;
+    }
+    tags.innerHTML = generosSelecionadosEx.map(g => `
+        <span class="genero-tag">${g}
+            <button type="button" class="genero-tag-remove" onclick="removerGeneroEx('${g.replace(/'/g,"\\'")}',event)">×</button>
+        </span>`).join('');
+}
+
+function abrirDropdownGeneroEx(e) {
+    if (e.target.closest('.genero-tag-remove')) return;
+    const d = document.getElementById('exGeneroDropdown');
+    const b = document.getElementById('exGeneroToggleBtn');
+    const s = document.getElementById('exGeneroSelector');
+    if (!d) return;
+    const isOpen = d.style.display !== 'none';
+    d.style.display = isOpen ? 'none' : 'flex';
+    b.classList.toggle('open', !isOpen);
+    s.classList.toggle('open', !isOpen);
+    b.setAttribute('aria-expanded', String(!isOpen));
+    if (!isOpen) { document.getElementById('exGeneroSearchInput')?.focus(); renderizarOpcoesEx(''); }
+}
+
+// Integração: fecha dropdown ao clicar fora
+document.addEventListener('click', e => {
+    if (!e.target.closest('#exGeneroSelector') && !e.target.closest('#exGeneroDropdown')) {
+        const d = document.getElementById('exGeneroDropdown');
+        const b = document.getElementById('exGeneroToggleBtn');
+        const s = document.getElementById('exGeneroSelector');
+        if (d) d.style.display = 'none';
+        if (b) { b.classList.remove('open'); b.setAttribute('aria-expanded','false'); }
+        if (s) s.classList.remove('open');
+    }
+});
+
+// Inicializa seletor após DOMContentLoaded (depois do script principal inline)
+window.addEventListener('load', () => {
+    const sel = document.getElementById('exGeneroSelector');
+    if (sel) sel.addEventListener('click', abrirDropdownGeneroEx);
+    const si = document.getElementById('exGeneroSearchInput');
+    if (si) si.addEventListener('input', () => renderizarOpcoesEx(si.value));
+    carregarGenerosDisponiveisEx();
+});
+
+// ── Patch nas funções existentes para incluir gêneros ────────
+
+// Sobrescreve abrirPainelCadastro para limpar gêneros
+const _abrirPainelCadastroOrig = typeof abrirPainelCadastro === 'function' ? abrirPainelCadastro : null;
+function abrirPainelCadastroComGeneros() {
+    generosSelecionadosEx = [];
+    atualizarTagsGeneroEx();
+    if (_abrirPainelCadastroOrig) _abrirPainelCadastroOrig();
+}
+
+// Sobrescreve abrirPainelEdicao para carregar gêneros
+const _abrirPainelEdicaoOrig = typeof abrirPainelEdicao === 'function' ? abrirPainelEdicao : null;
+async function abrirPainelEdicaoComGeneros(id) {
+    if (_abrirPainelEdicaoOrig) _abrirPainelEdicaoOrig(id);
+    // Carrega gêneros do exemplar via API
+    try {
+        const r = await fetch(`${API}/exemplar/${id}`);
+        if (r.ok) {
+            const ex = await r.json();
+            const generos = Array.isArray(ex.Generos)
+                ? ex.Generos.map(g => typeof g === 'string' ? g : g.Nome).filter(Boolean)
+                : [];
+            generosSelecionadosEx = [...generos];
+            atualizarTagsGeneroEx();
+            renderizarOpcoesEx('');
+        }
+    } catch(e) { console.warn('Erro ao carregar gêneros do exemplar:', e); }
+}
+
+// Patch no salvarExemplar para enviar gêneros
+const _salvarExemplarOrig = typeof salvarExemplar === 'function' ? salvarExemplar : null;
+async function salvarExemplarComGeneros() {
+    // injeta gêneros no body ANTES de chamar o original
+    const id = document.getElementById('exemplarEditandoId').value;
+    const Livro_id     = document.getElementById('livroSelect').value;
+    const NumeroTombo  = document.getElementById('tomboInput').value.trim();
+    const Localizacao  = document.getElementById('localizacaoInput').value;
+    const Status       = document.getElementById('statusInput').value;
+    const Observacoes  = document.getElementById('obsInput').value.trim();
+    const DataAquisicao = document.getElementById('dataAquisicao').value;
+    const Generos      = [...generosSelecionadosEx];
+    const erroEl = document.getElementById('painelErro');
+
+    if (!Livro_id)    return mostrarErroForm(erroEl, 'Selecione um livro.');
+    if (!NumeroTombo) return mostrarErroForm(erroEl, 'Informe o Número de Tombo.');
+    if (!Localizacao) return mostrarErroForm(erroEl, 'Informe a Localização.');
+
+    const btn = document.getElementById('btnSalvarExemplar');
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner"></span>Salvando…';
+    erroEl.style.display = 'none';
+
+    try {
+        const body = { Livro_id, NumeroTombo, Localizacao, Status, Observacoes, DataAquisicao, Generos };
+        const isEdicao = !!id;
+        const url    = isEdicao ? `${API}/exemplar/${id}` : `${API}/exemplar`;
+        const method = isEdicao ? 'PUT' : 'POST';
+
+        const resp = await fetch(url, {
+            method, headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Erro ao salvar exemplar.');
+
+        AdminToast.success(isEdicao ? 'Exemplar atualizado com sucesso!' : 'Exemplar cadastrado com sucesso!');
+        generosSelecionadosEx = [];
+        atualizarTagsGeneroEx();
+        fecharPainelCadastro();
+        await carregarExemplares();
+        await carregarStats();
+    } catch (e) {
+        mostrarErroForm(erroEl, e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+    }
+}
+
+// Redireciona botões do HTML para as versões com gêneros
+document.addEventListener('DOMContentLoaded', () => {
+    // Substitui o onclick do botão Salvar Exemplar
+    const btnSalvar = document.getElementById('btnSalvarExemplar');
+    if (btnSalvar) {
+        btnSalvar.removeAttribute('onclick');
+        btnSalvar.addEventListener('click', salvarExemplarComGeneros);
+    }
+    // Sobrescreve funções globais
+    window.abrirPainelCadastro = abrirPainelCadastroComGeneros;
+    window.abrirPainelEdicao   = abrirPainelEdicaoComGeneros;
+    window.salvarExemplar       = salvarExemplarComGeneros;
+});
+</script>
 <style>
 .loading-cell {
     text-align: center;
@@ -620,6 +951,13 @@ function linhaExemplar(ex) {
             </span>
         </td>
         <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+        <td>
+            <div class="generos-cell">
+                ${(Array.isArray(ex.Generos) && ex.Generos.length > 0)
+                    ? ex.Generos.map(g => `<span class="genero-badge">${escapeHtml(typeof g === 'string' ? g : g.Nome)}</span>`).join('')
+                    : '<span style="color:var(--muted);font-size:.78rem">—</span>'}
+            </div>
+        </td>
         <td><span class="data-cell">${dataFormatada}</span></td>
         <td>
             <div class="acoes-cell">
@@ -699,10 +1037,17 @@ function abrirPainelCadastro() {
     document.getElementById('tomboPreviewVal').textContent = 'TMB-______';
     document.getElementById('painelErro').style.display = 'none';
 
+    // Limpa seletor de gêneros
+    if (typeof generosSelecionadosEx !== 'undefined') {
+        generosSelecionadosEx = [];
+        if (typeof atualizarTagsGeneroEx === 'function') atualizarTagsGeneroEx();
+    }
+
     document.getElementById('overlayIndividual').classList.add('open');
     document.getElementById('painelCadastro').classList.add('open');
     document.body.style.overflow = 'hidden';
 }
+
 
 function abrirPainelEdicao(id) {
     const ex = todosExemplares.find(e => e.Exemplar_id === id);
@@ -721,6 +1066,32 @@ function abrirPainelEdicao(id) {
     atualizarPreviewTombo(ex.NumeroTombo || '');
     document.getElementById('painelErro').style.display = 'none';
 
+    // Carrega gêneros do exemplar (usa cache local se disponível, senão busca na API)
+    if (typeof generosSelecionadosEx !== 'undefined') {
+        generosSelecionadosEx = [];
+        const generosExemplar = Array.isArray(ex.Generos)
+            ? ex.Generos.map(g => typeof g === 'string' ? g : g.Nome).filter(Boolean)
+            : [];
+        generosExemplar.forEach(g => generosSelecionadosEx.push(g));
+        if (typeof atualizarTagsGeneroEx === 'function') atualizarTagsGeneroEx();
+        if (typeof renderizarOpcoesEx === 'function') renderizarOpcoesEx('');
+        // Se não tiver no cache, busca na API
+        if (!generosExemplar.length) {
+            fetch(`${API}/exemplar/${id}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (!data) return;
+                    const gs = Array.isArray(data.Generos)
+                        ? data.Generos.map(g => typeof g === 'string' ? g : g.Nome).filter(Boolean)
+                        : [];
+                    generosSelecionadosEx = [...gs];
+                    if (typeof atualizarTagsGeneroEx === 'function') atualizarTagsGeneroEx();
+                    if (typeof renderizarOpcoesEx === 'function') renderizarOpcoesEx('');
+                })
+                .catch(() => {});
+        }
+    }
+
     document.getElementById('overlayIndividual').classList.add('open');
     document.getElementById('painelCadastro').classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -732,7 +1103,14 @@ function fecharPainelCadastro() {
     document.body.style.overflow = '';
 }
 
+// salvarExemplar é definida abaixo no script de gêneros como salvarExemplarComGeneros
+// e redirecionada via window.salvarExemplar no DOMContentLoaded.
+// Esta função legada permanece como fallback se o script de gêneros não carregar.
 async function salvarExemplar() {
+    if (typeof salvarExemplarComGeneros === 'function') {
+        return salvarExemplarComGeneros();
+    }
+    // fallback sem gêneros
     const id = document.getElementById('exemplarEditandoId').value;
     const Livro_id     = document.getElementById('livroSelect').value;
     const NumeroTombo  = document.getElementById('tomboInput').value.trim();
@@ -742,7 +1120,6 @@ async function salvarExemplar() {
     const DataAquisicao = document.getElementById('dataAquisicao').value;
     const erroEl = document.getElementById('painelErro');
 
-    // Validações no cliente
     if (!Livro_id)    return mostrarErroForm(erroEl, 'Selecione um livro.');
     if (!NumeroTombo) return mostrarErroForm(erroEl, 'Informe o Número de Tombo.');
     if (!Localizacao) return mostrarErroForm(erroEl, 'Informe a Localização.');
@@ -754,16 +1131,12 @@ async function salvarExemplar() {
     erroEl.style.display = 'none';
 
     try {
-        const body = { Livro_id, NumeroTombo, Localizacao, Status, Observacoes, DataAquisicao };
+        const body = { Livro_id, NumeroTombo, Localizacao, Status, Observacoes, DataAquisicao, Generos: [] };
         const isEdicao = !!id;
         const url    = isEdicao ? `${API}/exemplar/${id}` : `${API}/exemplar`;
         const method = isEdicao ? 'PUT' : 'POST';
 
-        const resp = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
+        const resp = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || 'Erro ao salvar exemplar.');
 
@@ -778,6 +1151,7 @@ async function salvarExemplar() {
         btn.textContent = textoOriginal;
     }
 }
+
 
 // ── Painel Lote ──────────────────────────────────────────────
 function abrirPainelLote() {

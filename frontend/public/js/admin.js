@@ -3,11 +3,11 @@ const API_URL = 'http://localhost:3000';
 let livros = [];
 let livrosFiltrados = [];
 
-const livrosGrid = document.getElementById('livrosGrid');
-const searchInput = document.getElementById('searchInput');
+const livrosGrid   = document.getElementById('livrosGrid');
+const searchInput  = document.getElementById('searchInput');
 const generoFilter = document.getElementById('generoFilter');
-const modal = document.getElementById('modalDetalhes');
-const closeBtn = document.querySelector('.close');
+const modal        = document.getElementById('modalDetalhes');
+const closeBtn     = document.querySelector('.close');
 
 document.addEventListener('DOMContentLoaded', () => {
     carregarLivros();
@@ -19,40 +19,61 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// ── Helper: retorna array de nomes de gêneros de um livro ────
+function getGeneroNomes(livro) {
+    if (Array.isArray(livro.Generos) && livro.Generos.length > 0) {
+        return livro.Generos.map(g => typeof g === 'string' ? g : g.Nome).filter(Boolean);
+    }
+    return livro.Categoria ? [livro.Categoria] : [];
+}
+
+// ── Helper: renderiza badges de gênero ───────────────────────
+function renderGeneroBadges(livro) {
+    const nomes = getGeneroNomes(livro);
+    if (!nomes.length) return '<span class="livro-genero">—</span>';
+    return `<div class="livro-generos-badges">${
+        nomes.map(n => `<span class="livro-genero-badge">${n}</span>`).join('')
+    }</div>`;
+}
+
 async function carregarLivros() {
     try {
         livrosGrid.innerHTML = '<div class="loading">Carregando livros...</div>';
         const response = await fetch(`${API_URL}/livro`);
-
         if (!response.ok) throw new Error(`Erro: ${response.statusText}`);
-
         livros = await response.json();
         livrosFiltrados = [...livros];
+        popularFiltroGeneros();
         renderizarLivros(livrosFiltrados);
     } catch (error) {
         console.error('Erro ao carregar livros:', error);
-        livrosGrid.innerHTML = '<div class="loading" style="color: #ff6b6b;">Erro ao carregar livros. Verifique a conexão com o servidor.</div>';
+        livrosGrid.innerHTML = '<div class="loading" style="color:#ff6b6b">Erro ao carregar livros. Verifique a conexão com o servidor.</div>';
     }
+}
+
+// ── Popula o <select> de gêneros com todas as opções únicas ──
+function popularFiltroGeneros() {
+    if (!generoFilter) return;
+    const todosGeneros = new Set();
+    livros.forEach(l => getGeneroNomes(l).forEach(g => todosGeneros.add(g)));
+
+    const opcoesSalvas = generoFilter.value;
+    generoFilter.innerHTML = '<option value="">Todos os gêneros</option>' +
+        [...todosGeneros].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+            .map(g => `<option value="${g}">${g}</option>`).join('');
+    if (opcoesSalvas) generoFilter.value = opcoesSalvas;
 }
 
 async function deletarLivro(id) {
     const confirmado = await AdminToast.confirm(
         'Esta ação não pode ser desfeita. O livro será removido permanentemente do catálogo.',
-        {
-            titulo: 'Excluir livro?',
-            tipo: 'error',
-            confirmLabel: 'Sim, excluir',
-            cancelLabel: 'Cancelar',
-            danger: true
-        }
+        { titulo: 'Excluir livro?', tipo: 'error', confirmLabel: 'Sim, excluir', cancelLabel: 'Cancelar', danger: true }
     );
     if (!confirmado) return;
 
     try {
         const response = await fetch(`${API_URL}/livro/${id}`, { method: 'DELETE' });
-
         if (!response.ok) throw new Error(`Erro: ${response.statusText}`);
-
         AdminToast.success('Livro excluído com sucesso!');
         carregarLivros();
     } catch (error) {
@@ -76,7 +97,7 @@ function renderizarLivros(livrosParaRender) {
                 <p class="livro-autor">por ${livro.Autor || '—'}</p>
                 <p class="livro-info">📖 ${livro.NumeroPaginas || '—'} páginas</p>
                 <p class="livro-info">🌍 ${livro.Idioma || '—'}</p>
-                <span class="livro-genero">${livro.Categoria || '—'}</span>
+                ${renderGeneroBadges(livro)}
                 <div class="livro-action">
                     <button class="btn-detalhes" onclick="mostrarDetalhes(${livro.Livro_id})">Detalhes</button>
                     <button class="btn-deletar" onclick="deletarLivro(${livro.Livro_id})">Deletar</button>
@@ -89,6 +110,11 @@ function renderizarLivros(livrosParaRender) {
 function mostrarDetalhes(id) {
     const livro = livros.find(l => l.Livro_id === id);
     if (!livro) return;
+
+    const nomes = getGeneroNomes(livro);
+    const generosHtml = nomes.length
+        ? `<div class="detalhes-generos">${nomes.map(n => `<span class="livro-genero-badge">${n}</span>`).join('')}</div>`
+        : '—';
 
     document.getElementById('detalhesConteudo').innerHTML = `
         <h2 class="detalhes-titulo">${livro.Nome || '—'}</h2>
@@ -119,8 +145,8 @@ function mostrarDetalhes(id) {
             <span class="detalhes-valor">${livro.ClassEtaria || '—'}</span>
         </div>
         <div class="detalhes-item">
-            <span class="detalhes-label">Gênero:</span>
-            <span class="detalhes-valor">${livro.Categoria || '—'}</span>
+            <span class="detalhes-label">Gênero(s):</span>
+            <span class="detalhes-valor">${generosHtml}</span>
         </div>
         <div>
             <span class="detalhes-label">Resumo:</span>
@@ -131,17 +157,19 @@ function mostrarDetalhes(id) {
 }
 
 function filtrarLivros() {
-    const textoBusca = searchInput.value.toLowerCase();
+    const textoBusca       = searchInput.value.toLowerCase();
     const generoSelecionado = generoFilter.value;
 
     livrosFiltrados = livros.filter(livro => {
         const correspondeTexto =
-            (livro.Nome || '').toLowerCase().includes(textoBusca) ||
-            (livro.Autor || '').toLowerCase().includes(textoBusca) ||
+            (livro.Nome    || '').toLowerCase().includes(textoBusca) ||
+            (livro.Autor   || '').toLowerCase().includes(textoBusca) ||
             (livro.Editora || '').toLowerCase().includes(textoBusca) ||
-            (livro.Resumo || '').toLowerCase().includes(textoBusca);
+            (livro.Resumo  || '').toLowerCase().includes(textoBusca);
 
-        const correspondeGenero = generoSelecionado === '' || livro.Categoria === generoSelecionado;
+        // Verifica se qualquer gênero do livro bate com o filtro
+        const correspondeGenero = generoSelecionado === '' ||
+            getGeneroNomes(livro).includes(generoSelecionado);
 
         return correspondeTexto && correspondeGenero;
     });

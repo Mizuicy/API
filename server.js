@@ -448,9 +448,100 @@ app.put('/usuario/:id', async (req, res) => {
 //  ROTAS DE LIVROS
 // ══════════════════════════════════════════════════════════════
 
+// ── Helper: normaliza array de gêneros vindo do body ─────────
+function normalizarGeneros(raw) {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.map(g => String(g).trim()).filter(Boolean);
+    return String(raw).split(',').map(g => g.trim()).filter(Boolean);
+}
+
+function resolverGenerosIds(nomes, cb) {
+    if (!nomes || nomes.length === 0) return cb(null, []);
+    const ids = [];
+    let pending = nomes.length;
+    nomes.forEach(nome => {
+        dbconfig.query('INSERT IGNORE INTO Genero (Nome) VALUES (?)', [nome], (errIns) => {
+            if (errIns) return cb(errIns);
+            dbconfig.query('SELECT Genero_id FROM Genero WHERE Nome = ?', [nome], (errSel, rows) => {
+                if (errSel) return cb(errSel);
+                if (rows.length) ids.push(rows[0].Genero_id);
+                if (--pending === 0) cb(null, ids);
+            });
+        });
+    });
+}
+
+function salvarLivroGeneros(livroId, generoIds, cb) {
+    dbconfig.query('DELETE FROM LivroGenero WHERE Livro_id = ?', [livroId], (errDel) => {
+        if (errDel) return cb(errDel);
+        if (!generoIds.length) return cb(null);
+        const rows = generoIds.map(gid => [livroId, gid]);
+        dbconfig.query('INSERT IGNORE INTO LivroGenero (Livro_id, Genero_id) VALUES ?', [rows], cb);
+    });
+}
+
+function anexarGeneroLivros(livros, cb) {
+    if (!livros.length) return cb(null, livros);
+    const ids = livros.map(l => l.Livro_id);
+    const sql = `
+        SELECT lg.Livro_id, g.Genero_id, g.Nome AS GeneroNome
+        FROM LivroGenero lg
+        JOIN Genero g ON g.Genero_id = lg.Genero_id
+        WHERE lg.Livro_id IN (?)
+        ORDER BY g.Nome
+    `;
+    dbconfig.query(sql, [ids], (err, rows) => {
+        if (err) return cb(err);
+        const map = {};
+        rows.forEach(r => {
+            if (!map[r.Livro_id]) map[r.Livro_id] = [];
+            map[r.Livro_id].push({ Genero_id: r.Genero_id, Nome: r.GeneroNome });
+        });
+        livros.forEach(l => {
+            l.Generos = map[l.Livro_id] || [];
+            if (!l.Categoria && l.Generos.length) l.Categoria = l.Generos[0].Nome;
+        });
+        cb(null, livros);
+    });
+}
+
+// GET /genero
+app.get('/genero', (req, res) => {
+    dbconfig.query('SELECT Genero_id, Nome FROM Genero ORDER BY Nome', (err, results) => {
+        if (err) return handleQuery(res, err);
+        res.json(results);
+    });
+});
+
 app.get('/livro', (req, res) => {
-    dbconfig.query('SELECT * FROM Livro', (err, results) => {
-        handleQuery(res, err, results);
+    const busca    = req.query.busca || req.query.search || '';
+    const generoId = req.query.genero_id ? parseInt(req.query.genero_id, 10) : null;
+    const generoNm = req.query.genero || '';
+
+    let sql = 'SELECT DISTINCT l.* FROM Livro l';
+    const params = [];
+
+    if (generoId || generoNm) {
+        sql += ' JOIN LivroGenero lg ON lg.Livro_id = l.Livro_id JOIN Genero g ON g.Genero_id = lg.Genero_id';
+    }
+
+    const conds = [];
+    if (busca) {
+        conds.push('(l.Nome LIKE ? OR l.Autor LIKE ? OR l.Editora LIKE ?)');
+        const s = `%${busca}%`;
+        params.push(s, s, s);
+    }
+    if (generoId) { conds.push('lg.Genero_id = ?'); params.push(generoId); }
+    if (generoNm) { conds.push('g.Nome LIKE ?');    params.push(`%${generoNm}%`); }
+    if (conds.length) sql += ' WHERE ' + conds.join(' AND ');
+    sql += ' ORDER BY l.Nome';
+
+    dbconfig.query(sql, params, (err, livros) => {
+        if (err) return handleQuery(res, err);
+        anexarGeneroLivros(livros, (err2, result) => {
+            if (err2) return handleQuery(res, err2);
+            res.json(result);
+        });
     });
 });
 
@@ -460,10 +551,11 @@ app.get('/livro/:id', (req, res) => {
 
     dbconfig.query('SELECT * FROM Livro WHERE Livro_id = ?', [id], (err, results) => {
         if (err) return handleQuery(res, err);
-        if (results.length === 0) {
-            return res.status(404).json({ message: 'Livro não encontrado' });
-        }
-        res.json(results[0]);
+        if (results.length === 0) return res.status(404).json({ message: 'Livro não encontrado' });
+        anexarGeneroLivros(results, (err2, livros) => {
+            if (err2) return handleQuery(res, err2);
+            res.json(livros[0]);
+        });
     });
 });
 
@@ -472,30 +564,21 @@ app.post('/livro', (req, res) => {
     if (erro) return res.status(400).json({ error: erro });
 
     const { Nome, Autor, Editora, AnoPublicacao, Idioma, NumeroPaginas, ClassEtaria, Categoria, Resumo, Imagem, NumeroChamada, DataPublicacao } = req.body;
-    const values = [
-        Nome,
-        Autor || null,
-        Editora || null,
-        AnoPublicacao || null,
-        Idioma || null,
-        NumeroPaginas || null,
-        ClassEtaria || null,
-        Categoria || null,
-        Resumo || null,
-        Imagem || null,
-        NumeroChamada || null,
-        DataPublicacao || null
-    ];
-    const sql = `INSERT INTO Livro
-        (Nome, Autor, Editora, AnoPublicacao, Idioma, NumeroPaginas, ClassEtaria, Categoria, Resumo, Imagem, NumeroChamada, DataPublicacao)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const nomeGeneros = normalizarGeneros(req.body.Generos || req.body.generos || Categoria);
+    const categoriaSalvar = nomeGeneros.length ? nomeGeneros[0] : (Categoria || null);
+
+    const sql = `INSERT INTO Livro (Nome, Autor, Editora, AnoPublicacao, Idioma, NumeroPaginas, ClassEtaria, Categoria, Resumo, Imagem, NumeroChamada, DataPublicacao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const values = [Nome, Autor || null, Editora || null, AnoPublicacao || null, Idioma || null, NumeroPaginas || null, ClassEtaria || null, categoriaSalvar, Resumo || null, Imagem || null, NumeroChamada || null, DataPublicacao || null];
 
     dbconfig.query(sql, values, (err, result) => {
-        if (err) {
-            console.error('Erro ao inserir livro:', err);
-            return res.status(500).json({ error: 'Erro interno no servidor.' });
-        }
-        res.status(201).json({ Livro_id: result.insertId, ...req.body });
+        if (err) { console.error('Erro ao inserir livro:', err); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
+        const livroId = result.insertId;
+        resolverGenerosIds(nomeGeneros, (errG, ids) => {
+            if (errG) { console.error('Erro gêneros:', errG); return res.status(201).json({ Livro_id: livroId, ...req.body, Generos: [] }); }
+            salvarLivroGeneros(livroId, ids, () => {
+                res.status(201).json({ Livro_id: livroId, ...req.body, Generos: nomeGeneros });
+            });
+        });
     });
 });
 
@@ -507,21 +590,21 @@ app.put('/livro/:id', (req, res) => {
     if (erro) return res.status(400).json({ error: erro });
 
     const { Nome, Autor, Editora, AnoPublicacao, Idioma, NumeroPaginas, ClassEtaria, Categoria, Resumo, Imagem, NumeroChamada, DataPublicacao } = req.body;
-    const sql = `UPDATE Livro SET
-        Nome = ?, Autor = ?, Editora = ?, AnoPublicacao = ?, Idioma = ?,
-        NumeroPaginas = ?, ClassEtaria = ?, Categoria = ?, Resumo = ?,
-        Imagem = ?, NumeroChamada = ?, DataPublicacao = ?
-        WHERE Livro_id = ?`;
-    const values = [Nome, Autor || null, Editora || null, AnoPublicacao || null, Idioma || null,
-        NumeroPaginas || null, ClassEtaria || null, Categoria || null, Resumo || null,
-        Imagem || null, NumeroChamada || null, DataPublicacao || null, id];
+    const nomeGeneros = normalizarGeneros(req.body.Generos || req.body.generos || Categoria);
+    const categoriaSalvar = nomeGeneros.length ? nomeGeneros[0] : (Categoria || null);
+
+    const sql = `UPDATE Livro SET Nome = ?, Autor = ?, Editora = ?, AnoPublicacao = ?, Idioma = ?, NumeroPaginas = ?, ClassEtaria = ?, Categoria = ?, Resumo = ?, Imagem = ?, NumeroChamada = ?, DataPublicacao = ? WHERE Livro_id = ?`;
+    const values = [Nome, Autor || null, Editora || null, AnoPublicacao || null, Idioma || null, NumeroPaginas || null, ClassEtaria || null, categoriaSalvar, Resumo || null, Imagem || null, NumeroChamada || null, DataPublicacao || null, id];
 
     dbconfig.query(sql, values, (err, result) => {
         if (err) return handleQuery(res, err);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Livro não encontrado' });
-        }
-        res.json({ Livro_id: id, ...req.body });
+        if (result.affectedRows === 0) return res.status(404).json({ message: 'Livro não encontrado' });
+        resolverGenerosIds(nomeGeneros, (errG, ids) => {
+            if (errG) { console.error('Erro gêneros:', errG); return res.json({ Livro_id: id, ...req.body, Generos: nomeGeneros }); }
+            salvarLivroGeneros(id, ids, () => {
+                res.json({ Livro_id: id, ...req.body, Generos: nomeGeneros });
+            });
+        });
     });
 });
 
@@ -531,9 +614,7 @@ app.delete('/livro/:id', (req, res) => {
 
     dbconfig.query('DELETE FROM Livro WHERE Livro_id = ?', [id], (err, result) => {
         if (err) return handleQuery(res, err);
-        if (result.affectedRows === 0) {
-             return res.status(404).json({ message: 'Livro não encontrado' });
-        }
+        if (result.affectedRows === 0) return res.status(404).json({ message: 'Livro não encontrado' });
         res.status(204).send();
     });
 });
