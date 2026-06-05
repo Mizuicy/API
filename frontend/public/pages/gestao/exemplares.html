@@ -234,8 +234,7 @@
         <div id="painelErro" class="form-erro" style="display:none"></div>
     </div>
     <div class="panel-footer">
-        <button class="btn btn-primary" style="flex:1" id="btnSalvarExemplar"
-                onclick="salvarExemplar()">✅ Salvar Exemplar</button>
+        <button class="btn btn-primary" style="flex:1" id="btnSalvarExemplar">✅ Salvar Exemplar</button>
         <button class="btn btn-secondary" onclick="fecharPainelCadastro()">Cancelar</button>
     </div>
 </aside>
@@ -512,255 +511,6 @@
     white-space:nowrap;
 }
 [data-theme="dark"] .genero-badge { background:rgba(102,126,234,.18); color:#a5b4fc; border-color:rgba(102,126,234,.3); }
-</style>
-
-<!-- ── SCRIPT: Seletor de múltiplos gêneros para exemplares ─ -->
-<script>
-const GENEROS_PADRAO_EX = [
-    'Ação','Autobiografia','Aventura','Biografia','Ciências','Conto',
-    'Drama','Educativo','Fantasia','Ficção','Ficção Científica','Filosofia',
-    'História','Infantil','Mangá','Mistério','Não-Ficção','Poesia',
-    'Psicologia','Quadrinhos','Romance','Suspense','Tecnologia','Terror','Autoajuda','Outro'
-];
-
-let generosDisponiveisEx = [...GENEROS_PADRAO_EX];
-let generosSelecionadosEx = [];
-
-async function carregarGenerosDisponiveisEx() {
-    try {
-        const r = await fetch(`${API}/genero`);
-        if (r.ok) {
-            const lista = await r.json();
-            const nomesAPI = lista.map(g => g.Nome);
-            const set = new Set([...nomesAPI, ...GENEROS_PADRAO_EX]);
-            generosDisponiveisEx = [...set].sort((a,b) => a.localeCompare(b,'pt-BR'));
-        }
-    } catch(e) {}
-    renderizarOpcoesEx('');
-}
-
-function renderizarOpcoesEx(filtro) {
-    const lista = document.getElementById('exGeneroOptionsList');
-    if (!lista) return;
-    const f = filtro.toLowerCase();
-    const opcoes = generosDisponiveisEx.filter(g => g.toLowerCase().includes(f));
-    lista.innerHTML = opcoes.map(nome => {
-        const sel = generosSelecionadosEx.includes(nome);
-        return `<div class="genero-option${sel?' selected':''}" onclick="toggleGeneroEx('${nome.replace(/'/g,"\\'")}')">
-            <span class="genero-option-check"></span><span>${nome}</span>
-        </div>`;
-    }).join('') || '<div style="padding:10px 14px;color:var(--muted);font-size:.82rem">Nenhum gênero encontrado</div>';
-}
-
-function toggleGeneroEx(nome) {
-    const idx = generosSelecionadosEx.indexOf(nome);
-    if (idx === -1) generosSelecionadosEx.push(nome);
-    else generosSelecionadosEx.splice(idx, 1);
-    atualizarTagsGeneroEx();
-    renderizarOpcoesEx(document.getElementById('exGeneroSearchInput')?.value || '');
-}
-
-function removerGeneroEx(nome, e) {
-    e.stopPropagation();
-    generosSelecionadosEx = generosSelecionadosEx.filter(g => g !== nome);
-    atualizarTagsGeneroEx();
-    renderizarOpcoesEx(document.getElementById('exGeneroSearchInput')?.value || '');
-}
-
-function atualizarTagsGeneroEx() {
-    const tags = document.getElementById('exGeneroTags');
-    const ph   = document.getElementById('exGeneroPlaceholder');
-    if (!tags) return;
-    if (generosSelecionadosEx.length === 0) {
-        tags.innerHTML = '';
-        if (ph) { ph.style.display=''; tags.appendChild(ph); } else {
-            const span = document.createElement('span');
-            span.id = 'exGeneroPlaceholder'; span.className = 'genero-placeholder';
-            span.textContent = 'Selecione gêneros específicos deste exemplar…';
-            tags.appendChild(span);
-        }
-        return;
-    }
-    tags.innerHTML = generosSelecionadosEx.map(g => `
-        <span class="genero-tag">${g}
-            <button type="button" class="genero-tag-remove" onclick="removerGeneroEx('${g.replace(/'/g,"\\'")}',event)">×</button>
-        </span>`).join('');
-}
-
-function abrirDropdownGeneroEx(e) {
-    if (e.target.closest('.genero-tag-remove')) return;
-    const d = document.getElementById('exGeneroDropdown');
-    const b = document.getElementById('exGeneroToggleBtn');
-    const s = document.getElementById('exGeneroSelector');
-    if (!d) return;
-    const isOpen = d.style.display !== 'none';
-    d.style.display = isOpen ? 'none' : 'flex';
-    b.classList.toggle('open', !isOpen);
-    s.classList.toggle('open', !isOpen);
-    b.setAttribute('aria-expanded', String(!isOpen));
-    if (!isOpen) { document.getElementById('exGeneroSearchInput')?.focus(); renderizarOpcoesEx(''); }
-}
-
-// Integração: fecha dropdown ao clicar fora
-document.addEventListener('click', e => {
-    if (!e.target.closest('#exGeneroSelector') && !e.target.closest('#exGeneroDropdown')) {
-        const d = document.getElementById('exGeneroDropdown');
-        const b = document.getElementById('exGeneroToggleBtn');
-        const s = document.getElementById('exGeneroSelector');
-        if (d) d.style.display = 'none';
-        if (b) { b.classList.remove('open'); b.setAttribute('aria-expanded','false'); }
-        if (s) s.classList.remove('open');
-    }
-});
-
-// Inicializa seletor após DOMContentLoaded (depois do script principal inline)
-window.addEventListener('load', () => {
-    const sel = document.getElementById('exGeneroSelector');
-    if (sel) sel.addEventListener('click', abrirDropdownGeneroEx);
-    const si = document.getElementById('exGeneroSearchInput');
-    if (si) si.addEventListener('input', () => renderizarOpcoesEx(si.value));
-    carregarGenerosDisponiveisEx();
-});
-
-// ── Patch nas funções existentes para incluir gêneros ────────
-
-// Sobrescreve abrirPainelCadastro para limpar gêneros
-const _abrirPainelCadastroOrig = typeof abrirPainelCadastro === 'function' ? abrirPainelCadastro : null;
-function abrirPainelCadastroComGeneros() {
-    generosSelecionadosEx = [];
-    atualizarTagsGeneroEx();
-    if (_abrirPainelCadastroOrig) _abrirPainelCadastroOrig();
-}
-
-// Sobrescreve abrirPainelEdicao para carregar gêneros
-const _abrirPainelEdicaoOrig = typeof abrirPainelEdicao === 'function' ? abrirPainelEdicao : null;
-async function abrirPainelEdicaoComGeneros(id) {
-    if (_abrirPainelEdicaoOrig) _abrirPainelEdicaoOrig(id);
-    // Carrega gêneros do exemplar via API
-    try {
-        const r = await fetch(`${API}/exemplar/${id}`);
-        if (r.ok) {
-            const ex = await r.json();
-            const generos = Array.isArray(ex.Generos)
-                ? ex.Generos.map(g => typeof g === 'string' ? g : g.Nome).filter(Boolean)
-                : [];
-            generosSelecionadosEx = [...generos];
-            atualizarTagsGeneroEx();
-            renderizarOpcoesEx('');
-        }
-    } catch(e) { console.warn('Erro ao carregar gêneros do exemplar:', e); }
-}
-
-// Patch no salvarExemplar para enviar gêneros
-const _salvarExemplarOrig = typeof salvarExemplar === 'function' ? salvarExemplar : null;
-async function salvarExemplarComGeneros() {
-    // injeta gêneros no body ANTES de chamar o original
-    const id = document.getElementById('exemplarEditandoId').value;
-    const Livro_id     = document.getElementById('livroSelect').value;
-    const NumeroTombo  = document.getElementById('tomboInput').value.trim();
-    const Localizacao  = document.getElementById('localizacaoInput').value;
-    const Status       = document.getElementById('statusInput').value;
-    const Observacoes  = document.getElementById('obsInput').value.trim();
-    const DataAquisicao = document.getElementById('dataAquisicao').value;
-    const Generos      = [...generosSelecionadosEx];
-    const erroEl = document.getElementById('painelErro');
-
-    if (!Livro_id)    return mostrarErroForm(erroEl, 'Selecione um livro.');
-    if (!NumeroTombo) return mostrarErroForm(erroEl, 'Informe o Número de Tombo.');
-    if (!Localizacao) return mostrarErroForm(erroEl, 'Informe a Localização.');
-
-    const btn = document.getElementById('btnSalvarExemplar');
-    const textoOriginal = btn.textContent;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="btn-spinner"></span>Salvando…';
-    erroEl.style.display = 'none';
-
-    try {
-        const body = { Livro_id, NumeroTombo, Localizacao, Status, Observacoes, DataAquisicao, Generos };
-        const isEdicao = !!id;
-        const url    = isEdicao ? `${API}/exemplar/${id}` : `${API}/exemplar`;
-        const method = isEdicao ? 'PUT' : 'POST';
-
-        const resp = await fetch(url, {
-            method, headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || 'Erro ao salvar exemplar.');
-
-        AdminToast.success(isEdicao ? 'Exemplar atualizado com sucesso!' : 'Exemplar cadastrado com sucesso!');
-        generosSelecionadosEx = [];
-        atualizarTagsGeneroEx();
-        fecharPainelCadastro();
-        await carregarExemplares();
-        await carregarStats();
-    } catch (e) {
-        mostrarErroForm(erroEl, e.message);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = textoOriginal;
-    }
-}
-
-// Redireciona botões do HTML para as versões com gêneros
-document.addEventListener('DOMContentLoaded', () => {
-    // Substitui o onclick do botão Salvar Exemplar
-    const btnSalvar = document.getElementById('btnSalvarExemplar');
-    if (btnSalvar) {
-        btnSalvar.removeAttribute('onclick');
-        btnSalvar.addEventListener('click', salvarExemplarComGeneros);
-    }
-    // Sobrescreve funções globais
-    window.abrirPainelCadastro = abrirPainelCadastroComGeneros;
-    window.abrirPainelEdicao   = abrirPainelEdicaoComGeneros;
-    window.salvarExemplar       = salvarExemplarComGeneros;
-});
-</script>
-<style>
-.loading-cell {
-    text-align: center;
-    padding: 48px 20px !important;
-    color: var(--muted, #888);
-    font-size: .9rem;
-}
-.loading-spinner {
-    display: inline-block;
-    width: 22px;
-    height: 22px;
-    border: 3px solid var(--border, #eee);
-    border-top-color: var(--purple, #667eea);
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
-    margin-right: 10px;
-    vertical-align: middle;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.form-erro {
-    background: #fee2e2;
-    border: 1px solid #fecaca;
-    color: #b91c1c;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: .85rem;
-    margin-top: 8px;
-}
-[data-theme="dark"] .form-erro {
-    background: #3b0f0f;
-    border-color: #7f1d1d;
-    color: #fca5a5;
-}
-.btn-spinner {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid rgba(255,255,255,.5);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin .6s linear infinite;
-    margin-right: 6px;
-    vertical-align: middle;
-}
 </style>
 
 <!-- SCRIPTS -->
@@ -1365,5 +1115,254 @@ function mostrarToast(msg, tipo = 'info') {
     AdminToast.show(msg, tipo);
 }
 </script>
+
+<!-- ── SCRIPT: Seletor de múltiplos gêneros para exemplares ─ -->
+<script>
+const GENEROS_PADRAO_EX = [
+    'Ação','Autobiografia','Aventura','Biografia','Ciências','Conto',
+    'Drama','Educativo','Fantasia','Ficção','Ficção Científica','Filosofia',
+    'História','Infantil','Mangá','Mistério','Não-Ficção','Poesia',
+    'Psicologia','Quadrinhos','Romance','Suspense','Tecnologia','Terror','Autoajuda','Outro'
+];
+
+let generosDisponiveisEx = [...GENEROS_PADRAO_EX];
+let generosSelecionadosEx = [];
+
+async function carregarGenerosDisponiveisEx() {
+    try {
+        const r = await fetch(`${API}/genero`);
+        if (r.ok) {
+            const lista = await r.json();
+            const nomesAPI = lista.map(g => g.Nome);
+            const set = new Set([...nomesAPI, ...GENEROS_PADRAO_EX]);
+            generosDisponiveisEx = [...set].sort((a,b) => a.localeCompare(b,'pt-BR'));
+        }
+    } catch(e) {}
+    renderizarOpcoesEx('');
+}
+
+function renderizarOpcoesEx(filtro) {
+    const lista = document.getElementById('exGeneroOptionsList');
+    if (!lista) return;
+    const f = filtro.toLowerCase();
+    const opcoes = generosDisponiveisEx.filter(g => g.toLowerCase().includes(f));
+    lista.innerHTML = opcoes.map(nome => {
+        const sel = generosSelecionadosEx.includes(nome);
+        return `<div class="genero-option${sel?' selected':''}" onclick="toggleGeneroEx('${nome.replace(/'/g,"\\'")}')">
+            <span class="genero-option-check"></span><span>${nome}</span>
+        </div>`;
+    }).join('') || '<div style="padding:10px 14px;color:var(--muted);font-size:.82rem">Nenhum gênero encontrado</div>';
+}
+
+function toggleGeneroEx(nome) {
+    const idx = generosSelecionadosEx.indexOf(nome);
+    if (idx === -1) generosSelecionadosEx.push(nome);
+    else generosSelecionadosEx.splice(idx, 1);
+    atualizarTagsGeneroEx();
+    renderizarOpcoesEx(document.getElementById('exGeneroSearchInput')?.value || '');
+}
+
+function removerGeneroEx(nome, e) {
+    e.stopPropagation();
+    generosSelecionadosEx = generosSelecionadosEx.filter(g => g !== nome);
+    atualizarTagsGeneroEx();
+    renderizarOpcoesEx(document.getElementById('exGeneroSearchInput')?.value || '');
+}
+
+function atualizarTagsGeneroEx() {
+    const tags = document.getElementById('exGeneroTags');
+    const ph   = document.getElementById('exGeneroPlaceholder');
+    if (!tags) return;
+    if (generosSelecionadosEx.length === 0) {
+        tags.innerHTML = '';
+        if (ph) { ph.style.display=''; tags.appendChild(ph); } else {
+            const span = document.createElement('span');
+            span.id = 'exGeneroPlaceholder'; span.className = 'genero-placeholder';
+            span.textContent = 'Selecione gêneros específicos deste exemplar…';
+            tags.appendChild(span);
+        }
+        return;
+    }
+    tags.innerHTML = generosSelecionadosEx.map(g => `
+        <span class="genero-tag">${g}
+            <button type="button" class="genero-tag-remove" onclick="removerGeneroEx('${g.replace(/'/g,"\\'")}',event)">×</button>
+        </span>`).join('');
+}
+
+function abrirDropdownGeneroEx(e) {
+    if (e.target.closest('.genero-tag-remove')) return;
+    const d = document.getElementById('exGeneroDropdown');
+    const b = document.getElementById('exGeneroToggleBtn');
+    const s = document.getElementById('exGeneroSelector');
+    if (!d) return;
+    const isOpen = d.style.display !== 'none';
+    d.style.display = isOpen ? 'none' : 'flex';
+    b.classList.toggle('open', !isOpen);
+    s.classList.toggle('open', !isOpen);
+    b.setAttribute('aria-expanded', String(!isOpen));
+    if (!isOpen) { document.getElementById('exGeneroSearchInput')?.focus(); renderizarOpcoesEx(''); }
+}
+
+// Integração: fecha dropdown ao clicar fora
+document.addEventListener('click', e => {
+    if (!e.target.closest('#exGeneroSelector') && !e.target.closest('#exGeneroDropdown')) {
+        const d = document.getElementById('exGeneroDropdown');
+        const b = document.getElementById('exGeneroToggleBtn');
+        const s = document.getElementById('exGeneroSelector');
+        if (d) d.style.display = 'none';
+        if (b) { b.classList.remove('open'); b.setAttribute('aria-expanded','false'); }
+        if (s) s.classList.remove('open');
+    }
+});
+
+// Inicializa seletor após DOMContentLoaded (depois do script principal inline)
+window.addEventListener('load', () => {
+    const sel = document.getElementById('exGeneroSelector');
+    if (sel) sel.addEventListener('click', abrirDropdownGeneroEx);
+    const si = document.getElementById('exGeneroSearchInput');
+    if (si) si.addEventListener('input', () => renderizarOpcoesEx(si.value));
+    carregarGenerosDisponiveisEx();
+});
+
+// ── Patch nas funções existentes para incluir gêneros ────────
+
+// Sobrescreve abrirPainelCadastro para limpar gêneros
+const _abrirPainelCadastroOrig = typeof abrirPainelCadastro === 'function' ? abrirPainelCadastro : null;
+function abrirPainelCadastroComGeneros() {
+    generosSelecionadosEx = [];
+    atualizarTagsGeneroEx();
+    if (_abrirPainelCadastroOrig) _abrirPainelCadastroOrig();
+}
+
+// Sobrescreve abrirPainelEdicao para carregar gêneros
+const _abrirPainelEdicaoOrig = typeof abrirPainelEdicao === 'function' ? abrirPainelEdicao : null;
+async function abrirPainelEdicaoComGeneros(id) {
+    if (_abrirPainelEdicaoOrig) _abrirPainelEdicaoOrig(id);
+    // Carrega gêneros do exemplar via API
+    try {
+        const r = await fetch(`${API}/exemplar/${id}`);
+        if (r.ok) {
+            const ex = await r.json();
+            const generos = Array.isArray(ex.Generos)
+                ? ex.Generos.map(g => typeof g === 'string' ? g : g.Nome).filter(Boolean)
+                : [];
+            generosSelecionadosEx = [...generos];
+            atualizarTagsGeneroEx();
+            renderizarOpcoesEx('');
+        }
+    } catch(e) { console.warn('Erro ao carregar gêneros do exemplar:', e); }
+}
+
+// Patch no salvarExemplar para enviar gêneros
+const _salvarExemplarOrig = typeof salvarExemplar === 'function' ? salvarExemplar : null;
+async function salvarExemplarComGeneros() {
+    // injeta gêneros no body ANTES de chamar o original
+    const id = document.getElementById('exemplarEditandoId').value;
+    const Livro_id     = document.getElementById('livroSelect').value;
+    const NumeroTombo  = document.getElementById('tomboInput').value.trim();
+    const Localizacao  = document.getElementById('localizacaoInput').value;
+    const Status       = document.getElementById('statusInput').value;
+    const Observacoes  = document.getElementById('obsInput').value.trim();
+    const DataAquisicao = document.getElementById('dataAquisicao').value;
+    const Generos      = [...generosSelecionadosEx];
+    const erroEl = document.getElementById('painelErro');
+
+    if (!Livro_id)    return mostrarErroForm(erroEl, 'Selecione um livro.');
+    if (!NumeroTombo) return mostrarErroForm(erroEl, 'Informe o Número de Tombo.');
+    if (!Localizacao) return mostrarErroForm(erroEl, 'Informe a Localização.');
+
+    const btn = document.getElementById('btnSalvarExemplar');
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner"></span>Salvando…';
+    erroEl.style.display = 'none';
+
+    try {
+        const body = { Livro_id, NumeroTombo, Localizacao, Status, Observacoes, DataAquisicao, Generos };
+        const isEdicao = !!id;
+        const url    = isEdicao ? `${API}/exemplar/${id}` : `${API}/exemplar`;
+        const method = isEdicao ? 'PUT' : 'POST';
+
+        const resp = await fetch(url, {
+            method, headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Erro ao salvar exemplar.');
+
+        AdminToast.success(isEdicao ? 'Exemplar atualizado com sucesso!' : 'Exemplar cadastrado com sucesso!');
+        generosSelecionadosEx = [];
+        atualizarTagsGeneroEx();
+        fecharPainelCadastro();
+        await carregarExemplares();
+        await carregarStats();
+    } catch (e) {
+        mostrarErroForm(erroEl, e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+    }
+}
+
+// Redireciona botões do HTML para as versões com gêneros
+document.addEventListener('DOMContentLoaded', () => {
+    // Substitui o onclick do botão Salvar Exemplar
+    const btnSalvar = document.getElementById('btnSalvarExemplar');
+    if (btnSalvar) {
+        btnSalvar.removeAttribute('onclick');
+        btnSalvar.addEventListener('click', salvarExemplarComGeneros);
+    }
+    // Sobrescreve funções globais
+    window.abrirPainelCadastro = abrirPainelCadastroComGeneros;
+    window.abrirPainelEdicao   = abrirPainelEdicaoComGeneros;
+    window.salvarExemplar       = salvarExemplarComGeneros;
+});
+</script>
+<style>
+.loading-cell {
+    text-align: center;
+    padding: 48px 20px !important;
+    color: var(--muted, #888);
+    font-size: .9rem;
+}
+.loading-spinner {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border: 3px solid var(--border, #eee);
+    border-top-color: var(--purple, #667eea);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.form-erro {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: .85rem;
+    margin-top: 8px;
+}
+[data-theme="dark"] .form-erro {
+    background: #3b0f0f;
+    border-color: #7f1d1d;
+    color: #fca5a5;
+}
+.btn-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,.5);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+</style>
 </body>
 </html>
