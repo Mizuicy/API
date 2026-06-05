@@ -117,8 +117,20 @@
 
     <!-- Pills de categoria -->
     <div class="filter-bar" id="filterBar">
-        <button class="pill active" data-cat="">Início</button>
+        <button class="pill active" data-cat="">Todos</button>
         <!-- demais pills geradas pelo JS conforme categorias da API -->
+    </div>
+
+    <!-- Filtro por autor -->
+    <div style="margin-bottom:14px">
+        <select id="filtroAutor" onchange="filtrar()"
+                style="padding:8px 12px; border:1.5px solid var(--border,#e5e7eb);
+                       border-radius:8px; background:var(--surface,white);
+                       color:var(--text,#1a1a1a); font-size:0.875rem;
+                       font-family:inherit; cursor:pointer; outline:none;
+                       transition:border-color 0.2s; min-width:200px">
+            <option value="">Todos os autores</option>
+        </select>
     </div>
 
     <p class="results-count" id="resultsCount"></p>
@@ -223,6 +235,26 @@ function construirPills() {
         btn.onclick = () => selecionarCategoria(cat, btn);
         bar.appendChild(btn);
     });
+
+    construirFiltroAutor();
+}
+
+function construirFiltroAutor() {
+    const autoresUnicos = [...new Set(
+        todosLivros.map(l => l.Autor || l.autor).filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+    const select = document.getElementById('filtroAutor');
+    if (!select) return;
+
+    while (select.options.length > 1) select.remove(1);
+
+    autoresUnicos.forEach(autor => {
+        const opt = document.createElement('option');
+        opt.value = autor;
+        opt.textContent = autor;
+        select.appendChild(opt);
+    });
 }
 
 function selecionarCategoria(cat, btn) {
@@ -241,7 +273,9 @@ document.querySelector('.pill[data-cat=""]').onclick = function() {
 };
 
 function filtrar() {
-    const busca = document.getElementById('searchInput').value.toLowerCase().trim();
+    const busca            = document.getElementById('searchInput').value.toLowerCase().trim();
+    const filtroAutorEl    = document.getElementById('filtroAutor');
+    const autorSelecionado = filtroAutorEl ? filtroAutorEl.value : '';
 
     const resultado = todosLivros.filter(l => {
         const titulo    = (l.Nome || l.titulo || '').toLowerCase();
@@ -250,8 +284,9 @@ function filtrar() {
 
         const matchTexto = !busca || titulo.includes(busca) || autor.includes(busca);
         const matchCat   = !categoriaAtiva || categoria === categoriaAtiva;
+        const matchAutor = !autorSelecionado || (l.Autor || l.autor || '') === autorSelecionado;
 
-        return matchTexto && matchCat;
+        return matchTexto && matchCat && matchAutor;
     });
 
     const count = document.getElementById('resultsCount');
@@ -266,7 +301,7 @@ function filtrar() {
             <div class="empty-state" style="grid-column:1/-1">
                 <div class="empty-icon">🔍</div>
                 <h3>Nenhum livro encontrado</h3>
-                <p>Tente outros termos ou remova o filtro de categoria.</p>
+                <p>Tente outros termos ou remova os filtros.</p>
             </div>`;
         return;
     }
@@ -292,10 +327,23 @@ function filtrar() {
             <div class="book-info">
                 <div class="book-category">${categoria}</div>
                 <div class="book-title">${titulo}</div>
-                <div class="book-author">${autor}</div>
+                <div class="book-author"
+                     onclick="filtrarPorAutor('${autor.replace(/'/g, "\\'")}', event)"
+                     style="cursor:pointer; transition:color 0.15s"
+                     onmouseover="this.style.color='var(--purple,#667eea)'"
+                     onmouseout="this.style.color=''"
+                     title="Filtrar por ${autor}">${autor}</div>
             </div>
         </div>`;
     }).join('');
+}
+
+function filtrarPorAutor(nomeAutor, evento) {
+    evento.stopPropagation();
+    const select = document.getElementById('filtroAutor');
+    if (!select) return;
+    select.value = nomeAutor;
+    filtrar();
 }
 
 function abrirModal(id) {

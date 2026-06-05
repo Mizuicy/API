@@ -7,50 +7,469 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kairos - Autores</title>
-    <link rel="stylesheet" href="../../css/livros.css">
+    <link rel="stylesheet" href="../../css/autores.css">
     <link rel="stylesheet" href="../../css/notificacoes.css">
 </head>
 <body>
-    <div class="container">
-       <header class="header">
-            <div class="header-content">
-                <h1 class="logo">🏛️ Kairos</h1>
-                                <nav class="nav">
-                    <a href="../../index.html" class="nav-link">Início</a>
-                    <a href="livros.html" class="nav-link">Adicionar Livro</a>
-                    <a href="../admin/admin.html" class="nav-link">Catálogo</a>
+<div class="container">
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">🏛️ Kairos</h1>
+            <nav class="nav">
+                <a href="../../index.html" class="nav-link">Início</a>
+                <a href="livros.html" class="nav-link">Adicionar Livro</a>
+                <a href="../admin/admin.html" class="nav-link">Catálogo</a>
 
-                    <div class="nav-dropdown">
-                        <button class="nav-link nav-dropdown-btn">Gestão ▾</button>
-                        <div class="nav-dropdown-menu">
-                            <a href="autores.html" class="dropdown-item active">✍️ Autores</a>
-                            <a href="exemplares.html" class="dropdown-item">📦 Exemplares</a>
-                            <a href="emprestimos.html" class="dropdown-item">🔄 Empréstimos</a>
-                        </div>
+                <div class="nav-dropdown">
+                    <button class="nav-link nav-dropdown-btn">Gestão ▾</button>
+                    <div class="nav-dropdown-menu">
+                        <a href="autores.html" class="dropdown-item active">✍️ Autores</a>
+                        <a href="exemplares.html" class="dropdown-item">📦 Exemplares</a>
+                        <a href="emprestimos.html" class="dropdown-item">🔄 Empréstimos</a>
                     </div>
-
-                    <a href="../perfil.html" class="nav-link nav-link-perfil" title="Perfil">👤</a>
-                </nav>
-            </div>
-        </header>
-
-        <main class="main">
-            <section class="form-section">
-                <h2>✍️ Autores</h2>
-                <p style="color:#888; margin-bottom: 24px;">Cadastro e gerenciamento de autores</p>
-
-                <div class="empty-state-box">
-                    <div class="empty-icon">📝</div>
-                    <p class="empty-title">Em desenvolvimento</p>
-                    <p class="empty-sub">Funcionalidade de autores em breve</p>
                 </div>
-            </section>
-        </main>
-    </div>
 
-    <script src="../../js/nav.js"></script>
+                <a href="../perfil.html" class="nav-link nav-link-perfil" title="Perfil">👤</a>
+                <button class="theme-toggle" title="Alternar tema" style="margin-left:8px">
+                    <span class="tt-icon tt-sun">☀️</span>
+                    <span class="tt-track"><span class="tt-ball"></span></span>
+                    <span class="tt-icon tt-moon">🌙</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Cabeçalho da página -->
+        <div class="page-header">
+            <div class="page-header-left">
+                <h1>✍️ Autores</h1>
+                <p>Cadastro e gerenciamento de autores da biblioteca</p>
+            </div>
+            <div class="page-header-actions">
+                <button class="btn btn-primary" onclick="abrirModalCadastro()">＋ Novo Autor</button>
+            </div>
+        </div>
+
+        <!-- Barra de busca -->
+        <div class="search-bar">
+            <input type="text" id="buscaAutor" placeholder="Buscar autor por nome ou nacionalidade…" oninput="filtrarAutores()">
+        </div>
+
+        <!-- Tabela de autores -->
+        <div class="autores-table-wrap">
+            <table class="autores-table">
+                <thead>
+                    <tr>
+                        <th>Autor</th>
+                        <th>Nacionalidade</th>
+                        <th>Livros</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="autoresTabela">
+                    <tr>
+                        <td colspan="4">
+                            <div class="empty-state-box">
+                                <div class="empty-icon">⏳</div>
+                                <p class="empty-title">Carregando autores…</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL DE CADASTRO / EDIÇÃO
+════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modalTitulo">Novo Autor</h2>
+            <button class="modal-close" onclick="fecharModal()" title="Fechar">✕</button>
+        </div>
+
+        <input type="hidden" id="autorIdEdicao">
+
+        <div class="form-row">
+            <div class="form-group" style="grid-column: 1 / -1">
+                <label for="inputNome">Nome *</label>
+                <input type="text" id="inputNome" placeholder="Nome completo do autor" maxlength="255">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="inputNacionalidade">Nacionalidade</label>
+                <input type="text" id="inputNacionalidade" placeholder="Ex: Brasileira, Inglesa…" maxlength="100">
+            </div>
+            <div class="form-group">
+                <label for="inputDataNascimento">Data de Nascimento</label>
+                <input type="date" id="inputDataNascimento">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="inputBiografia">Biografia</label>
+            <textarea id="inputBiografia" rows="4" placeholder="Breve biografia do autor…"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Foto</label>
+            <div class="foto-tabs">
+                <button type="button" class="foto-tab active" id="tabFotoUrl" onclick="setFotoMode('url')">🔗 URL</button>
+                <button type="button" class="foto-tab" id="tabFotoArquivo" onclick="setFotoMode('arquivo')">📁 Arquivo</button>
+            </div>
+
+            <div id="fotoUrlMode">
+                <input type="url" id="inputFotoUrl" placeholder="https://exemplo.com/foto.jpg" oninput="previewFotoUrl(this.value)">
+            </div>
+            <div id="fotoArquivoMode" style="display:none">
+                <input type="file" id="inputFotoArquivo" accept="image/*" onchange="previewFotoArquivo(this)" style="font-family:inherit; font-size:0.875rem; padding:8px 0">
+            </div>
+
+            <div class="foto-preview" id="fotoPreview">
+                <img id="fotoPreviewImg" src="" alt="Preview da foto">
+                <div>
+                    <p style="font-size:0.8rem; color:var(--text); font-weight:600; margin-bottom:6px">Foto selecionada</p>
+                    <button type="button" class="foto-remove-btn" onclick="removerFoto()">✕ Remover</button>
+                </div>
+            </div>
+            <input type="hidden" id="inputFoto">
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarAutor()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL DE CONFIRMAÇÃO DE EXCLUSÃO
+════════════════════════════════════════════════════════ -->
+<div class="modal-overlay confirm-modal" id="confirmOverlay">
+    <div class="modal" style="max-width:420px">
+        <div class="modal-header">
+            <h2>Confirmar Exclusão</h2>
+            <button class="modal-close" onclick="fecharConfirm()" title="Fechar">✕</button>
+        </div>
+        <p class="confirm-text">
+            Tem certeza que deseja excluir o autor
+            <span class="confirm-nome" id="confirmNome"></span>?
+            <br><small style="color:var(--muted)">Esta ação não pode ser desfeita.</small>
+        </p>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="fecharConfirm()">Cancelar</button>
+            <button class="btn btn-danger" onclick="confirmarExclusao()">Confirmar exclusão</button>
+        </div>
+    </div>
+</div>
+
+<script src="../../js/nav.js"></script>
 <script src="../../js/admin-toast.js"></script>
 <script src="../../js/kairos-notificacoes-admin.js"></script>
 <script src="../../js/theme.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════
+//  autores.js — Módulo de Autores (Kairos)
+// ══════════════════════════════════════════════════════════
+
+const API_URL = 'http://localhost:3000';
+
+let todosAutores   = [];  // cache local
+let idExcluindo    = null; // ID em processo de exclusão
+
+// ── Inicialização ───────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', carregarAutores);
+
+// ── Carregar lista ──────────────────────────────────────────
+async function carregarAutores() {
+    try {
+        const res     = await fetch(`${API_URL}/autor`);
+        todosAutores  = await res.json();
+
+        if (!res.ok) {
+            renderizarTabela([]);
+            AdminToast.error('Não foi possível carregar os autores.');
+            return;
+        }
+
+        renderizarTabela(todosAutores);
+    } catch (erro) {
+        console.error('Erro ao carregar autores:', erro);
+        renderizarTabela([]);
+        AdminToast.error('Erro de conexão. Verifique se o servidor está rodando.');
+    }
+}
+
+// ── Renderizar tabela ───────────────────────────────────────
+function renderizarTabela(autores) {
+    const tbody = document.getElementById('autoresTabela');
+
+    if (!autores.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4">
+                    <div class="empty-state-box">
+                        <div class="empty-icon">📝</div>
+                        <p class="empty-title">Nenhum autor encontrado</p>
+                        <p class="empty-sub">Cadastre o primeiro autor clicando em "Novo Autor".</p>
+                    </div>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    tbody.innerHTML = autores.map((autor, idx) => {
+        const inicial = (autor.Nome || '?')[0].toUpperCase();
+        const cor     = idx % 8;
+        const avatar  = autor.Foto
+            ? `<div class="autor-avatar" data-color="${cor}"><img src="${autor.Foto}" alt="${autor.Nome}" onerror="this.parentElement.innerHTML='${inicial}'; this.parentElement.removeAttribute('style')"></div>`
+            : `<div class="autor-avatar" data-color="${cor}">${inicial}</div>`;
+
+        return `
+        <tr>
+            <td data-label="Autor">
+                <div class="autor-cell">
+                    ${avatar}
+                    <span class="autor-nome">${autor.Nome}</span>
+                </div>
+            </td>
+            <td data-label="Nacionalidade">${autor.Nacionalidade || '—'}</td>
+            <td data-label="Livros"><span class="badge-livros">${autor.TotalLivros || 0}</span></td>
+            <td data-label="Ações">
+                <div class="acoes-cell">
+                    <button class="btn btn-secondary btn-sm" onclick="abrirModalEdicao(${autor.Autor_id})">✏️ Editar</button>
+                    <button class="btn btn-danger btn-sm" onclick="excluirAutor(${autor.Autor_id}, '${autor.Nome.replace(/'/g, "\\'")}')">🗑️ Excluir</button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// ── Filtrar autores localmente ──────────────────────────────
+function filtrarAutores() {
+    const termo = document.getElementById('buscaAutor').value.toLowerCase().trim();
+    if (!termo) { renderizarTabela(todosAutores); return; }
+
+    const filtrados = todosAutores.filter(a =>
+        (a.Nome || '').toLowerCase().includes(termo) ||
+        (a.Nacionalidade || '').toLowerCase().includes(termo)
+    );
+    renderizarTabela(filtrados);
+}
+
+// ── Abrir modal de cadastro ─────────────────────────────────
+function abrirModalCadastro() {
+    document.getElementById('modalTitulo').textContent = 'Novo Autor';
+    document.getElementById('autorIdEdicao').value    = '';
+    limparFormularioModal();
+    document.getElementById('modalOverlay').classList.add('open');
+}
+
+// ── Abrir modal de edição ───────────────────────────────────
+async function abrirModalEdicao(id) {
+    try {
+        const res   = await fetch(`${API_URL}/autor/${id}`);
+        const autor = await res.json();
+
+        if (!res.ok) { AdminToast.error(autor.error || 'Erro ao carregar autor.'); return; }
+
+        document.getElementById('modalTitulo').textContent = 'Editar Autor';
+        document.getElementById('autorIdEdicao').value     = autor.Autor_id;
+        document.getElementById('inputNome').value         = autor.Nome || '';
+        document.getElementById('inputNacionalidade').value= autor.Nacionalidade || '';
+        document.getElementById('inputBiografia').value    = autor.Biografia || '';
+
+        if (autor.DataNascimento) {
+            document.getElementById('inputDataNascimento').value = autor.DataNascimento.substring(0, 10);
+        } else {
+            document.getElementById('inputDataNascimento').value = '';
+        }
+
+        if (autor.Foto) {
+            document.getElementById('inputFoto').value = autor.Foto;
+            if (autor.Foto.startsWith('http') || autor.Foto.startsWith('//')) {
+                setFotoMode('url');
+                document.getElementById('inputFotoUrl').value = autor.Foto;
+            }
+            mostrarPreviewFoto(autor.Foto);
+        } else {
+            removerFoto();
+        }
+
+        document.getElementById('modalOverlay').classList.add('open');
+    } catch (erro) {
+        console.error('Erro ao carregar autor para edição:', erro);
+        AdminToast.error('Erro de conexão ao carregar autor.');
+    }
+}
+
+// ── Salvar autor (POST ou PUT) ──────────────────────────────
+async function salvarAutor() {
+    const idEdicao = document.getElementById('autorIdEdicao').value;
+    const nome     = document.getElementById('inputNome').value.trim();
+
+    if (!nome || nome.length < 2) {
+        AdminToast.error('Nome do autor é obrigatório e deve ter no mínimo 2 caracteres.');
+        return;
+    }
+
+    const dados = {
+        Nome:          nome,
+        Nacionalidade: document.getElementById('inputNacionalidade').value.trim() || null,
+        DataNascimento:document.getElementById('inputDataNascimento').value || null,
+        Biografia:     document.getElementById('inputBiografia').value.trim() || null,
+        Foto:          document.getElementById('inputFoto').value || null
+    };
+
+    const url    = idEdicao ? `${API_URL}/autor/${idEdicao}` : `${API_URL}/autor`;
+    const metodo = idEdicao ? 'PUT' : 'POST';
+
+    try {
+        const res  = await fetch(url, {
+            method:  metodo,
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(dados)
+        });
+        const json = await res.json();
+
+        if (!res.ok) {
+            AdminToast.error(json.error || 'Erro ao salvar autor.');
+            return;
+        }
+
+        AdminToast.success(idEdicao ? 'Autor atualizado com sucesso!' : 'Autor cadastrado com sucesso!');
+        fecharModal();
+        await carregarAutores();
+    } catch (erro) {
+        console.error('Erro ao salvar autor:', erro);
+        AdminToast.error('Erro de conexão. Verifique se o servidor está rodando.');
+    }
+}
+
+// ── Excluir autor ───────────────────────────────────────────
+function excluirAutor(id, nome) {
+    idExcluindo = id;
+    document.getElementById('confirmNome').textContent = nome;
+    document.getElementById('confirmOverlay').classList.add('open');
+}
+
+async function confirmarExclusao() {
+    if (!idExcluindo) return;
+
+    try {
+        const res  = await fetch(`${API_URL}/autor/${idExcluindo}`, { method: 'DELETE' });
+        const json = await res.json();
+
+        if (!res.ok) {
+            AdminToast.error(json.error || 'Erro ao excluir autor.');
+            fecharConfirm();
+            return;
+        }
+
+        AdminToast.success('Autor excluído com sucesso!');
+        fecharConfirm();
+        await carregarAutores();
+    } catch (erro) {
+        console.error('Erro ao excluir autor:', erro);
+        AdminToast.error('Erro de conexão. Verifique se o servidor está rodando.');
+    }
+}
+
+// ── Fechar modais ───────────────────────────────────────────
+function fecharModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    limparFormularioModal();
+}
+
+function fecharConfirm() {
+    document.getElementById('confirmOverlay').classList.remove('open');
+    idExcluindo = null;
+}
+
+function limparFormularioModal() {
+    document.getElementById('autorIdEdicao').value     = '';
+    document.getElementById('inputNome').value         = '';
+    document.getElementById('inputNacionalidade').value= '';
+    document.getElementById('inputDataNascimento').value= '';
+    document.getElementById('inputBiografia').value    = '';
+    removerFoto();
+    setFotoMode('url');
+}
+
+// ── Gerenciamento da foto ───────────────────────────────────
+function setFotoMode(modo) {
+    const urlEl    = document.getElementById('fotoUrlMode');
+    const arquivoEl= document.getElementById('fotoArquivoMode');
+    const tabUrl   = document.getElementById('tabFotoUrl');
+    const tabArq   = document.getElementById('tabFotoArquivo');
+
+    if (modo === 'url') {
+        urlEl.style.display     = '';
+        arquivoEl.style.display = 'none';
+        tabUrl.classList.add('active');
+        tabArq.classList.remove('active');
+        document.getElementById('inputFotoArquivo').value = '';
+        const urlVal = document.getElementById('inputFotoUrl').value.trim();
+        document.getElementById('inputFoto').value = urlVal;
+        if (!urlVal) ocultarPreviewFoto();
+    } else {
+        urlEl.style.display     = 'none';
+        arquivoEl.style.display = '';
+        tabArq.classList.add('active');
+        tabUrl.classList.remove('active');
+        document.getElementById('inputFotoUrl').value = '';
+        document.getElementById('inputFoto').value    = '';
+        ocultarPreviewFoto();
+    }
+}
+
+function previewFotoUrl(val) {
+    const v = val.trim();
+    if (v) { mostrarPreviewFoto(v); document.getElementById('inputFoto').value = v; }
+    else   { ocultarPreviewFoto(); document.getElementById('inputFoto').value = ''; }
+}
+
+function previewFotoArquivo(input) {
+    const arquivo = input.files[0];
+    if (!arquivo) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        mostrarPreviewFoto(e.target.result);
+        document.getElementById('inputFoto').value = e.target.result;
+    };
+    reader.readAsDataURL(arquivo);
+}
+
+function mostrarPreviewFoto(src) {
+    document.getElementById('fotoPreviewImg').src = src;
+    document.getElementById('fotoPreview').classList.add('visible');
+}
+
+function ocultarPreviewFoto() {
+    document.getElementById('fotoPreview').classList.remove('visible');
+    document.getElementById('fotoPreviewImg').src = '';
+}
+
+function removerFoto() {
+    ocultarPreviewFoto();
+    document.getElementById('inputFoto').value     = '';
+    document.getElementById('inputFotoUrl').value  = '';
+    document.getElementById('inputFotoArquivo').value = '';
+}
+
+// ── Fechar modal ao clicar fora ─────────────────────────────
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) fecharModal();
+});
+document.getElementById('confirmOverlay').addEventListener('click', function(e) {
+    if (e.target === this) fecharConfirm();
+});
+</script>
 </body>
 </html>

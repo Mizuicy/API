@@ -14,11 +14,26 @@ export function validarUsuario(body) {
     }
     return null;
 }
+
 export function validarLivro(body) {
     const { Nome } = body;
 
     if (!Nome || Nome.trim().length < 2) {
         return 'Nome do livro é obrigatório e deve ter no mínimo 2 caracteres.';
+    }
+
+    return null;
+}
+
+export function validarAutor(body) {
+    const { Nome } = body;
+
+    if (!Nome || Nome.trim().length < 2) {
+        return 'Nome do autor é obrigatório e deve ter no mínimo 2 caracteres.';
+    }
+
+    if (Nome.trim().length > 255) {
+        return 'Nome do autor deve ter no máximo 255 caracteres.';
     }
 
     return null;

@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import dbconfig from './db/dbconfig.js';
-import { validarUsuario, validarLivro } from './utils/validacoes.js';
+import { validarUsuario, validarLivro, validarAutor } from './utils/validacoes.js';
 import { validateEmail, generateAuthCode, sendAuthEmail, sendWelcomeEmail, sendLoanExpiryEmail } from './utils/emailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1670,6 +1670,151 @@ cron.schedule('0 7 * * *', async () => {
     });
 });
 
+// ══════════════════════════════════════════════════════════════
+//  ROTAS DE AUTOR
+// ══════════════════════════════════════════════════════════════
+
+// GET /autor — lista todos os autores ordenados por Nome, com contagem de livros
+app.get('/autor', (req, res) => {
+    const sql = `
+        SELECT a.*, COUNT(l.Livro_id) AS TotalLivros
+        FROM Autor a
+        LEFT JOIN Livro l ON l.Autor_id = a.Autor_id
+        GROUP BY a.Autor_id
+        ORDER BY a.Nome ASC
+    `;
+    dbconfig.query(sql, (err, results) => {
+        handleQuery(res, err, results);
+    });
+});
+
+// GET /autor/busca?q=termo — busca por nome para autocomplete
+app.get('/autor/busca', (req, res) => {
+    const q = req.query.q || '';
+    if (q.trim().length < 2) return res.json([]);
+
+    const sql = `
+        SELECT Autor_id, Nome, Foto
+        FROM Autor
+        WHERE Nome LIKE ?
+        ORDER BY Nome ASC
+        LIMIT 10
+    `;
+    dbconfig.query(sql, [`%${q}%`], (err, results) => {
+        handleQuery(res, err, results);
+    });
+});
+
+// GET /autor/:id — busca autor por ID com lista de livros vinculados
+app.get('/autor/:id', (req, res) => {
+    const { id } = req.params;
+    const sql = `
+        SELECT a.*, l.Livro_id, l.Nome AS NomeLivro, l.Imagem AS CapaLivro,
+               l.AnoPublicacao, l.Categoria
+        FROM Autor a
+        LEFT JOIN Livro l ON l.Autor_id = a.Autor_id
+        WHERE a.Autor_id = ?
+    `;
+    dbconfig.query(sql, [id], (err, results) => {
+        if (err) { console.error('Erro ao buscar autor:', err); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
+        if (!results || results.length === 0) return res.status(404).json({ error: 'Autor não encontrado.' });
+        // Agrupa livros no objeto do autor
+        const autor = {
+            Autor_id:      results[0].Autor_id,
+            Nome:          results[0].Nome,
+            Nacionalidade: results[0].Nacionalidade,
+            DataNascimento:results[0].DataNascimento,
+            Biografia:     results[0].Biografia,
+            Foto:          results[0].Foto,
+            CriadoEm:      results[0].CriadoEm,
+            Livros: results
+                .filter(r => r.Livro_id)
+                .map(r => ({
+                    Livro_id:     r.Livro_id,
+                    Nome:         r.NomeLivro,
+                    Imagem:       r.CapaLivro,
+                    AnoPublicacao:r.AnoPublicacao,
+                    Categoria:    r.Categoria
+                }))
+        };
+        res.json(autor);
+    });
+});
+
+// POST /autor — cadastra novo autor
+app.post('/autor', (req, res) => {
+    const erro = validarAutor(req.body);
+    if (erro) return res.status(400).json({ error: erro });
+
+    const { Nome, Nacionalidade = null, DataNascimento = null, Biografia = null, Foto = null } = req.body;
+    const nomeTrimmed = Nome.trim();
+
+    // Verificar duplicata
+    dbconfig.query('SELECT Autor_id FROM Autor WHERE Nome = ?', [nomeTrimmed], (errDup, dup) => {
+        if (errDup) { console.error('Erro ao verificar duplicata de autor:', errDup); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
+        if (dup.length > 0) return res.status(409).json({ error: 'Já existe um autor com esse nome.' });
+
+        const sql = 'INSERT INTO Autor (Nome, Nacionalidade, DataNascimento, Biografia, Foto) VALUES (?, ?, ?, ?, ?)';
+        const values = [nomeTrimmed, Nacionalidade || null, DataNascimento || null, Biografia || null, Foto || null];
+
+        dbconfig.query(sql, values, (err, result) => {
+            if (err) { console.error('Erro ao cadastrar autor:', err); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
+            res.status(201).json({ Autor_id: result.insertId, Nome: nomeTrimmed, Nacionalidade, DataNascimento, Biografia, Foto });
+        });
+    });
+});
+
+// PUT /autor/:id — atualiza autor
+app.put('/autor/:id', (req, res) => {
+    const { id } = req.params;
+    const erro = validarAutor(req.body);
+    if (erro) return res.status(400).json({ error: erro });
+
+    const { Nome, Nacionalidade = null, DataNascimento = null, Biografia = null, Foto = null } = req.body;
+    const nomeTrimmed = Nome.trim();
+
+    // Verificar se o autor existe
+    dbconfig.query('SELECT Autor_id FROM Autor WHERE Autor_id = ?', [id], (errExiste, existe) => {
+        if (errExiste) { console.error('Erro ao verificar autor:', errExiste); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
+        if (!existe || existe.length === 0) return res.status(404).json({ error: 'Autor não encontrado.' });
+
+        // Verificar duplicata excluindo o próprio registro
+        dbconfig.query('SELECT Autor_id FROM Autor WHERE Nome = ? AND Autor_id != ?', [nomeTrimmed, id], (errDup, dup) => {
+            if (errDup) { console.error('Erro ao verificar duplicata de autor:', errDup); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
+            if (dup.length > 0) return res.status(409).json({ error: 'Já existe outro autor com esse nome.' });
+
+            const sql = 'UPDATE Autor SET Nome = ?, Nacionalidade = ?, DataNascimento = ?, Biografia = ?, Foto = ? WHERE Autor_id = ?';
+            const values = [nomeTrimmed, Nacionalidade || null, DataNascimento || null, Biografia || null, Foto || null, id];
+
+            dbconfig.query(sql, values, (err) => {
+                if (err) { console.error('Erro ao atualizar autor:', err); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
+                res.json({ Autor_id: parseInt(id), Nome: nomeTrimmed, Nacionalidade, DataNascimento, Biografia, Foto });
+            });
+        });
+    });
+});
+
+// DELETE /autor/:id — exclui autor (verifica livros vinculados antes)
+app.delete('/autor/:id', (req, res) => {
+    const { id } = req.params;
+
+    // Verificar se o autor existe
+    dbconfig.query('SELECT Autor_id, Nome FROM Autor WHERE Autor_id = ?', [id], (errExiste, existe) => {
+        if (errExiste) { console.error('Erro ao verificar autor:', errExiste); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
+        if (!existe || existe.length === 0) return res.status(404).json({ error: 'Autor não encontrado.' });
+
+        // Verificar livros vinculados
+        dbconfig.query('SELECT COUNT(*) AS total FROM Livro WHERE Autor_id = ?', [id], (errCount, count) => {
+            if (errCount) { console.error('Erro ao verificar livros do autor:', errCount); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
+            if (count[0].total > 0) return res.status(409).json({ error: 'Não é possível excluir: autor possui livros cadastrados.' });
+
+            dbconfig.query('DELETE FROM Autor WHERE Autor_id = ?', [id], (err) => {
+                if (err) { console.error('Erro ao excluir autor:', err); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
+                res.json({ mensagem: 'Autor excluído com sucesso.' });
+            });
+        });
+    });
+});
 app.listen(3000, () => {
     console.log('✅ Server listening on port 3000');
     console.log('EMAIL_USER:', process.env.EMAIL_USER ? '✅ configurado' : '❌ NÃO configurado');
