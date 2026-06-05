@@ -225,7 +225,7 @@ body {
 .livro-imagem {
     width: 100%;
     height: 250px;
-    object-fit: cover;
+    object-fit: contain;   /* ALTERADO: era "cover" — contém a imagem inteira sem cortes */
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
@@ -376,10 +376,12 @@ body {
 
 .modal-content {
     background-color: white;
-    padding: 30px;
+    padding: 22px;          /* ALTERADO: era 30px — reduz ~27% do espaço interno */
     border-radius: 8px;
-    max-width: 600px;
+    max-width: 560px;       /* ALTERADO: era 600px — levemente mais compacto */
     width: 90%;
+    max-height: 85vh;       /* NOVO: limita altura para não ultrapassar a tela */
+    overflow-y: auto;       /* NOVO: scroll suave quando o conteúdo ultrapassa */
     position: relative;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     animation: slideIn 0.3s ease;
@@ -414,14 +416,15 @@ body {
 
 .detalhes-conteudo {
     display: grid;
-    gap: 15px;
+    gap: 11px;    /* ALTERADO: era 15px — reduz espaçamento entre seções */
 }
 
 .detalhes-conteudo img {
     width: 100%;
-    max-height: 300px;
-    object-fit: cover;
+    max-height: 230px;      /* ALTERADO: era 300px — ~23% mais compacto */
+    object-fit: contain;    /* ALTERADO: era "cover" — exibe a capa inteira sem cortes */
     border-radius: 4px;
+    background: #f0f0f0;    /* NOVO: fundo neutro para letterbox caso a imagem seja menor */
 }
 
 .detalhes-titulo {
@@ -433,8 +436,8 @@ body {
 .detalhes-item {
     display: grid;
     grid-template-columns: 150px 1fr;
-    gap: 15px;
-    padding-bottom: 10px;
+    gap: 12px;           /* ALTERADO: era 15px */
+    padding-bottom: 7px; /* ALTERADO: era 10px */
     border-bottom: 1px solid #eee;
 }
 
@@ -448,7 +451,7 @@ body {
 }
 
 .detalhes-resumo {
-    margin-top: 15px;
+    margin-top: 10px;  /* ALTERADO: era 15px */
     line-height: 1.6;
     color: #555;
 }
@@ -694,6 +697,10 @@ body, .header, .form-section, .list-section, input, select, textarea, table, th,
 [data-theme="dark"] .modal-footer {
     border-color: var(--border);
     color: var(--text);
+}
+/* NOVO: fundo escuro para área letterbox da capa nos detalhes */
+[data-theme="dark"] .detalhes-conteudo img {
+    background: #1e1e2e;
 }
 
 /* ── TOAST ── */

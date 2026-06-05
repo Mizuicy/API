@@ -193,7 +193,7 @@ a { text-decoration: none; color: inherit; }
 .book-cover {
     width: 100%;
     aspect-ratio: 3/4;
-    object-fit: cover;
+    object-fit: contain;   /* ALTERADO: era "cover" — exibe a capa inteira sem cortes */
     background: var(--border);
     display: block;
 }
