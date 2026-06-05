@@ -3,7 +3,7 @@
  * Sistema de notificações moderno para o painel administrativo.
  * Exibe toasts no canto inferior direito com suporte a dark mode,
  * animações suaves, ícones por tipo e fechamento manual/automático.
- * 
+ *
  * API pública:
  *   AdminToast.show(mensagem, tipo, duracao)
  *   AdminToast.success(mensagem)
@@ -29,14 +29,9 @@
         info:    `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`
     };
 
-    const COLORS = {
-        success: { bg: '#16a34a', light: '#f0fdf4', border: '#bbf7d0', text: '#14532d', icon: '#16a34a' },
-        error:   { bg: '#dc2626', light: '#fef2f2', border: '#fecaca', text: '#7f1d1d', icon: '#dc2626' },
-        warning: { bg: '#d97706', light: '#fffbeb', border: '#fde68a', text: '#78350f', icon: '#d97706' },
-        info:    { bg: '#2563eb', light: '#eff6ff', border: '#bfdbfe', text: '#1e3a8a', icon: '#2563eb' }
-    };
-
+    /* Cores por tipo — light e dark mode via CSS vars do projeto Kairos */
     const CSS = `
+        /* ── Container ── */
         #admin-toast-container {
             position: fixed;
             bottom: 24px;
@@ -50,25 +45,29 @@
             width: calc(100vw - 48px);
         }
 
+        /* ── Toast base ── */
         .admin-toast {
             pointer-events: all;
             display: flex;
             align-items: flex-start;
             gap: 12px;
             padding: 14px 16px;
-            border-radius: 12px;
-            border: 1px solid transparent;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: var(--radius-lg, 12px);
+            border-left: 4px solid transparent;
+            box-shadow: var(--shadow-lg, 0 8px 30px rgba(0,0,0,.15));
             font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-size: 0.875rem;
-            line-height: 1.45;
-            background: #fff;
-            color: #1a1a2e;
+            line-height: 1.5;
+            background: var(--surface, #ffffff);
+            color: var(--text, #1a1a1a);
             position: relative;
             transform: translateX(110%);
             opacity: 0;
-            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
-                        opacity 0.3s ease;
+            transition:
+                transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.3s ease,
+                background-color 0.25s ease,
+                border-color 0.25s ease;
             cursor: default;
             min-width: 0;
             overflow: hidden;
@@ -82,315 +81,273 @@
         .admin-toast.at-leaving {
             transform: translateX(110%);
             opacity: 0;
-            transition: transform 0.28s cubic-bezier(0.55, 0, 1, 0.45),
-                        opacity 0.25s ease;
+            transition:
+                transform 0.28s cubic-bezier(0.55, 0, 1, 0.45),
+                opacity 0.25s ease;
         }
 
+        /* ── Tipos — borda e ícone ── */
+        .admin-toast.at-success { border-left-color: var(--success, #16a34a); }
+        .admin-toast.at-error   { border-left-color: var(--error,   #dc2626); }
+        .admin-toast.at-warning { border-left-color: var(--warning,  #d97706); }
+        .admin-toast.at-info    { border-left-color: var(--purple,   #5b4cf5); }
+
+        /* ── Ícone ── */
         .admin-toast-icon {
             flex-shrink: 0;
             width: 36px;
             height: 36px;
-            border-radius: 9px;
+            border-radius: var(--radius-md, 8px);
             display: flex;
             align-items: center;
             justify-content: center;
             margin-top: 1px;
         }
 
+        .admin-toast.at-success .admin-toast-icon { background: var(--success-bg, #f0fdf4); color: var(--success, #16a34a); }
+        .admin-toast.at-error   .admin-toast-icon { background: var(--error-bg,   #fef2f2); color: var(--error,   #dc2626); }
+        .admin-toast.at-warning .admin-toast-icon { background: var(--warning-bg, #fffbeb); color: var(--warning,  #d97706); }
+        .admin-toast.at-info    .admin-toast-icon { background: var(--purple-soft,#ede9fe); color: var(--purple,   #5b4cf5); }
+
+        /* ── Corpo ── */
         .admin-toast-body {
             flex: 1;
             min-width: 0;
-            padding-right: 8px;
         }
 
         .admin-toast-title {
             font-weight: 700;
-            font-size: 0.80rem;
-            letter-spacing: 0.03em;
+            font-size: 0.8rem;
             text-transform: uppercase;
+            letter-spacing: 0.05em;
             margin-bottom: 2px;
-            opacity: 0.75;
+            color: var(--text, #1a1a1a);
         }
 
+        .admin-toast.at-success .admin-toast-title { color: var(--success, #16a34a); }
+        .admin-toast.at-error   .admin-toast-title { color: var(--error,   #dc2626); }
+        .admin-toast.at-warning .admin-toast-title { color: var(--warning,  #d97706); }
+        .admin-toast.at-info    .admin-toast-title { color: var(--purple,   #5b4cf5); }
+
         .admin-toast-msg {
-            font-weight: 500;
-            font-size: 0.875rem;
+            color: var(--text-mid, #333);
             word-break: break-word;
         }
 
+        /* ── Fechar ── */
         .admin-toast-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
+            flex-shrink: 0;
             background: none;
             border: none;
             cursor: pointer;
-            padding: 3px;
-            border-radius: 5px;
-            color: inherit;
-            opacity: 0.4;
+            color: var(--muted, #6b6b6b);
+            padding: 2px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.15s, background 0.15s;
-            line-height: 1;
+            transition: color 0.15s, background 0.15s;
+            margin-top: 2px;
         }
 
         .admin-toast-close:hover {
-            opacity: 0.9;
-            background: rgba(0,0,0,0.07);
+            color: var(--text, #1a1a1a);
+            background: var(--border, #e4e4e4);
         }
 
+        /* ── Barra de progresso ── */
         .admin-toast-progress {
             position: absolute;
             bottom: 0;
             left: 0;
             height: 3px;
-            border-radius: 0 0 12px 12px;
             width: 100%;
-            transform-origin: left;
+            border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
             animation: at-progress linear forwards;
+            opacity: 0.6;
         }
+
+        .admin-toast.at-success .admin-toast-progress { background: var(--success, #16a34a); }
+        .admin-toast.at-error   .admin-toast-progress { background: var(--error,   #dc2626); }
+        .admin-toast.at-warning .admin-toast-progress { background: var(--warning,  #d97706); }
+        .admin-toast.at-info    .admin-toast-progress { background: var(--purple,   #5b4cf5); }
 
         @keyframes at-progress {
-            from { transform: scaleX(1); }
-            to   { transform: scaleX(0); }
+            from { transform: scaleX(1); transform-origin: left; }
+            to   { transform: scaleX(0); transform-origin: left; }
         }
 
-        /* Light mode colors por tipo */
-        .admin-toast.at-success {
-            background: #f0fdf4;
-            border-color: #bbf7d0;
-            color: #14532d;
-        }
-        .admin-toast.at-success .admin-toast-icon { background: #dcfce7; color: #16a34a; }
-        .admin-toast.at-success .admin-toast-progress { background: #16a34a; }
-
-        .admin-toast.at-error {
-            background: #fef2f2;
-            border-color: #fecaca;
-            color: #7f1d1d;
-        }
-        .admin-toast.at-error .admin-toast-icon { background: #fee2e2; color: #dc2626; }
-        .admin-toast.at-error .admin-toast-progress { background: #dc2626; }
-
-        .admin-toast.at-warning {
-            background: #fffbeb;
-            border-color: #fde68a;
-            color: #78350f;
-        }
-        .admin-toast.at-warning .admin-toast-icon { background: #fef3c7; color: #d97706; }
-        .admin-toast.at-warning .admin-toast-progress { background: #d97706; }
-
-        .admin-toast.at-info {
-            background: #eff6ff;
-            border-color: #bfdbfe;
-            color: #1e3a8a;
-        }
-        .admin-toast.at-info .admin-toast-icon { background: #dbeafe; color: #2563eb; }
-        .admin-toast.at-info .admin-toast-progress { background: #2563eb; }
-
-        /* Dark mode */
-        [data-theme="dark"] .admin-toast.at-success {
-            background: #052e16;
-            border-color: #166534;
-            color: #bbf7d0;
-        }
-        [data-theme="dark"] .admin-toast.at-success .admin-toast-icon { background: #14532d; color: #4ade80; }
-
-        [data-theme="dark"] .admin-toast.at-error {
-            background: #2d0a0a;
-            border-color: #991b1b;
-            color: #fecaca;
-        }
-        [data-theme="dark"] .admin-toast.at-error .admin-toast-icon { background: #450a0a; color: #f87171; }
-
-        [data-theme="dark"] .admin-toast.at-warning {
-            background: #2d1b00;
-            border-color: #92400e;
-            color: #fde68a;
-        }
-        [data-theme="dark"] .admin-toast.at-warning .admin-toast-icon { background: #3d1a00; color: #fbbf24; }
-
-        [data-theme="dark"] .admin-toast.at-info {
-            background: #0c1a3d;
-            border-color: #1e3a8a;
-            color: #bfdbfe;
-        }
-        [data-theme="dark"] .admin-toast.at-info .admin-toast-icon { background: #1e3a8a; color: #93c5fd; }
-
-        [data-theme="dark"] .admin-toast.at-success .admin-toast-close,
-        [data-theme="dark"] .admin-toast.at-error .admin-toast-close,
-        [data-theme="dark"] .admin-toast.at-warning .admin-toast-close,
-        [data-theme="dark"] .admin-toast.at-info .admin-toast-close {
-            color: inherit;
-        }
-
-        [data-theme="dark"] .admin-toast-close:hover {
-            background: rgba(255,255,255,0.1);
-        }
-
-        /* Dialog (confirm / prompt) overlay */
+        /* ── Dialog overlay ── */
         #admin-dialog-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.45);
-            backdrop-filter: blur(2px);
-            z-index: ${Z_INDEX + 10};
+            z-index: ${Z_INDEX + 1};
+            background: rgba(0, 0, 0, 0.55);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 16px;
-            animation: at-overlay-in 0.2s ease;
+            animation: at-fade-in 0.18s ease;
+            backdrop-filter: blur(2px);
         }
 
-        @keyframes at-overlay-in {
+        @keyframes at-fade-in {
             from { opacity: 0; }
             to   { opacity: 1; }
         }
 
         .admin-dialog-box {
-            background: #fff;
-            border-radius: 16px;
-            padding: 28px 28px 24px;
+            background: var(--surface, #ffffff);
+            border-radius: var(--radius-xl, 14px);
+            padding: 32px 28px 24px;
             max-width: 420px;
             width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            animation: at-dialog-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: var(--shadow-xl, 0 10px 30px rgba(0,0,0,.25));
+            text-align: center;
+            animation: at-pop-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid var(--border, #e4e4e4);
         }
 
-        @keyframes at-dialog-in {
-            from { opacity: 0; transform: scale(0.9) translateY(10px); }
-            to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        [data-theme="dark"] .admin-dialog-box {
-            background: #1a1a2e;
-            color: #e8e8f0;
+        @keyframes at-pop-in {
+            from { transform: scale(0.88); opacity: 0; }
+            to   { transform: scale(1);    opacity: 1; }
         }
 
         .admin-dialog-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 16px;
+            margin: 0 auto 16px;
         }
 
-        .admin-dialog-icon.at-warning { background: #fef3c7; color: #d97706; }
-        .admin-dialog-icon.at-error   { background: #fee2e2; color: #dc2626; }
-        .admin-dialog-icon.at-info    { background: #dbeafe; color: #2563eb; }
-        .admin-dialog-icon.at-success { background: #dcfce7; color: #16a34a; }
+        .admin-dialog-icon.at-success { background: var(--success-bg, #f0fdf4); color: var(--success, #16a34a); }
+        .admin-dialog-icon.at-error   { background: var(--error-bg,   #fef2f2); color: var(--error,   #dc2626); }
+        .admin-dialog-icon.at-warning { background: var(--warning-bg, #fffbeb); color: var(--warning,  #d97706); }
+        .admin-dialog-icon.at-info    { background: var(--purple-soft,#ede9fe); color: var(--purple,   #5b4cf5); }
 
-        [data-theme="dark"] .admin-dialog-icon.at-warning { background: #3d1a00; color: #fbbf24; }
-        [data-theme="dark"] .admin-dialog-icon.at-error   { background: #450a0a; color: #f87171; }
-        [data-theme="dark"] .admin-dialog-icon.at-info    { background: #1e3a8a; color: #93c5fd; }
-        [data-theme="dark"] .admin-dialog-icon.at-success { background: #14532d; color: #4ade80; }
+        .admin-dialog-icon svg { width: 26px; height: 26px; }
 
         .admin-dialog-title {
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             font-weight: 700;
-            color: #1a1a2e;
+            color: var(--text, #1a1a1a);
             margin-bottom: 8px;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
-
-        [data-theme="dark"] .admin-dialog-title { color: #e8e8f0; }
 
         .admin-dialog-msg {
             font-size: 0.9rem;
-            color: #6b7280;
-            line-height: 1.55;
+            color: var(--text-mid, #333);
             margin-bottom: 20px;
+            line-height: 1.55;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
-
-        [data-theme="dark"] .admin-dialog-msg { color: #9ca3af; }
 
         .admin-dialog-input {
             width: 100%;
             padding: 10px 14px;
-            border: 1.5px solid #e4e4e4;
-            border-radius: 9px;
+            border: 1.5px solid var(--border, #e4e4e4);
+            border-radius: var(--radius-md, 8px);
+            background: var(--bg, #f0f0f0);
+            color: var(--text, #1a1a1a);
             font-size: 0.9rem;
-            font-family: inherit;
-            background: #f9f9fb;
-            color: #1a1a2e;
-            margin-bottom: 20px;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             outline: none;
-            box-sizing: border-box;
+            margin-bottom: 20px;
             transition: border-color 0.2s;
+            box-sizing: border-box;
         }
 
-        .admin-dialog-input:focus { border-color: #667eea; }
-
-        [data-theme="dark"] .admin-dialog-input {
-            background: #13131f;
-            border-color: #2e2e42;
-            color: #e8e8f0;
+        .admin-dialog-input:focus {
+            border-color: var(--purple, #5b4cf5);
+            box-shadow: 0 0 0 3px var(--purple-soft, #ede9fe);
         }
-
-        [data-theme="dark"] .admin-dialog-input:focus { border-color: #667eea; }
 
         .admin-dialog-actions {
             display: flex;
             gap: 10px;
-            justify-content: flex-end;
+            justify-content: center;
         }
 
         .admin-dialog-btn {
-            padding: 9px 20px;
-            border-radius: 9px;
-            font-size: 0.875rem;
+            flex: 1;
+            padding: 10px 20px;
+            border-radius: var(--radius-md, 8px);
+            font-size: 0.9rem;
             font-weight: 600;
-            font-family: inherit;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             cursor: pointer;
-            border: none;
-            transition: opacity 0.15s, transform 0.1s;
+            border: 1.5px solid transparent;
+            transition: all 0.18s ease;
+            max-width: 180px;
         }
-
-        .admin-dialog-btn:active { transform: scale(0.97); }
 
         .admin-dialog-btn-cancel {
-            background: #f3f4f6;
-            color: #374151;
+            background: var(--bg, #f0f0f0);
+            color: var(--text-mid, #333);
+            border-color: var(--border, #e4e4e4);
         }
 
-        .admin-dialog-btn-cancel:hover { background: #e5e7eb; }
-
-        [data-theme="dark"] .admin-dialog-btn-cancel {
-            background: #2e2e42;
-            color: #d1d5db;
+        .admin-dialog-btn-cancel:hover {
+            background: var(--border, #e4e4e4);
         }
-
-        [data-theme="dark"] .admin-dialog-btn-cancel:hover { background: #3a3a54; }
 
         .admin-dialog-btn-confirm {
-            background: #dc2626;
+            background: var(--purple, #5b4cf5);
             color: #fff;
+            border-color: var(--purple, #5b4cf5);
         }
 
-        .admin-dialog-btn-confirm:hover { background: #b91c1c; }
+        .admin-dialog-btn-confirm:hover {
+            background: var(--purple-dark, #4b19e6);
+            border-color: var(--purple-dark, #4b19e6);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(91, 76, 245, 0.35);
+        }
+
+        .admin-dialog-btn-confirm.at-danger {
+            background: var(--error, #dc2626);
+            border-color: var(--error, #dc2626);
+        }
+
+        .admin-dialog-btn-confirm.at-danger:hover {
+            background: #b91c1c;
+            border-color: #b91c1c;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+        }
 
         .admin-dialog-btn-confirm.at-primary {
-            background: #667eea;
+            background: var(--purple, #5b4cf5);
+            border-color: var(--purple, #5b4cf5);
         }
 
-        .admin-dialog-btn-confirm.at-primary:hover { background: #4f63d2; }
-
-        /* Mobile responsivo */
+        /* ── Mobile ── */
         @media (max-width: 480px) {
             #admin-toast-container {
                 bottom: 16px;
-                right: 12px;
-                left: 12px;
+                right: 16px;
+                left: 16px;
                 width: auto;
                 max-width: none;
             }
 
             .admin-toast {
                 width: 100%;
+            }
+
+            .admin-dialog-box {
+                padding: 24px 18px 18px;
+            }
+
+            .admin-dialog-actions {
+                flex-direction: column;
+            }
+
+            .admin-dialog-btn {
+                max-width: none;
             }
         }
     `;
@@ -424,15 +381,18 @@
         _injectCSS();
         const container = _getContainer();
 
+        const validTypes = ['success', 'error', 'warning', 'info'];
+        if (!validTypes.includes(tipo)) tipo = 'info';
+
         const toast = document.createElement('div');
         toast.className = `admin-toast at-${tipo}`;
         toast.setAttribute('role', 'alert');
         toast.setAttribute('aria-live', 'assertive');
 
         toast.innerHTML = `
-            <div class="admin-toast-icon">${ICONS[tipo] || ICONS.info}</div>
+            <div class="admin-toast-icon">${ICONS[tipo]}</div>
             <div class="admin-toast-body">
-                <div class="admin-toast-title">${TITLES[tipo] || tipo}</div>
+                <div class="admin-toast-title">${TITLES[tipo]}</div>
                 <div class="admin-toast-msg">${mensagem}</div>
             </div>
             <button class="admin-toast-close" title="Fechar" aria-label="Fechar notificação">
@@ -443,16 +403,12 @@
 
         container.appendChild(toast);
 
-        // Trigger enter animation
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                toast.classList.add('at-entering');
-            });
+            requestAnimationFrame(() => toast.classList.add('at-entering'));
         });
 
         let dismissTimer = setTimeout(() => dismiss(toast), duracao);
 
-        // Pause on hover
         toast.addEventListener('mouseenter', () => {
             clearTimeout(dismissTimer);
             const prog = toast.querySelector('.admin-toast-progress');
@@ -479,7 +435,7 @@
         toast.addEventListener('transitionend', () => toast.remove(), { once: true });
     }
 
-    // ── Dialog helpers (substituem confirm() e prompt()) ──────────
+    // ── Dialog helpers ─────────────────────────────────────────────
 
     function _createDialog(tipo, titulo, mensagem, extra) {
         _injectCSS();
@@ -488,17 +444,18 @@
             const overlay = document.createElement('div');
             overlay.id = 'admin-dialog-overlay';
 
-            const isPrompt = extra && extra.type === 'prompt';
+            const isPrompt     = extra && extra.type === 'prompt';
             const confirmLabel = (extra && extra.confirmLabel) || 'Confirmar';
             const cancelLabel  = (extra && extra.cancelLabel)  || 'Cancelar';
-            const confirmClass = (extra && extra.danger) ? '' : 'at-primary';
+            const isDanger     = extra && extra.danger;
+            const confirmClass = isDanger ? 'at-danger' : 'at-primary';
 
             overlay.innerHTML = `
-                <div class="admin-dialog-box" role="dialog" aria-modal="true">
+                <div class="admin-dialog-box" role="dialog" aria-modal="true" aria-labelledby="admin-dlg-title">
                     <div class="admin-dialog-icon at-${tipo}">${ICONS[tipo] || ICONS.info}</div>
-                    <div class="admin-dialog-title">${titulo}</div>
+                    <div class="admin-dialog-title" id="admin-dlg-title">${titulo}</div>
                     <div class="admin-dialog-msg">${mensagem}</div>
-                    ${isPrompt ? `<input class="admin-dialog-input" type="text" placeholder="${extra.placeholder || ''}" id="admin-dialog-input-field" />` : ''}
+                    ${isPrompt ? `<input class="admin-dialog-input" type="text" placeholder="${(extra && extra.placeholder) || ''}" id="admin-dialog-input-field" autocomplete="off" />` : ''}
                     <div class="admin-dialog-actions">
                         <button class="admin-dialog-btn admin-dialog-btn-cancel" id="admin-dlg-cancel">${cancelLabel}</button>
                         <button class="admin-dialog-btn admin-dialog-btn-confirm ${confirmClass}" id="admin-dlg-confirm">${confirmLabel}</button>
@@ -515,16 +472,17 @@
             if (inputEl) {
                 setTimeout(() => inputEl.focus(), 50);
                 inputEl.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') confirmBtn.click();
+                    if (e.key === 'Enter')  confirmBtn.click();
                     if (e.key === 'Escape') cancelBtn.click();
                 });
+            } else {
+                setTimeout(() => confirmBtn.focus(), 50);
             }
 
             function close(result) {
-                overlay.style.animation = 'none';
+                overlay.style.transition = 'opacity 0.18s ease';
                 overlay.style.opacity = '0';
-                overlay.style.transition = 'opacity 0.2s';
-                setTimeout(() => overlay.remove(), 200);
+                setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 200);
                 resolve(result);
             }
 
@@ -538,9 +496,13 @@
                 if (e.target === overlay) close(isPrompt ? null : false);
             });
 
-            document.addEventListener('keydown', function esc(e) {
-                if (e.key === 'Escape') { close(isPrompt ? null : false); document.removeEventListener('keydown', esc); }
-            });
+            function escHandler(e) {
+                if (e.key === 'Escape') {
+                    document.removeEventListener('keydown', escHandler);
+                    close(isPrompt ? null : false);
+                }
+            }
+            document.addEventListener('keydown', escHandler);
         });
     }
 
@@ -565,20 +527,18 @@
     function prompt(mensagem, opcoes = {}) {
         const tipo   = opcoes.tipo   || 'info';
         const titulo = opcoes.titulo || 'Entrada necessária';
-        return _createDialog(tipo, titulo, mensagem, { ...opcoes, type: 'prompt' });
+        return _createDialog(tipo, titulo, mensagem, { ...opcoes, type: 'prompt', danger: false });
     }
 
-    // Atalhos convenientes
+    // Atalhos
     function success(msg, dur) { return show(msg, 'success', dur); }
     function error(msg, dur)   { return show(msg, 'error',   dur); }
     function warning(msg, dur) { return show(msg, 'warning', dur); }
     function info(msg, dur)    { return show(msg, 'info',    dur); }
 
-    // Expõe como global AdminToast
     global.AdminToast = { show, success, error, warning, info, confirm, prompt };
 
-    // Compatibilidade: aliases para funções legadas usadas no projeto
-    // (showToast, mostrarToast, mostraNotificacao) – todos redirecionam pro AdminToast
+    // Alias legado
     global._adminToastCompat = function(msg, tipo) {
         const map = { success: 'success', error: 'error', warning: 'warning', info: 'info' };
         AdminToast.show(msg, map[tipo] || 'info');

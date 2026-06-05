@@ -188,6 +188,8 @@
         });
 
         document.addEventListener('click', (e) => {
+            // Ignora cliques dentro de dialogs do AdminToast/KairosToast
+            if (e.target.closest('#admin-dialog-overlay, #kairos-dialog-overlay')) return;
             const w = document.getElementById('kna-wrapper');
             if (w && !w.contains(e.target)) {
                 document.getElementById('kna-dropdown').classList.remove('kna-open');
@@ -216,6 +218,12 @@
 
     async function aprovarSolicitacao(solicitacaoId, notifId, btnAprovar, btnReprovar) {
         const adminId = sessionStorage.getItem('usuarioId');
+
+        if (!window.AdminToast) {
+            console.error('[KNA] AdminToast não está carregado. Adicione admin-toast.js antes de kairos-notificacoes-admin.js.');
+            return;
+        }
+
         btnAprovar.disabled = true;
         btnReprovar.disabled = true;
         btnAprovar.textContent = 'Aprovando...';
@@ -233,30 +241,48 @@
                 const n = _notificacoes.find(n => n.Notificacao_id === notifId);
                 if (n) n.StatusSolicitacao = 'aprovado';
                 renderizarLista(_notificacoes);
-                AdminToast.success('Solicitação aprovada! Empréstimo criado.');
+                _mostrarToastAdmin('Solicitação aprovada! Empréstimo criado.', 'success');
                 // Dispara evento para páginas que estejam ouvindo
                 document.dispatchEvent(new CustomEvent('kna:solicitacao-decidida', { detail: { solicitacaoId, decisao: 'aprovado' } }));
             } else {
                 btnAprovar.disabled = false;
                 btnReprovar.disabled = false;
                 btnAprovar.textContent = 'Aprovar';
-                AdminToast.error(data.error || 'Erro ao aprovar.');
+                _mostrarToastAdmin(data.error || 'Erro ao aprovar.', 'error');
             }
         } catch (err) {
             btnAprovar.disabled = false;
             btnReprovar.disabled = false;
             btnAprovar.textContent = 'Aprovar';
-            AdminToast.error('Erro de conexão.');
+            _mostrarToastAdmin('Erro de conexão.', 'error');
         }
     }
 
     async function reprovarSolicitacao(solicitacaoId, notifId, btnAprovar, btnReprovar) {
         const adminId = sessionStorage.getItem('usuarioId');
-        const obs = prompt('Motivo da reprovação (opcional):') ;
+
+        if (!window.AdminToast) {
+            console.error('[KNA] AdminToast não está carregado. Adicione admin-toast.js antes de kairos-notificacoes-admin.js.');
+            return;
+        }
+
+        const obs = await AdminToast.prompt(
+            'Informe o motivo da reprovação (opcional):',
+            {
+                titulo: 'Reprovar solicitação',
+                tipo: 'warning',
+                placeholder: 'Ex: exemplar indisponível, prazo excedido...',
+                confirmLabel: 'Reprovar',
+                cancelLabel: 'Cancelar'
+            }
+        );
         if (obs === null) return; // cancelou
-        btnAprovar.disabled  = true;
-        btnReprovar.disabled = true;
-        btnReprovar.textContent = 'Reprovando...';
+
+        const _disable = (btn, text) => { if (btn) { btn.disabled = true; if (text) btn.textContent = text; } };
+        const _enable  = (btn, text) => { if (btn) { btn.disabled = false; if (text) btn.textContent = text; } };
+
+        _disable(btnAprovar);
+        _disable(btnReprovar, 'Reprovando...');
         try {
             const res = await fetch(`${API}/solicitacao/${solicitacaoId}/reprovar`, {
                 method : 'POST',
@@ -269,19 +295,17 @@
                 const n = _notificacoes.find(n => n.Notificacao_id === notifId);
                 if (n) n.StatusSolicitacao = 'reprovado';
                 renderizarLista(_notificacoes);
-                AdminToast.info('Solicitação reprovada com sucesso.');
+                _mostrarToastAdmin('Solicitação reprovada com sucesso.', 'info');
                 document.dispatchEvent(new CustomEvent('kna:solicitacao-decidida', { detail: { solicitacaoId, decisao: 'reprovado' } }));
             } else {
-                btnAprovar.disabled  = false;
-                btnReprovar.disabled = false;
-                btnReprovar.textContent = 'Reprovar';
-                AdminToast.error(data.error || 'Erro ao reprovar.');
+                _enable(btnAprovar);
+                _enable(btnReprovar, 'Reprovar');
+                _mostrarToastAdmin(data.error || 'Erro ao reprovar.', 'error');
             }
         } catch {
-            btnAprovar.disabled  = false;
-            btnReprovar.disabled = false;
-            btnReprovar.textContent = 'Reprovar';
-            AdminToast.error('Erro de conexão.');
+            _enable(btnAprovar);
+            _enable(btnReprovar, 'Reprovar');
+            _mostrarToastAdmin('Erro de conexão.', 'error');
         }
     }
 

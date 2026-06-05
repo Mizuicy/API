@@ -228,11 +228,13 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════
-     DADOS MOCKADOS E LÓGICA VISUAL
+     LÓGICA COM BACKEND REAL
      ═══════════════════════════════════════════════ -->
 <script>
-// ── Dados mockados para demonstração visual ─────────────────────
-const SOLICITACOES_MOCK = [
+const API = 'http://localhost:3000';
+
+// ── Dados carregados do backend ──────────────────────────────────
+let SOLICITACOES_MOCK = [
     {
         id: 1,
         usuario: { nome: 'João Silva', email: 'joao.silva@email.com', emprestimosAtivos: 1, historico: '5 empréstimos (todos devolvidos)' },
@@ -484,33 +486,140 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') fecharModal();
 });
 
-// ── Ações visuais (sem backend) ─────────────────────────────────
-function aprovarSolicitacao() {
-    // Visual-only: atualiza o mock e fecha o modal
+// ── Ações reais com backend ─────────────────────────────────────
+async function aprovarSolicitacao() {
     if (!solicAtual) return;
-    solicAtual.status = 'aprovado';
-    fecharModal();
-    filtrar();
-    if (window.AdminToast) {
-        AdminToast.success('(Visual) Solicitação aprovada! Conecte ao backend para efetivar.');
+
+    const adminId = sessionStorage.getItem('usuarioId');
+
+    const confirmado = await AdminToast.confirm(
+        `Confirma a aprovação do empréstimo de "<strong>${solicAtual.livro.titulo}</strong>" para <strong>${solicAtual.usuario.nome}</strong>?`,
+        { titulo: 'Aprovar solicitação', tipo: 'success', confirmLabel: 'Aprovar', cancelLabel: 'Cancelar', danger: false }
+    );
+    if (!confirmado) return;
+
+    const btnAprovar  = document.getElementById('btnAprovar');
+    const btnReprovar = document.getElementById('btnReprovar');
+    btnAprovar.disabled  = true;
+    btnAprovar.textContent = 'Aprovando...';
+    btnReprovar.disabled = true;
+
+    try {
+        const res  = await fetch(`${API}/solicitacao/${solicAtual.id}/aprovar`, {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({ admin_id: parseInt(adminId) })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            fecharModal();
+            await carregarSolicitacoes();
+            AdminToast.success('Solicitação aprovada com sucesso!');
+        } else {
+            btnAprovar.disabled  = false;
+            btnAprovar.textContent = 'Aprovar Empréstimo';
+            btnReprovar.disabled = false;
+            AdminToast.error(data.error || 'Erro ao aprovar.');
+        }
+    } catch {
+        btnAprovar.disabled  = false;
+        btnAprovar.textContent = 'Aprovar Empréstimo';
+        btnReprovar.disabled = false;
+        AdminToast.error('Erro de conexão com o servidor.');
     }
 }
 
-function reprovarSolicitacao() {
+async function reprovarSolicitacao() {
     if (!solicAtual) return;
-    solicAtual.status = 'reprovado';
-    solicAtual.observacoes = 'Reprovado pelo administrador.';
-    fecharModal();
-    filtrar();
-    if (window.AdminToast) {
-        AdminToast.info('(Visual) Solicitação reprovada. Conecte ao backend para efetivar.');
+
+    const adminId = sessionStorage.getItem('usuarioId');
+
+    const obs = await AdminToast.prompt(
+        'Informe o motivo da reprovação (opcional):',
+        {
+            titulo       : 'Reprovar solicitação',
+            tipo         : 'warning',
+            placeholder  : 'Ex: exemplar indisponível, histórico de atrasos...',
+            confirmLabel : 'Reprovar',
+            cancelLabel  : 'Cancelar'
+        }
+    );
+    if (obs === null) return; // usuário cancelou
+
+    const btnAprovar  = document.getElementById('btnAprovar');
+    const btnReprovar = document.getElementById('btnReprovar');
+    btnReprovar.disabled  = true;
+    btnReprovar.textContent = 'Reprovando...';
+    btnAprovar.disabled  = true;
+
+    try {
+        const res  = await fetch(`${API}/solicitacao/${solicAtual.id}/reprovar`, {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({ admin_id: parseInt(adminId), observacao: obs || null })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            fecharModal();
+            await carregarSolicitacoes();
+            AdminToast.info('Solicitação reprovada.');
+        } else {
+            btnReprovar.disabled  = false;
+            btnReprovar.textContent = 'Reprovar';
+            btnAprovar.disabled   = false;
+            AdminToast.error(data.error || 'Erro ao reprovar.');
+        }
+    } catch {
+        btnReprovar.disabled  = false;
+        btnReprovar.textContent = 'Reprovar';
+        btnAprovar.disabled   = false;
+        AdminToast.error('Erro de conexão com o servidor.');
     }
 }
+
+// ── Carregar dados reais do backend ────────────────────────────
+async function carregarSolicitacoes() {
+    try {
+        const res  = await fetch(`${API}/solicitacao`);
+        if (!res.ok) throw new Error('Resposta inválida do servidor.');
+        const dados = await res.json();
+
+        // Mapeia o formato da API para o formato interno usado pelo JS
+        SOLICITACOES_MOCK = dados.map(s => ({
+            id: s.Solicitacao_id,
+            usuario: {
+                nome              : s.NomeUsuario  || '—',
+                email             : s.EmailUsuario || '—',
+                emprestimosAtivos : 0,
+                historico         : '—'
+            },
+            livro: {
+                titulo    : s.NomeLivro  || '—',
+                autor     : s.AutorLivro || '—',
+                genero    : '—',
+                exemplares: 0,
+                capa      : s.CapaLivro  || null
+            },
+            dataSolicitacao: s.DataSolicitacao ? s.DataSolicitacao.split('T')[0] : null,
+            prazo          : '14 dias (padrão)',
+            status         : (s.Status || 'pendente').toLowerCase(),
+            observacoes    : s.ObservacaoAdmin || null
+        }));
+    } catch (err) {
+        console.error('[carregarSolicitacoes] Erro:', err);
+        if (window.AdminToast) AdminToast.error('Erro ao carregar solicitações do servidor.');
+    }
+    filtrar();
+}
+
+// ── Reagir à aprovação/reprovação feita pelo painel de notificações
+document.addEventListener('kna:solicitacao-decidida', () => {
+    carregarSolicitacoes();
+});
 
 // ── Inicialização ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    // Pré-selecionar "Pendentes" e renderizar
-    filtrar();
+    carregarSolicitacoes();
 });
 </script>
 
