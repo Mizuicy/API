@@ -200,11 +200,25 @@
                 ? new Date(n.DataPrevista).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
                 : '';
             const lida = n.Lida ? 1 : 0;
+
+            // ── Configuração visual por tipo de notificação ──────────
+            const isNovoLivro = n.Tipo === 'novo_livro';
+            const icone = isNovoLivro ? '📗' : '📚';
+            const titulo = isNovoLivro
+                ? 'Novo livro no acervo!'
+                : (n.NomeLivro || 'Livro');
+
+            // Estilo especial para novo_livro
+            const iconeBg = isNovoLivro
+                ? 'background:#f0fdf4; border:1px solid #16a34a;'
+                : '';
+            // ─────────────────────────────────────────────────────────
+
             return `
                 <div class="kn-item ${lida ? '' : 'kn-nao-lida'}" data-id="${n.Notificacao_id}">
-                    <span class="kn-item-icon">📚</span>
+                    <span class="kn-item-icon" style="${iconeBg}">${icone}</span>
                     <div class="kn-item-body">
-                        <div class="kn-item-book">${n.NomeLivro || 'Livro'}</div>
+                        <div class="kn-item-book">${titulo}</div>
                         <div class="kn-item-msg">${n.Mensagem || 'Vencimento se aproximando'}</div>
                         ${dataFmt ? `<div class="kn-item-date">⏰ Vence em: ${dataFmt}</div>` : ''}
                         <div class="kn-item-actions">

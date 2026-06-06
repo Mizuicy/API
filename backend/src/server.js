@@ -643,6 +643,49 @@ app.post('/livro', (req, res) => {
             }
             salvarLivroGeneros(livroId, ids, (errSalvar) => {
                 if (errSalvar) console.error('Erro ao salvar LivroGenero:', errSalvar);
+
+                // ══════════════════════════════════════════════════════════
+                //  NOTIFICAÇÃO "NOVO LIVRO" — enviada a todos os usuários
+                //  ativos (não-admin) após cadastro bem-sucedido.
+                //  Proteção contra duplicatas: WHERE NOT EXISTS verifica se
+                //  já existe notificação do tipo 'novo_livro' para este
+                //  Livro_id, garantindo que cada cadastro gere no máximo
+                //  uma notificação por usuário.
+                // ══════════════════════════════════════════════════════════
+                const generosLabel = nomeGeneros.length
+                    ? ` Gênero(s): ${nomeGeneros.join(', ')}.`
+                    : '';
+                const msgNovLivro = `Novo livro disponível no acervo: "${Nome}".${generosLabel} Confira as informações e solicite seu empréstimo.`;
+
+                dbconfig.query(
+                    "SELECT Usuario_id FROM Usuario WHERE Tipo != 'admin'",
+                    (errU, usuarios) => {
+                        if (errU) {
+                            console.error('[POST /livro] Erro ao buscar usuários para notificação:', errU.message);
+                            return; // fire-and-forget: não bloqueia a resposta
+                        }
+                        if (!usuarios || !usuarios.length) return;
+
+                        usuarios.forEach(u => {
+                            dbconfig.query(
+                                `INSERT INTO Notificacao (Usuario_id, Livro_id, Tipo, Mensagem)
+                                 SELECT ?, ?, 'novo_livro', ?
+                                 FROM DUAL
+                                 WHERE NOT EXISTS (
+                                     SELECT 1 FROM Notificacao
+                                     WHERE Livro_id = ? AND Usuario_id = ? AND Tipo = 'novo_livro'
+                                 )`,
+                                [u.Usuario_id, livroId, msgNovLivro, livroId, u.Usuario_id],
+                                (errN) => {
+                                    if (errN) console.error('[POST /livro] Erro ao inserir notificação para usuário', u.Usuario_id, ':', errN.message);
+                                }
+                            );
+                        });
+                        console.log(`[POST /livro] Notificações 'novo_livro' disparadas para ${usuarios.length} usuário(s). Livro_id=${livroId}`);
+                    }
+                );
+                // ══════════════════════════════════════════════════════════
+
                 res.status(201).json({ Livro_id: livroId, ...req.body, Generos: nomeGeneros });
             });
         });
@@ -1402,13 +1445,16 @@ app.get('/notificacoes', (req, res) => {
     const usuarioId = parseInt(req.query.usuario, 10);
     if (!usuarioId || isNaN(usuarioId)) return res.status(400).json({ error: 'usuario obrigatorio.' });
     const sql = `
-        SELECT n.Notificacao_id, n.Usuario_id, n.Emprestimo_id, n.Tipo,
-               n.Mensagem, n.Lida, n.CriadaEm,
-               l.Nome AS NomeLivro, e.DataPrevista
+        SELECT
+            n.Notificacao_id, n.Usuario_id, n.Emprestimo_id, n.Tipo,
+            n.Mensagem, n.Lida, n.CriadaEm, n.Livro_id,
+            COALESCE(ld.Nome, le.Nome) AS NomeLivro,
+            e.DataPrevista
         FROM Notificacao n
-        LEFT JOIN Emprestimo e  ON n.Emprestimo_id = e.Emprestimo_id
-        LEFT JOIN Exemplar   ex ON e.Exemplar_id   = ex.Exemplar_id
-        LEFT JOIN Livro      l  ON ex.Livro_id     = l.Livro_id
+        LEFT JOIN Emprestimo e   ON n.Emprestimo_id = e.Emprestimo_id
+        LEFT JOIN Exemplar   ex  ON e.Exemplar_id   = ex.Exemplar_id
+        LEFT JOIN Livro      le  ON ex.Livro_id     = le.Livro_id
+        LEFT JOIN Livro      ld  ON n.Livro_id      = ld.Livro_id
         WHERE n.Usuario_id = ?
         ORDER BY n.CriadaEm DESC
         LIMIT 50
