@@ -8,7 +8,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kairos — Catálogo</title>
     <link rel="stylesheet" href="../../css/user.css">
+    <link rel="stylesheet" href="../../css/catalogo.css">
     <style>
+        /* ── Seção de descrição do modal ─────────────────────── */
+        .modal-desc-section {
+            margin-top: 20px;
+            padding-top: 18px;
+            border-top: 1px solid var(--border, #e5e7eb);
+        }
+        .modal-desc-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--muted, #888);
+            margin-bottom: 8px;
+        }
+        .modal-desc {
+            font-size: 0.925rem;
+            line-height: 1.65;
+            color: var(--text, #1a1a2e);
+        }
+        .modal-desc.sem-desc {
+            color: var(--muted, #888);
+            font-style: italic;
+        }
+        /* ── Tag de disponibilidade ──────────────────────────── */
+        .modal-disponibilidade {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .modal-disponibilidade.disponivel {
+            background: rgba(22, 163, 74, .12);
+            color: #16a34a;
+            border: 1px solid rgba(22, 163, 74, .25);
+        }
+        .modal-disponibilidade.indisponivel {
+            background: rgba(220, 38, 38, .10);
+            color: #dc2626;
+            border: 1px solid rgba(220, 38, 38, .2);
+        }
+        [data-theme="dark"] .modal-disponibilidade.disponivel {
+            background: rgba(22, 163, 74, .18);
+            color: #4ade80;
+            border-color: rgba(74, 222, 128, .3);
+        }
+        [data-theme="dark"] .modal-disponibilidade.indisponivel {
+            background: rgba(220, 38, 38, .18);
+            color: #f87171;
+            border-color: rgba(248, 113, 113, .3);
+        }
+        [data-theme="dark"] .modal-desc { color: var(--text); }
+        [data-theme="dark"] .modal-desc-section { border-top-color: var(--border); }
+
         /* ── Filtros por categoria (pills) ─── */
         .filter-bar {
             display: flex;
@@ -17,50 +75,22 @@
             flex-wrap: wrap;
             margin-bottom: 32px;
         }
-
-        .pill {
-            padding: 7px 18px;
-            border-radius: 999px;
-            border: 1px solid var(--border);
-            background: var(--surface);
-            font-family: inherit;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--muted);
-            cursor: pointer;
-            transition: all .15s;
-            white-space: nowrap;
-        }
-
-        .pill:hover  { border-color: var(--purple-mid); color: var(--purple); }
-        .pill.active { background: var(--purple); border-color: var(--purple); color: white; }
-
-        /* ── Catalog grid ─────────────────── */
-        .catalog-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 24px;
-        }
-
         .page-title {
             font-family: 'Lora', serif;
             font-size: 1.6rem;
             font-weight: 700;
             margin-bottom: 28px;
         }
-
         .results-count {
             font-size: 0.85rem;
             color: var(--muted);
             margin-bottom: 20px;
         }
-
         /* Skeleton */
         .skel-card { border-radius: var(--card-radius); overflow: hidden; }
         .skel-img  { width: 100%; aspect-ratio: 3/4; }
         .skel-line { height: 13px; border-radius: 6px; margin: 12px 14px 5px; }
         .skel-line.short { width: 55%; height: 10px; margin-top: 3px; }
-
         @media (max-width: 480px) {
             .catalog-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
         }
@@ -138,16 +168,15 @@
 
     <!-- Grid -->
     <div id="catalogGrid" class="catalog-grid">
-        ${Array(8).fill(0).map(() => `
-        <div class="skel-card">
-            <div class="skeleton skel-img"></div>
-            <div class="skeleton skel-line"></div>
-            <div class="skeleton skel-line short"></div>
-        </div>`).join('')}
+        <!-- skeletons iniciais -->
+        <div class="skel-card"><div class="skeleton skel-img"></div><div class="skeleton skel-line"></div><div class="skeleton skel-line short"></div></div>
+        <div class="skel-card"><div class="skeleton skel-img"></div><div class="skeleton skel-line"></div><div class="skeleton skel-line short"></div></div>
+        <div class="skel-card"><div class="skeleton skel-img"></div><div class="skeleton skel-line"></div><div class="skeleton skel-line short"></div></div>
+        <div class="skel-card"><div class="skeleton skel-img"></div><div class="skeleton skel-line"></div><div class="skeleton skel-line short"></div></div>
     </div>
 </div>
 
-<!-- Modal -->
+<!-- Modal de detalhes do livro -->
 <div id="modal" class="u-modal">
     <div class="u-modal-box">
         <button class="u-modal-close" onclick="fecharModal()">✕</button>
@@ -176,34 +205,26 @@
     }
 })();
 
-// Função de logout
-function logout() {
-    document.getElementById('logoutModal').classList.add('open');
-    // Previne fechar com ESC
-    document.addEventListener('keydown', preventEscape);
-}
-
-function confirmarLogout() {
-    sessionStorage.clear();
-    window.location.href = '../auth/login.html';
-}
-
-function fecharLogoutModal() {
-    document.getElementById('logoutModal').classList.remove('open');
-    document.removeEventListener('keydown', preventEscape);
-}
-
-function preventEscape(e) {
-    if (e.key === 'Escape') {
-        e.preventDefault();
-    }
-}
-
 const API = 'http://localhost:3000';
 let todosLivros    = [];
 let categoriaAtiva = '';
 
-// Avatar: gerenciado por kairos-avatar.js
+// ── Logout ────────────────────────────────────────────────────────
+function logout() {
+    document.getElementById('logoutModal').classList.add('open');
+    document.addEventListener('keydown', preventEscape);
+}
+function confirmarLogout() {
+    sessionStorage.clear();
+    window.location.href = '../auth/login.html';
+}
+function fecharLogoutModal() {
+    document.getElementById('logoutModal').classList.remove('open');
+    document.removeEventListener('keydown', preventEscape);
+}
+function preventEscape(e) {
+    if (e.key === 'Escape') e.preventDefault();
+}
 
 // Aplicar busca pendente vinda da página Início
 const buscaPendente = sessionStorage.getItem('buscaPendente');
@@ -212,6 +233,15 @@ if (buscaPendente) {
     sessionStorage.removeItem('buscaPendente');
 }
 
+// ── Helper: retorna array de nomes dos gêneros de um livro ────────
+function getGeneroNomes(livro) {
+    if (Array.isArray(livro.Generos) && livro.Generos.length > 0) {
+        return livro.Generos.map(g => typeof g === 'string' ? g : g.Nome).filter(Boolean);
+    }
+    return (livro.Categoria || livro.genero) ? [livro.Categoria || livro.genero] : [];
+}
+
+// ── Carrega livros da API ─────────────────────────────────────────
 async function carregarLivros() {
     try {
         const res = await fetch(`${API}/livro`);
@@ -224,13 +254,20 @@ async function carregarLivros() {
     }
 }
 
+// ── Constrói pills de gênero ──────────────────────────────────────
 function construirPills() {
-    const cats = [...new Set(todosLivros.map(l => l.Categoria || l.genero).filter(Boolean))];
-    const bar  = document.getElementById('filterBar');
+    // Coleta todos os gêneros únicos considerando array Generos E campo Categoria (legado)
+    const generosSet = new Set();
+    todosLivros.forEach(l => getGeneroNomes(l).forEach(g => generosSet.add(g)));
+    const generos = [...generosSet].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
-    cats.forEach(cat => {
+    const bar = document.getElementById('filterBar');
+    // Remove pills dinâmicas antigas (mantém o botão "Todos")
+    bar.querySelectorAll('.pill:not([data-cat=""])').forEach(p => p.remove());
+
+    generos.forEach(cat => {
         const btn = document.createElement('button');
-        btn.className  = 'pill';
+        btn.className   = 'pill';
         btn.dataset.cat = cat;
         btn.textContent = cat;
         btn.onclick = () => selecionarCategoria(cat, btn);
@@ -240,6 +277,7 @@ function construirPills() {
     construirFiltroAutor();
 }
 
+// ── Constrói filtro de autor ──────────────────────────────────────
 function construirFiltroAutor() {
     const autoresUnicos = [...new Set(
         todosLivros.map(l => l.Autor || l.autor).filter(Boolean)
@@ -265,7 +303,6 @@ function selecionarCategoria(cat, btn) {
     filtrar();
 }
 
-// Pill "Início" reseta
 document.querySelector('.pill[data-cat=""]').onclick = function() {
     categoriaAtiva = '';
     document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
@@ -273,18 +310,19 @@ document.querySelector('.pill[data-cat=""]').onclick = function() {
     filtrar();
 };
 
+// ── Filtra e renderiza grid ───────────────────────────────────────
 function filtrar() {
     const busca            = document.getElementById('searchInput').value.toLowerCase().trim();
     const filtroAutorEl    = document.getElementById('filtroAutor');
     const autorSelecionado = filtroAutorEl ? filtroAutorEl.value : '';
 
     const resultado = todosLivros.filter(l => {
-        const titulo    = (l.Nome || l.titulo || '').toLowerCase();
-        const autor     = (l.Autor || l.autor  || '').toLowerCase();
-        const categoria = l.Categoria || l.genero || '';
+        const titulo = (l.Nome || l.titulo || '').toLowerCase();
+        const autor  = (l.Autor || l.autor  || '').toLowerCase();
 
         const matchTexto = !busca || titulo.includes(busca) || autor.includes(busca);
-        const matchCat   = !categoriaAtiva || categoria === categoriaAtiva;
+        // Verifica se qualquer gênero do livro corresponde à categoria ativa
+        const matchCat   = !categoriaAtiva || getGeneroNomes(l).includes(categoriaAtiva);
         const matchAutor = !autorSelecionado || (l.Autor || l.autor || '') === autorSelecionado;
 
         return matchTexto && matchCat && matchAutor;
@@ -308,11 +346,15 @@ function filtrar() {
     }
 
     grid.innerHTML = resultado.map(livro => {
-        const capa     = livro.Imagem || livro.capa || '';
-        const titulo   = livro.Nome || livro.titulo || '—';
-        const autor    = livro.Autor || livro.autor || '';
-        const categoria= livro.Categoria || livro.genero || 'Geral';
-        const id       = livro.Livro_id || livro.id;
+        const capa   = livro.Imagem || livro.capa || '';
+        const titulo = livro.Nome   || livro.titulo || '—';
+        const autor  = livro.Autor  || livro.autor  || '';
+        const id     = livro.Livro_id || livro.id;
+        const nomes  = getGeneroNomes(livro);
+
+        const generosHtml = nomes.length
+            ? `<div class="book-generos">${nomes.map(n => `<span class="book-genero-pill">${n}</span>`).join('')}</div>`
+            : '<div class="book-category">—</div>';
 
         return `
         <div class="book-card" onclick="abrirModal(${id})">
@@ -326,7 +368,7 @@ function filtrar() {
                 </svg>
             </div>
             <div class="book-info">
-                <div class="book-category">${categoria}</div>
+                ${generosHtml}
                 <div class="book-title">${titulo}</div>
                 <div class="book-author"
                      onclick="filtrarPorAutor('${autor.replace(/'/g, "\\'")}', event)"
@@ -347,43 +389,94 @@ function filtrarPorAutor(nomeAutor, evento) {
     filtrar();
 }
 
-function abrirModal(id) {
+// ── Abre modal com detalhes completos do livro ────────────────────
+async function abrirModal(id) {
     const livro = todosLivros.find(l => (l.Livro_id || l.id) === id);
     if (!livro) return;
 
-    const titulo    = livro.Nome || livro.titulo || '—';
-    const autor     = livro.Autor || livro.autor || '—';
-    const categoria = livro.Categoria || livro.genero || 'Geral';
-    const desc      = livro.Descricao || livro.resumo || 'Sem descrição disponível.';
-    const ano       = livro.DataPublicacao || livro.ano_publicacao || '';
-    const capa      = livro.Imagem || livro.capa || '';
+    const titulo    = livro.Nome  || livro.titulo || '—';
+    const autor     = livro.Autor || livro.autor  || '—';
+    const capa      = livro.Imagem || livro.capa  || '';
+    const livroId   = livro.Livro_id || livro.id;
+    const nomes     = getGeneroNomes(livro);
 
+    // ─── CORREÇÃO PRINCIPAL: campo Resumo (R maiúsculo) ───────────
+    // O banco armazena o campo como "Resumo". Verificamos todas as
+    // variações possíveis para garantir compatibilidade.
+    const descricao = livro.Resumo || livro.resumo || livro.Descricao || livro.descricao || '';
+
+    // Ano de publicação: DataPublicacao ou AnoPublicacao
+    const ano = livro.AnoPublicacao || livro.DataPublicacao || livro.ano_publicacao || '';
+
+    // Idioma e páginas: campos com capitalização correta da API
+    const idioma  = livro.Idioma  || livro.idioma  || '';
+    const paginas = livro.NumeroPaginas || livro.numero_paginas || '';
+
+    const generosModalHtml = nomes.length
+        ? `<div class="modal-generos">${nomes.map(n => `<span class="modal-genero-pill">${n}</span>`).join('')}</div>`
+        : '<span class="modal-category">—</span>';
+
+    // Monta o conteúdo base do modal
     document.getElementById('modalConteudo').innerHTML = `
         <div class="modal-book-header">
             ${capa
                 ? `<img class="modal-cover" src="${capa}" alt="${titulo}">`
                 : `<div class="modal-cover" style="background:var(--border);border-radius:8px"></div>`}
             <div class="modal-meta">
-                <span class="modal-category">${categoria}</span>
+                ${generosModalHtml}
                 <h2 class="modal-title">${titulo}</h2>
                 <p class="modal-author">${autor}</p>
                 <div class="modal-row">
-                    ${ano ? `<span class="modal-tag">📅 ${ano}</span>` : ''}
-                    ${livro.idioma ? `<span class="modal-tag">🌍 ${livro.idioma}</span>` : ''}
-                    ${livro.numero_paginas ? `<span class="modal-tag">📄 ${livro.numero_paginas} pág.</span>` : ''}
+                    ${ano     ? `<span class="modal-tag">📅 ${ano}</span>` : ''}
+                    ${idioma  ? `<span class="modal-tag">🌍 ${idioma}</span>` : ''}
+                    ${paginas ? `<span class="modal-tag">📄 ${paginas} pág.</span>` : ''}
+                </div>
+                <div id="modalDisponibilidade" style="margin-top:4px">
+                    <span style="font-size:0.8rem;color:var(--muted)">Verificando disponibilidade…</span>
                 </div>
             </div>
         </div>
-        <p class="modal-desc">${desc}</p>
-        <button class="btn-emprestimo" onclick="solicitarEmprestimo(${livro.Livro_id || livro.id}, '${titulo.replace(/'/g,"\\'")}')">
+        <div class="modal-desc-section">
+            <div class="modal-desc-label">Descrição</div>
+            ${descricao
+                ? `<p class="modal-desc">${descricao}</p>`
+                : `<p class="modal-desc sem-desc">Descrição não disponível.</p>`}
+        </div>
+        <button class="btn-emprestimo" id="btnSolicitar"
+                onclick="solicitarEmprestimo(${livroId}, '${titulo.replace(/'/g, "\\'")}')">
             📖 Solicitar Empréstimo
         </button>`;
 
     document.getElementById('modal').classList.add('open');
+
+    // Consulta disponibilidade de exemplares em segundo plano
+    try {
+        const resEx = await fetch(`${API}/exemplar?livro_id=${livroId}&status=Disponivel`);
+        const exemplares = await resEx.json();
+        const dispEl = document.getElementById('modalDisponibilidade');
+        if (!dispEl) return;
+
+        if (Array.isArray(exemplares) && exemplares.length > 0) {
+            dispEl.innerHTML = `<span class="modal-disponibilidade disponivel">✅ ${exemplares.length} exemplar${exemplares.length > 1 ? 'es' : ''} disponível${exemplares.length > 1 ? 'eis' : ''}</span>`;
+        } else {
+            dispEl.innerHTML = `<span class="modal-disponibilidade indisponivel">⛔ Indisponível no momento</span>`;
+            const btn = document.getElementById('btnSolicitar');
+            if (btn) {
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                btn.style.cursor  = 'not-allowed';
+                btn.title = 'Não há exemplares disponíveis no momento';
+            }
+        }
+    } catch {
+        const dispEl = document.getElementById('modalDisponibilidade');
+        if (dispEl) dispEl.innerHTML = '';
+    }
 }
 
 function fecharModal() { document.getElementById('modal').classList.remove('open'); }
 
+// ── Solicitar empréstimo ──────────────────────────────────────────
 async function solicitarEmprestimo(livroId, titulo) {
     const usuarioId = sessionStorage.getItem('usuarioId');
     if (!usuarioId) {
@@ -391,11 +484,11 @@ async function solicitarEmprestimo(livroId, titulo) {
         return;
     }
 
-    const btn = document.querySelector('.btn-emprestimo');
-    if (btn) { btn.disabled = true; btn.textContent = 'Enviando solicitação...'; }
+    const btn = document.getElementById('btnSolicitar');
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando solicitação…'; }
 
     try {
-        const res = await fetch('http://localhost:3000/solicitacao', {
+        const res = await fetch(`${API}/solicitacao`, {
             method : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body   : JSON.stringify({ Usuario_id: parseInt(usuarioId), Livro_id: livroId })
@@ -403,7 +496,7 @@ async function solicitarEmprestimo(livroId, titulo) {
         const data = await res.json();
         fecharModal();
         if (res.ok) {
-            mostrarToast(`📋 Solicitação de "${titulo}" enviada! Aguarde a aprovação do administrador.`, 'success');
+            mostrarToast(`📋 Solicitação de "${titulo}" enviada! Aguarde a aprovação.`, 'success');
         } else {
             mostrarToast(data.error || 'Não foi possível enviar a solicitação.', 'error');
         }
@@ -413,33 +506,20 @@ async function solicitarEmprestimo(livroId, titulo) {
     }
 }
 
-// ── Painel de notificação lateral ────────────────────────────
+// ── Toast / notificação visual ────────────────────────────────────
 (function() {
     const style = document.createElement('style');
     style.textContent = `
         #notifPanel {
-            position: fixed;
-            bottom: 28px;
-            right: 28px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            pointer-events: none;
+            position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px; pointer-events: none;
         }
         .notif-card {
-            background: var(--surface, #fff);
-            border-radius: 14px;
+            background: var(--surface, #fff); border-radius: 14px;
             box-shadow: 0 8px 32px rgba(0,0,0,.13), 0 1.5px 6px rgba(0,0,0,.07);
-            padding: 14px 18px 14px 16px;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            min-width: 300px;
-            max-width: 370px;
-            pointer-events: all;
-            opacity: 0;
-            transform: translateX(30px);
+            padding: 14px 18px 14px 16px; display: flex; align-items: flex-start; gap: 12px;
+            min-width: 300px; max-width: 370px; pointer-events: all;
+            opacity: 0; transform: translateX(30px);
             transition: opacity .28s cubic-bezier(.4,0,.2,1), transform .28s cubic-bezier(.4,0,.2,1);
             border-left: 4px solid #667eea;
         }
@@ -447,34 +527,13 @@ async function solicitarEmprestimo(livroId, titulo) {
         .notif-card.success { border-left-color: #16a34a; }
         .notif-card.error   { border-left-color: #dc2626; }
         .notif-card.info    { border-left-color: #667eea; }
-        .notif-icon {
-            font-size: 1.25rem;
-            line-height: 1;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
+        .notif-icon { font-size: 1.25rem; line-height: 1; flex-shrink: 0; margin-top: 1px; }
         .notif-body { flex: 1; min-width: 0; }
-        .notif-title {
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: var(--muted, #888);
-            text-transform: uppercase;
-            letter-spacing: .04em;
-            margin-bottom: 3px;
-        }
-        .notif-msg {
-            font-size: 0.875rem;
-            color: var(--text, #1a1a2e);
-            line-height: 1.45;
-            word-break: break-word;
-        }
-        .notif-close {
-            background: none; border: none; cursor: pointer;
-            color: var(--muted, #aaa); font-size: 1rem;
-            padding: 0 0 0 6px; flex-shrink: 0; line-height: 1;
-            margin-top: -1px;
-            transition: color .15s;
-        }
+        .notif-title { font-size: 0.8rem; font-weight: 700; color: var(--muted, #888);
+            text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
+        .notif-msg  { font-size: 0.875rem; color: var(--text, #1a1a2e); line-height: 1.45; word-break: break-word; }
+        .notif-close { background: none; border: none; cursor: pointer; color: var(--muted, #aaa);
+            font-size: 1rem; padding: 0 0 0 6px; flex-shrink: 0; line-height: 1; margin-top: -1px; transition: color .15s; }
         .notif-close:hover { color: var(--text, #333); }
         @media (max-width: 480px) {
             #notifPanel { bottom: 16px; right: 12px; left: 12px; }
@@ -482,14 +541,13 @@ async function solicitarEmprestimo(livroId, titulo) {
         }
     `;
     document.head.appendChild(style);
-
     const panel = document.createElement('div');
     panel.id = 'notifPanel';
     document.body.appendChild(panel);
 })();
 
 function mostrarToast(msg, type = 'info') {
-    const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+    const icons  = { success: '✅', error: '❌', info: 'ℹ️' };
     const titles = { success: 'Sucesso', error: 'Atenção', info: 'Informação' };
 
     const card = document.createElement('div');
