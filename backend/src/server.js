@@ -2079,8 +2079,29 @@ app.delete('/autor/:id', (req, res) => {
         });
     });
 });
+// ══════════════════════════════════════════════════════════════
+//  HANDLER DE ERROS GLOBAL
+//  Captura qualquer erro não tratado que chegue ao Express.
+//  Garante que a resposta seja SEMPRE JSON — nunca HTML.
+//  DEVE ser o último middleware registrado (4 parâmetros obrigatórios).
+// ══════════════════════════════════════════════════════════════
+app.use((err, req, res, next) => {
+    console.error(`[server] Erro não tratado em ${req.method} ${req.url}:`, err.message);
+    console.error('[server] Stack:', err.stack);
+
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    const status = (err.status && err.status >= 400 && err.status < 600) ? err.status : 500;
+    return res.status(status).json({
+        error: 'Ocorreu um erro interno no servidor. Tente novamente.'
+    });
+});
+
 app.listen(3000, () => {
     console.log('✅ Server listening on port 3000');
     console.log('EMAIL_USER:', process.env.EMAIL_USER ? '✅ configurado' : '❌ NÃO configurado');
     console.log('EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '✅ configurado' : '❌ NÃO configurado');
+    console.log('GROQ_API_KEY:', process.env.GROQ_API_KEY ? '✅ configurado' : '❌ NÃO configurado');
 });

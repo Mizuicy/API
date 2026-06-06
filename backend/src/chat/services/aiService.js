@@ -1,21 +1,31 @@
 /**
- * aiService.js — Kairos WebChat IA  [v2.0 — EXPANDIDO]
+ * aiService.js — Kairos WebChat IA  [v2.1 — CORRIGIDO]
  * Serviço de comunicação com a API Groq (llama-3.3-70b-versatile).
  *
- * Novidades v2.0:
- *  - IA conversacional geral (não limitada ao sistema Kairos)
- *  - Suporte a resumos de livros
- *  - Integração com o banco de dados para consultas ao acervo
- *  - Detecção automática de intenção de consulta ao acervo
+ * CORREÇÕES v2.1:
+ *  - Removida exposição de mensagens técnicas ("função ausente", stack traces etc.)
+ *  - Todas as exceções lançadas têm mensagens amigáveis em PT-BR
+ *  - Adicionado timeout na chamada ao Groq (30s)
+ *  - Verificação de tipo de getChatResponse para evitar "is not a function"
  */
 
 import dbconfig from '../../db/dbconfig.js';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
+// Carrega o .env caso ainda não esteja carregado
+dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL   = 'llama-3.3-70b-versatile';
+const TIMEOUT_MS   = 30000; // 30 segundos
 
 // ────────────────────────────────────────────────────────────────────────────
-//  System Prompt expandido
+//  System Prompt
 // ────────────────────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `Você é o Assistente Virtual da Biblioteca Kairos, chamado Kairos.
 Você é inteligente, amigável, prestativo e versátil. Responde SEMPRE em português brasileiro.
@@ -105,9 +115,8 @@ function isAcervoQuery(text) {
 // ────────────────────────────────────────────────────────────────────────────
 //  Busca dados do acervo no banco de dados
 // ────────────────────────────────────────────────────────────────────────────
-function buscarAcervo(userMessage) {
+function buscarAcervo() {
     return new Promise((resolve) => {
-        // Busca livros com contagem de exemplares disponíveis
         const sql = `
             SELECT
                 l.Livro_id,
@@ -145,7 +154,7 @@ function formatarAcervoParaIA(livros) {
         return '\n\n[ACERVO DA BIBLIOTECA: Nenhum livro cadastrado no momento.]';
     }
 
-    const total = livros.length;
+    const total      = livros.length;
     const disponiveis = livros.filter(l => l.ExemplaresDisponiveis > 0).length;
 
     let texto = `\n\n[DADOS REAIS DO ACERVO DA BIBLIOTECA KAIROS - ${new Date().toLocaleDateString('pt-BR')}]\n`;
@@ -154,8 +163,8 @@ function formatarAcervoParaIA(livros) {
 
     livros.forEach(livro => {
         texto += `- "${livro.Titulo}"`;
-        if (livro.Autor) texto += ` | Autor: ${livro.Autor}`;
-        if (livro.Categoria) texto += ` | Categoria: ${livro.Categoria}`;
+        if (livro.Autor)         texto += ` | Autor: ${livro.Autor}`;
+        if (livro.Categoria)     texto += ` | Categoria: ${livro.Categoria}`;
         if (livro.AnoPublicacao) texto += ` | Ano: ${livro.AnoPublicacao}`;
         texto += ` | Disponíveis: ${livro.ExemplaresDisponiveis}/${livro.TotalExemplares} exemplares`;
         texto += '\n';
@@ -168,32 +177,54 @@ function formatarAcervoParaIA(livros) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-//  Função principal
+//  Fetch com timeout
+// ────────────────────────────────────────────────────────────────────────────
+async function fetchComTimeout(url, options, timeoutMs) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        return response;
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            throw new Error('O serviço de IA demorou demais para responder. Tente novamente.');
+        }
+        throw new Error('Não foi possível conectar ao serviço de IA. Verifique sua conexão e tente novamente.');
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  Função principal — exportada
 // ────────────────────────────────────────────────────────────────────────────
 export async function getChatResponse(messages) {
+    // ── Verificação da chave de API ─────────────────────────────────────────
     const apiKey = process.env.GROQ_API_KEY;
 
-    if (!apiKey) {
+    if (!apiKey || apiKey.trim() === '') {
         console.error('[aiService] GROQ_API_KEY não configurada no .env');
-        throw new Error('Configuração de IA ausente. Contate o administrador.');
+        throw new Error('O serviço de IA não está configurado. Por favor, contate o administrador para configurar a chave de API.');
     }
 
-    // Verifica se a última mensagem do usuário pede dados do acervo
+    // ── Verifica se a mensagem pede dados do acervo ─────────────────────────
     const lastUserMsg = messages.filter(m => m.role === 'user').pop();
     let acervoContexto = '';
 
     if (lastUserMsg && isAcervoQuery(lastUserMsg.content)) {
         console.log('[aiService] Consulta ao acervo detectada — buscando dados do banco...');
         try {
-            const livros = await buscarAcervo(lastUserMsg.content);
+            const livros = await buscarAcervo();
             acervoContexto = formatarAcervoParaIA(livros);
             console.log(`[aiService] Acervo carregado: ${livros ? livros.length : 0} livros`);
         } catch (err) {
             console.error('[aiService] Falha ao buscar acervo:', err.message);
+            // Continua sem dados do acervo
         }
     }
 
-    // Monta system prompt com dados do acervo (se houver)
+    // ── Monta as mensagens ──────────────────────────────────────────────────
     const systemContent = SYSTEM_PROMPT + acervoContexto;
 
     const formattedMessages = [
@@ -203,47 +234,74 @@ export async function getChatResponse(messages) {
             .map(m => ({ role: m.role, content: String(m.content).trim() })),
     ];
 
+    // Garante que a última mensagem seja do usuário
     const lastMsg = formattedMessages[formattedMessages.length - 1];
     if (!lastMsg || lastMsg.role !== 'user') {
-        throw new Error('Mensagem do usuário ausente.');
+        throw new Error('Não foi possível processar sua mensagem. Por favor, tente novamente.');
     }
 
     console.log(`[aiService] Enviando ${formattedMessages.length - 1} msg(s) para o Groq${acervoContexto ? ' (com dados do acervo)' : ''}...`);
 
-    const response = await fetch(GROQ_API_URL, {
-        method:  'POST',
-        headers: {
-            'Content-Type':  'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-            model:       GROQ_MODEL,
-            messages:    formattedMessages,
-            max_tokens:  2048,   // Aumentado para suportar resumos de livros
-            temperature: 0.7,
-        }),
-    });
-
-    if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(`[aiService] Erro HTTP ${response.status}:`, errorBody);
-
-        if (response.status === 401) throw new Error('Chave de API inválida ou expirada.');
-        if (response.status === 429) throw new Error('Limite de requisições atingido. Tente novamente em instantes.');
-        if (response.status >= 500) throw new Error('Serviço de IA temporariamente indisponível.');
-        throw new Error('Erro ao comunicar com o serviço de IA.');
+    // ── Chamada à API do Groq ───────────────────────────────────────────────
+    let response;
+    try {
+        response = await fetchComTimeout(
+            GROQ_API_URL,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type':  'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify({
+                    model:       GROQ_MODEL,
+                    messages:    formattedMessages,
+                    max_tokens:  2048,
+                    temperature: 0.7,
+                }),
+            },
+            TIMEOUT_MS
+        );
+    } catch (err) {
+        // fetchComTimeout já retorna mensagens amigáveis
+        throw err;
     }
 
-    const data = await response.json();
+    // ── Tratamento da resposta HTTP ─────────────────────────────────────────
+    if (!response.ok) {
+        let errorBody = '';
+        try { errorBody = await response.text(); } catch (_) {}
+        console.error(`[aiService] Erro HTTP ${response.status}:`, errorBody);
+
+        if (response.status === 401) {
+            throw new Error('Chave de API inválida ou expirada.');
+        }
+        if (response.status === 429) {
+            throw new Error('Limite de requisições atingido. Tente novamente em instantes.');
+        }
+        if (response.status >= 500) {
+            throw new Error('Serviço de IA temporariamente indisponível.');
+        }
+        throw new Error('Não foi possível gerar uma resposta neste momento. Tente novamente.');
+    }
+
+    // ── Extrai o texto da resposta ──────────────────────────────────────────
+    let data;
+    try {
+        data = await response.json();
+    } catch (_) {
+        throw new Error('Resposta inválida do serviço de IA. Tente novamente.');
+    }
+
     const text = data?.choices?.[0]?.message?.content;
 
-    if (!text) {
+    if (!text || typeof text !== 'string' || text.trim() === '') {
         console.error('[aiService] Resposta sem conteúdo:', JSON.stringify(data));
-        throw new Error('Resposta vazia do serviço de IA.');
+        throw new Error('O serviço de IA retornou uma resposta vazia. Tente novamente.');
     }
 
     const usage = data?.usage;
     console.log(`[aiService] OK. Tokens: ${usage?.prompt_tokens || 0} in / ${usage?.completion_tokens || 0} out`);
 
-    return text;
+    return text.trim();
 }

@@ -64,21 +64,64 @@ export async function handleChat(req, res) {
         return res.json({ reply });
 
     } catch (error) {
+        // Log técnico completo apenas no servidor
         console.error(`[chatController][${requestId}] Erro:`, error.message);
+        console.error(`[chatController][${requestId}] Stack:`, error.stack);
 
-        // Erros conhecidos da IA → status 503
-        const knownErrors = [
-            'Chave de API',
-            'Limite de requisições',
-            'temporariamente indisponível',
-            'Configuração de IA',
-        ];
+        // ── Mapeamento de erros conhecidos para mensagens amigáveis ─────────
+        const msg = (error && error.message) ? error.message : '';
 
-        const isKnownError = knownErrors.some(e => error.message.includes(e));
-        const statusCode = isKnownError ? 503 : 500;
+        // Chave de API ausente ou inválida
+        if (
+            msg.includes('não está configurado') ||
+            msg.includes('configurar a chave') ||
+            msg.includes('Configuração de IA') ||
+            msg.includes('GROQ_API_KEY') ||
+            msg.includes('API key') ||
+            msg.includes('apikey')
+        ) {
+            return res.status(503).json({
+                error: 'O serviço de IA não está disponível no momento. Contate o administrador do sistema.'
+            });
+        }
 
-        return res.status(statusCode).json({
-            error: error.message || 'Erro interno ao processar a mensagem.'
+        // Chave inválida ou expirada
+        if (msg.includes('Chave de API') || msg.includes('401') || msg.includes('inválida ou expirada')) {
+            return res.status(503).json({
+                error: 'Serviço de IA temporariamente indisponível. Tente novamente em breve.'
+            });
+        }
+
+        // Limite de requisições
+        if (msg.includes('Limite de requisições') || msg.includes('429') || msg.includes('sobrecarregado')) {
+            return res.status(503).json({
+                error: 'O serviço de IA está sobrecarregado. Aguarde alguns instantes e tente novamente.'
+            });
+        }
+
+        // Serviço indisponível
+        if (msg.includes('temporariamente indisponível') || msg.includes('503') || msg.includes('502')) {
+            return res.status(503).json({
+                error: 'Serviço de IA temporariamente indisponível. Tente novamente em breve.'
+            });
+        }
+
+        // Erro de rede / timeout
+        if (
+            msg.includes('fetch') ||
+            msg.includes('network') ||
+            msg.includes('ECONNREFUSED') ||
+            msg.includes('ETIMEDOUT') ||
+            msg.includes('ENOTFOUND')
+        ) {
+            return res.status(503).json({
+                error: 'Não foi possível conectar ao serviço de IA. Verifique sua conexão e tente novamente.'
+            });
+        }
+
+        // Qualquer outro erro — nunca expor detalhes técnicos ao usuário
+        return res.status(500).json({
+            error: 'Não foi possível gerar uma resposta neste momento. Tente novamente.'
         });
     }
 }
