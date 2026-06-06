@@ -1,0 +1,556 @@
+/* ============================================================
+   avaliacoes.css — Sistema de Avaliação de Livros
+   Biblioteca Online · Kairos
+   Importar APÓS user.css / catalogo.css
+   ============================================================ */
+
+/* ── Seção principal de avaliações ─────────────────────────── */
+.avaliacoes-secao {
+    margin-top: 32px;
+    border-top: 1.5px solid var(--border);
+    padding-top: 28px;
+    animation: fadeSlideUp .35s ease both;
+}
+
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.avaliacoes-titulo {
+    font-family: 'Lora', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.avaliacoes-titulo::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 1.15rem;
+    background: var(--purple);
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+/* ── Resumo da nota média ──────────────────────────────────── */
+.avaliacao-resumo {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--purple-soft);
+    border-radius: var(--radius-lg);
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    transition: background .25s;
+}
+
+.avaliacao-resumo-nota {
+    font-family: 'Lora', serif;
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--purple);
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.avaliacao-resumo-dir {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.avaliacao-estrelas-media {
+    display: flex;
+    gap: 3px;
+    font-size: 1.25rem;
+}
+
+.avaliacao-estrelas-media .star-filled  { color: #f59e0b; }
+.avaliacao-estrelas-media .star-half    { color: #f59e0b; opacity: .6; }
+.avaliacao-estrelas-media .star-empty   { color: var(--border); }
+
+.avaliacao-resumo-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+/* Barra de distribuição de estrelas */
+.avaliacao-barras {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.avaliacao-barra-linha {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.avaliacao-barra-linha span:first-child {
+    width: 14px;
+    text-align: right;
+    flex-shrink: 0;
+    font-weight: 600;
+    color: var(--text-mid);
+}
+
+.avaliacao-barra-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.avaliacao-barra-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--purple), var(--purple-mid));
+    transition: width .6s cubic-bezier(.25,.8,.25,1);
+    animation: barGrow .8s ease both;
+}
+
+@keyframes barGrow {
+    from { width: 0 !important; }
+}
+
+.avaliacao-barra-linha span:last-child {
+    width: 22px;
+    flex-shrink: 0;
+    color: var(--muted);
+    font-size: 0.72rem;
+}
+
+/* ── Formulário de nova avaliação ─────────────────────────── */
+.avaliacao-form-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    margin-bottom: 28px;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.avaliacao-form-card:focus-within {
+    border-color: var(--purple-mid);
+    box-shadow: 0 0 0 3px rgba(91, 76, 245, .08);
+}
+
+.avaliacao-form-titulo {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 14px;
+}
+
+/* Seletor de estrelas ─── */
+.star-selector {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    user-select: none;
+}
+
+.star-selector .star-btn {
+    font-size: 1.9rem;
+    line-height: 1;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 2px;
+    transition: transform .12s cubic-bezier(.34,1.56,.64,1), filter .12s;
+    color: var(--border);
+    filter: drop-shadow(0 0 0px #f59e0b);
+}
+
+.star-selector .star-btn:hover,
+.star-selector .star-btn.hovered {
+    color: #f59e0b;
+    transform: scale(1.25) rotate(-4deg);
+    filter: drop-shadow(0 0 4px rgba(245,158,11,.55));
+}
+
+.star-selector .star-btn.selected {
+    color: #f59e0b;
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 6px rgba(245,158,11,.65));
+    animation: starPop .2s ease;
+}
+
+@keyframes starPop {
+    0%   { transform: scale(1.4); }
+    50%  { transform: scale(1.05); }
+    100% { transform: scale(1.15); }
+}
+
+.star-nota-texto {
+    font-size: 0.8rem;
+    color: var(--purple);
+    font-weight: 600;
+    min-height: 1.2em;
+    margin-bottom: 14px;
+    transition: opacity .2s;
+}
+
+.star-nota-texto.vazio { opacity: 0; }
+
+/* Textarea de comentário ─── */
+.avaliacao-textarea-wrap {
+    position: relative;
+    margin-bottom: 14px;
+}
+
+.avaliacao-textarea {
+    width: 100%;
+    padding: 12px 14px;
+    padding-bottom: 28px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 90px;
+    max-height: 200px;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.avaliacao-textarea::placeholder { color: var(--muted); }
+
+.avaliacao-textarea:focus {
+    outline: none;
+    border-color: var(--purple-mid);
+    box-shadow: 0 0 0 3px rgba(91, 76, 245, .08);
+}
+
+.avaliacao-char-count {
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    pointer-events: none;
+    transition: color .2s;
+}
+
+.avaliacao-char-count.quase { color: var(--warning, #856404); }
+.avaliacao-char-count.cheio { color: var(--error, #e74c3c); font-weight: 600; }
+
+/* Botão enviar ─── */
+.btn-enviar-avaliacao {
+    width: 100%;
+    padding: 13px;
+    background: var(--purple);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s, transform .15s, box-shadow .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: .02em;
+}
+
+.btn-enviar-avaliacao:hover:not(:disabled) {
+    background: var(--purple-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(91, 76, 245, .35);
+}
+
+.btn-enviar-avaliacao:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.btn-enviar-avaliacao:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.btn-enviar-avaliacao .btn-icon { font-size: 1rem; }
+
+/* ── Lista de avaliações ──────────────────────────────────── */
+.avaliacoes-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Estado vazio ─── */
+.avaliacoes-estado-vazio {
+    text-align: center;
+    padding: 40px 20px;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-lg);
+    color: var(--muted);
+}
+
+.avaliacoes-estado-vazio .estado-icone {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    opacity: .6;
+}
+
+.avaliacoes-estado-vazio p {
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.avaliacoes-estado-vazio strong {
+    display: block;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-mid);
+    margin-bottom: 4px;
+}
+
+/* Card individual de avaliação ─── */
+.avaliacao-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    transition: border-color .2s, box-shadow .2s, transform .2s;
+    animation: fadeSlideUp .3s ease both;
+}
+
+.avaliacao-card:hover {
+    border-color: var(--purple-mid);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
+
+/* destaque para avaliação muito boa */
+.avaliacao-card.destaque {
+    border-color: rgba(245, 158, 11, .35);
+    background: linear-gradient(135deg, var(--surface) 0%, rgba(245,158,11,.04) 100%);
+}
+
+.avaliacao-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 12px;
+}
+
+.avaliacao-card-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.avaliacao-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: white;
+    flex-shrink: 0;
+    letter-spacing: .02em;
+}
+
+.avaliacao-user-info {
+    min-width: 0;
+}
+
+.avaliacao-user-nome {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.avaliacao-user-data {
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.avaliacao-card-estrelas {
+    display: flex;
+    gap: 2px;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.avaliacao-card-estrelas .s-on  { color: #f59e0b; }
+.avaliacao-card-estrelas .s-off { color: var(--border); }
+
+.avaliacao-card-comentario {
+    font-size: 0.875rem;
+    color: var(--text-mid);
+    line-height: 1.65;
+    font-style: italic;
+    position: relative;
+    padding-left: 14px;
+}
+
+.avaliacao-card-comentario::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 4px; bottom: 4px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--purple-soft);
+}
+
+.avaliacao-card-sem-comentario {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-style: italic;
+}
+
+/* Badge "Muito bem avaliado" ─── */
+.avaliacao-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* ── Estados visuais especiais ────────────────────────────── */
+
+/* Poucas avaliações */
+.avaliacao-alerta-poucas {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--warning-bg, #fef3cd);
+    color: var(--warning, #856404);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+/* Livro muito bem avaliado */
+.avaliacao-destaque-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(245,158,11,.12), rgba(249,115,22,.08));
+    border: 1.5px solid rgba(245,158,11,.3);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    color: var(--text-mid);
+    font-weight: 500;
+}
+
+.avaliacao-destaque-banner .destaque-icone {
+    font-size: 1.6rem;
+    flex-shrink: 0;
+}
+
+/* ── MODO ESCURO ────────────────────────────────────────────── */
+[data-theme="dark"] .avaliacao-resumo {
+    background: rgba(91, 76, 245, .12);
+}
+
+[data-theme="dark"] .avaliacao-form-card,
+[data-theme="dark"] .avaliacao-card {
+    background: var(--surface);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .avaliacao-textarea {
+    background: var(--bg);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+[data-theme="dark"] .avaliacao-textarea:focus {
+    border-color: var(--purple-mid);
+}
+
+[data-theme="dark"] .avaliacao-card-comentario::before {
+    background: var(--purple-soft);
+}
+
+[data-theme="dark"] .star-selector .star-btn {
+    color: var(--border);
+}
+
+[data-theme="dark"] .avaliacao-estado-vazio {
+    border-color: var(--border);
+    color: var(--muted);
+}
+
+[data-theme="dark"] .avaliacao-card.destaque {
+    background: linear-gradient(135deg, var(--surface) 0%, rgba(245,158,11,.06) 100%);
+}
+
+[data-theme="dark"] .avaliacao-barra-track {
+    background: var(--border);
+}
+
+[data-theme="dark"] .avaliacao-alerta-poucas {
+    background: var(--warning-bg);
+    color: var(--warning);
+}
+
+/* ── Responsividade ─────────────────────────────────────────── */
+@media (max-width: 540px) {
+    .avaliacao-resumo {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .avaliacao-barras {
+        width: 100%;
+    }
+
+    .avaliacao-resumo-nota {
+        font-size: 2.4rem;
+    }
+
+    .avaliacao-form-card {
+        padding: 18px 16px;
+    }
+
+    .star-selector .star-btn {
+        font-size: 1.6rem;
+    }
+
+    .avaliacao-card-header {
+        flex-wrap: wrap;
+    }
+}
