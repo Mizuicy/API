@@ -371,14 +371,20 @@ app.put('/usuario/:id', async (req, res) => {
 
     console.log(`[PUT /usuario/${id}] Payload recebido: Nome=${Nome}, Senha=${Senha ? '***' : 'não enviada'}, FotoPerfil=${FotoPerfil ? FotoPerfil.substring(0, 30) + '...' : 'null'}`);
 
-    // Valida FotoPerfil: aceita null, string vazia ou data URL de imagem
+    // Valida FotoPerfil: aceita null, string vazia ou data URL de imagem (base64)
     const fotoFinal = (FotoPerfil && typeof FotoPerfil === 'string' && FotoPerfil.trim())
         ? FotoPerfil.trim()
         : null;
 
-    // Valida tamanho da foto (MEDIUMTEXT suporta até 16MB; base64 de 5MB ≈ 6.7MB)
-    if (fotoFinal && Buffer.byteLength(fotoFinal, 'utf8') > 15 * 1024 * 1024) {
-        return res.status(400).json({ error: 'Imagem muito grande. Máximo 10MB.' });
+    // Valida se é base64 — rejeita outros formatos (incluindo URLs http/https)
+    if (fotoFinal) {
+        const isBase64 = fotoFinal.startsWith('data:image/');
+        if (!isBase64) {
+            return res.status(400).json({ error: 'FotoPerfil inválida. Envie a imagem em base64.' });
+        }
+        if (Buffer.byteLength(fotoFinal, 'utf8') > 15 * 1024 * 1024) {
+            return res.status(400).json({ error: 'Imagem muito grande. Máximo 10MB.' });
+        }
     }
 
     // Valida senha se fornecida
@@ -461,6 +467,19 @@ function normalizarGeneros(raw) {
     if (Array.isArray(raw)) return raw.map(g => String(g).trim()).filter(Boolean);
     // string separada por vírgula (fallback)
     return String(raw).split(',').map(g => g.trim()).filter(Boolean);
+}
+
+// ── Helper: valida e normaliza campo de imagem (apenas base64) ──
+// Retorna: string normalizada | null (campo vazio) | false (inválido)
+function normalizarCampoImagem(valor) {
+    if (valor === undefined || valor === null || valor === '') return null;
+    if (typeof valor !== 'string') return null;
+    const v = valor.trim();
+    if (!v) return null;
+    // Aceita base64
+    if (v.startsWith('data:image/')) return v;
+    // Rejeita qualquer outra coisa (incluindo URLs http/https)
+    return false;
 }
 
 // ── Helper: busca/cria gêneros e devolve array de IDs ────────
@@ -617,6 +636,12 @@ app.post('/livro', (req, res) => {
     const { Nome, Autor, Editora, AnoPublicacao, Idioma, NumeroPaginas, ClassEtaria,
             Categoria, Resumo, Imagem, NumeroChamada, DataPublicacao } = req.body;
 
+    // Valida campo Imagem: aceita null ou base64
+    const imagemFinal = normalizarCampoImagem(Imagem);
+    if (imagemFinal === false) {
+        return res.status(400).json({ error: 'Imagem inválida. Envie a imagem em base64.' });
+    }
+
     const nomeGeneros = normalizarGeneros(req.body.Generos || req.body.generos || Categoria);
 
     // Mantém Categoria com o primeiro gênero para compatibilidade
@@ -627,7 +652,7 @@ app.post('/livro', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const values = [Nome, Autor || null, Editora || null, AnoPublicacao || null,
         Idioma || null, NumeroPaginas || null, ClassEtaria || null, categoriaSalvar,
-        Resumo || null, Imagem || null, NumeroChamada || null, DataPublicacao || null];
+        Resumo || null, imagemFinal || null, NumeroChamada || null, DataPublicacao || null];
 
     dbconfig.query(sql, values, (err, result) => {
         if (err) {
@@ -705,6 +730,12 @@ app.put('/livro/:id', (req, res) => {
     const { Nome, Autor, Editora, AnoPublicacao, Idioma, NumeroPaginas, ClassEtaria,
             Categoria, Resumo, Imagem, NumeroChamada, DataPublicacao } = req.body;
 
+    // Valida campo Imagem
+    const imagemFinal = normalizarCampoImagem(Imagem);
+    if (imagemFinal === false) {
+        return res.status(400).json({ error: 'Imagem inválida. Envie a imagem em base64.' });
+    }
+
     const nomeGeneros = normalizarGeneros(req.body.Generos || req.body.generos || Categoria);
     const categoriaSalvar = nomeGeneros.length ? nomeGeneros[0] : (Categoria || null);
 
@@ -715,7 +746,7 @@ app.put('/livro/:id', (req, res) => {
         WHERE Livro_id = ?`;
     const values = [Nome, Autor || null, Editora || null, AnoPublicacao || null,
         Idioma || null, NumeroPaginas || null, ClassEtaria || null, categoriaSalvar,
-        Resumo || null, Imagem || null, NumeroChamada || null, DataPublicacao || null, id];
+        Resumo || null, imagemFinal || null, NumeroChamada || null, DataPublicacao || null, id];
 
     dbconfig.query(sql, values, (err, result) => {
         if (err) return handleQuery(res, err);
@@ -2038,17 +2069,23 @@ app.post('/autor', (req, res) => {
     const { Nome, Nacionalidade = null, DataNascimento = null, Biografia = null, Foto = null } = req.body;
     const nomeTrimmed = Nome.trim();
 
+    // Valida campo Foto
+    const fotoFinal = normalizarCampoImagem(Foto);
+    if (fotoFinal === false) {
+        return res.status(400).json({ error: 'Foto inválida. Envie a imagem em base64.' });
+    }
+
     // Verificar duplicata
     dbconfig.query('SELECT Autor_id FROM Autor WHERE Nome = ?', [nomeTrimmed], (errDup, dup) => {
         if (errDup) { console.error('Erro ao verificar duplicata de autor:', errDup); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
         if (dup.length > 0) return res.status(409).json({ error: 'Já existe um autor com esse nome.' });
 
         const sql = 'INSERT INTO Autor (Nome, Nacionalidade, DataNascimento, Biografia, Foto) VALUES (?, ?, ?, ?, ?)';
-        const values = [nomeTrimmed, Nacionalidade || null, DataNascimento || null, Biografia || null, Foto || null];
+        const values = [nomeTrimmed, Nacionalidade || null, DataNascimento || null, Biografia || null, fotoFinal || null];
 
         dbconfig.query(sql, values, (err, result) => {
             if (err) { console.error('Erro ao cadastrar autor:', err); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
-            res.status(201).json({ Autor_id: result.insertId, Nome: nomeTrimmed, Nacionalidade, DataNascimento, Biografia, Foto });
+            res.status(201).json({ Autor_id: result.insertId, Nome: nomeTrimmed, Nacionalidade, DataNascimento, Biografia, Foto: fotoFinal });
         });
     });
 });
@@ -2062,6 +2099,12 @@ app.put('/autor/:id', (req, res) => {
     const { Nome, Nacionalidade = null, DataNascimento = null, Biografia = null, Foto = null } = req.body;
     const nomeTrimmed = Nome.trim();
 
+    // Valida campo Foto
+    const fotoFinal = normalizarCampoImagem(Foto);
+    if (fotoFinal === false) {
+        return res.status(400).json({ error: 'Foto inválida. Envie a imagem em base64.' });
+    }
+
     // Verificar se o autor existe
     dbconfig.query('SELECT Autor_id FROM Autor WHERE Autor_id = ?', [id], (errExiste, existe) => {
         if (errExiste) { console.error('Erro ao verificar autor:', errExiste); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
@@ -2073,11 +2116,11 @@ app.put('/autor/:id', (req, res) => {
             if (dup.length > 0) return res.status(409).json({ error: 'Já existe outro autor com esse nome.' });
 
             const sql = 'UPDATE Autor SET Nome = ?, Nacionalidade = ?, DataNascimento = ?, Biografia = ?, Foto = ? WHERE Autor_id = ?';
-            const values = [nomeTrimmed, Nacionalidade || null, DataNascimento || null, Biografia || null, Foto || null, id];
+            const values = [nomeTrimmed, Nacionalidade || null, DataNascimento || null, Biografia || null, fotoFinal || null, id];
 
             dbconfig.query(sql, values, (err) => {
                 if (err) { console.error('Erro ao atualizar autor:', err); return res.status(500).json({ error: 'Erro interno no servidor.' }); }
-                res.json({ Autor_id: parseInt(id), Nome: nomeTrimmed, Nacionalidade, DataNascimento, Biografia, Foto });
+                res.json({ Autor_id: parseInt(id), Nome: nomeTrimmed, Nacionalidade, DataNascimento, Biografia, Foto: fotoFinal });
             });
         });
     });

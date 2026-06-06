@@ -273,3 +273,4 @@ button.success:hover {
 [data-theme="dark"] .alert.error { background: var(--error-bg) !important; color: var(--error) !important; border-color: var(--error-border) !important; }
 [data-theme="dark"] .alert.info { background: var(--surface) !important; color: var(--text) !important; border-color: var(--border) !important; }
 body, header, .panel, .user-item, input, textarea { transition: background 0.25s, color 0.25s, border-color 0.25s; }
+

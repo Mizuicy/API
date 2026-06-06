@@ -76,7 +76,6 @@
 [data-theme="dark"] input[type="number"],
 [data-theme="dark"] input[type="search"],
 [data-theme="dark"] input[type="tel"],
-[data-theme="dark"] input[type="url"],
 [data-theme="dark"] input[type="date"],
 [data-theme="dark"] select,
 [data-theme="dark"] textarea {
@@ -984,25 +983,6 @@ label, h1, h2, h3, h4, h5, h6 {
     background: var(--bg) !important;
 }
 
-[data-theme="dark"] .capa-tab {
-    background: var(--bg) !important;
-    color: var(--muted) !important;
-    border-color: var(--border) !important;
-}
-
-[data-theme="dark"] .capa-tab + .capa-tab {
-    border-left-color: var(--border) !important;
-}
-
-[data-theme="dark"] .capa-tab.active {
-    background: var(--purple) !important;
-    color: #ffffff !important;
-}
-
-[data-theme="dark"] .capa-tab:hover:not(.active) {
-    background: var(--purple-soft) !important;
-    color: var(--purple) !important;
-}
 
 /* ── Upload de Capa: Dropzone (componente de escolher arquivo) ── */
 [data-theme="dark"] .capa-dropzone {

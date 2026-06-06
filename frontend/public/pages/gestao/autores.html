@@ -158,16 +158,7 @@
 
         <div class="form-group">
             <label>Foto</label>
-            <div class="foto-tabs">
-                <button type="button" class="foto-tab active" id="tabFotoUrl" onclick="setFotoMode('url')">🔗 URL</button>
-                <button type="button" class="foto-tab" id="tabFotoArquivo" onclick="setFotoMode('arquivo')">📁 Arquivo</button>
-            </div>
-
-            <div id="fotoUrlMode">
-                <input type="url" id="inputFotoUrl" placeholder="https://exemplo.com/foto.jpg"
-                       oninput="previewFotoUrl(this.value)">
-            </div>
-            <div id="fotoArquivoMode" style="display:none">
+            <div id="fotoArquivoMode">
                 <input type="file" id="inputFotoArquivo" accept="image/*"
                        onchange="previewFotoArquivo(this)"
                        style="font-family:inherit; font-size:0.875rem; padding:8px 0">
@@ -308,10 +299,6 @@ async function abrirModalEdicao(id) {
         document.getElementById('inputDataNascimento').value    = autor.DataNascimento ? autor.DataNascimento.substring(0, 10) : '';
         if (autor.Foto) {
             document.getElementById('inputFoto').value = autor.Foto;
-            if (autor.Foto.startsWith('http') || autor.Foto.startsWith('//')) {
-                setFotoMode('url');
-                document.getElementById('inputFotoUrl').value = autor.Foto;
-            }
             mostrarPreviewFoto(autor.Foto);
         } else { removerFoto(); }
         document.getElementById('modalOverlay').classList.add('open');
@@ -366,34 +353,7 @@ function fecharConfirm() { document.getElementById('confirmOverlay').classList.r
 
 function limparFormularioModal() {
     ['autorIdEdicao','inputNome','inputNacionalidade','inputDataNascimento','inputBiografia'].forEach(id => document.getElementById(id).value = '');
-    removerFoto(); setFotoMode('url');
-}
-
-function setFotoMode(modo) {
-    const urlEl    = document.getElementById('fotoUrlMode');
-    const arquivoEl= document.getElementById('fotoArquivoMode');
-    const tabUrl   = document.getElementById('tabFotoUrl');
-    const tabArq   = document.getElementById('tabFotoArquivo');
-    if (modo === 'url') {
-        urlEl.style.display = ''; arquivoEl.style.display = 'none';
-        tabUrl.classList.add('active'); tabArq.classList.remove('active');
-        document.getElementById('inputFotoArquivo').value = '';
-        const v = document.getElementById('inputFotoUrl').value.trim();
-        document.getElementById('inputFoto').value = v;
-        if (!v) ocultarPreviewFoto();
-    } else {
-        urlEl.style.display = 'none'; arquivoEl.style.display = '';
-        tabArq.classList.add('active'); tabUrl.classList.remove('active');
-        document.getElementById('inputFotoUrl').value = '';
-        document.getElementById('inputFoto').value = '';
-        ocultarPreviewFoto();
-    }
-}
-
-function previewFotoUrl(val) {
-    const v = val.trim();
-    if (v) { mostrarPreviewFoto(v); document.getElementById('inputFoto').value = v; }
-    else   { ocultarPreviewFoto(); document.getElementById('inputFoto').value = ''; }
+    removerFoto();
 }
 
 function previewFotoArquivo(input) {
@@ -406,7 +366,7 @@ function previewFotoArquivo(input) {
 
 function mostrarPreviewFoto(src) { document.getElementById('fotoPreviewImg').src = src; document.getElementById('fotoPreview').classList.add('visible'); }
 function ocultarPreviewFoto()    { document.getElementById('fotoPreview').classList.remove('visible'); document.getElementById('fotoPreviewImg').src = ''; }
-function removerFoto()           { ocultarPreviewFoto(); ['inputFoto','inputFotoUrl','inputFotoArquivo'].forEach(id => document.getElementById(id).value = ''); }
+function removerFoto()           { ocultarPreviewFoto(); ['inputFoto','inputFotoArquivo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); }
 
 document.getElementById('modalOverlay').addEventListener('click', function(e)  { if (e.target === this) fecharModal(); });
 document.getElementById('confirmOverlay').addEventListener('click', function(e) { if (e.target === this) fecharConfirm(); });

@@ -324,30 +324,8 @@
     gap: 16px;
 }
 
-/* ── Upload de foto no modal ────────────────────────────── */
-.foto-tabs {
-    display: flex;
-    border: 1.5px solid var(--border, #ddd);
-    border-radius: 8px;
-    overflow: hidden;
-    width: fit-content;
-    margin-bottom: 10px;
-}
 
-.foto-tab {
-    padding: 6px 16px;
-    background: var(--bg, #f8f8f8);
-    border: none;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: inherit;
-    color: var(--muted, #888);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-}
-.foto-tab + .foto-tab { border-left: 1.5px solid var(--border, #ddd); }
-.foto-tab.active { background: var(--purple, #667eea); color: #fff; }
-.foto-tab:hover:not(.active) { background: var(--purple-soft, #ede8fc); color: var(--purple, #667eea); }
+/* ── Upload de foto no modal ─────────────────────────────── */
 
 /* Preview de foto */
 .foto-preview {

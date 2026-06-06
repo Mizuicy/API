@@ -91,7 +91,7 @@ function renderizarLivros(livrosParaRender) {
     livrosGrid.innerHTML = livrosParaRender.map(livro => `
         <div class="livro-card">
             <img src="${livro.Imagem || ''}" alt="${livro.Nome}" class="livro-imagem"
-                 onerror="this.src='https://via.placeholder.com/280x250?text=Sem+Imagem'">
+                 onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'280\' height=\'250\' viewBox=\'0 0 280 250\'%3E%3Crect width=\'280\' height=\'250\' fill=\'%23f3f4f6\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%239ca3af\' font-family=\'sans-serif\' font-size=\'13\'%3ESem Imagem%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%23d1d5db\' font-family=\'sans-serif\' font-size=\'28\'%3E📚%3C/text%3E%3C/svg%3E'">
             <div class="livro-corpo">
                 <h3 class="livro-titulo">${livro.Nome || '—'}</h3>
                 <p class="livro-autor">por ${livro.Autor || '—'}</p>
@@ -119,7 +119,7 @@ function mostrarDetalhes(id) {
     document.getElementById('detalhesConteudo').innerHTML = `
         <h2 class="detalhes-titulo">${livro.Nome || '—'}</h2>
         <img src="${livro.Imagem || ''}" alt="${livro.Nome}"
-             onerror="this.src='https://via.placeholder.com/600x400?text=Sem+Imagem'">
+             onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'600\' height=\'400\' viewBox=\'0 0 600 400\'%3E%3Crect width=\'600\' height=\'400\' fill=\'%23f3f4f6\'/%3E%3Ctext x=\'50%25\' y=\'45%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%239ca3af\' font-family=\'sans-serif\' font-size=\'16\'%3ESem Imagem%3C/text%3E%3Ctext x=\'50%25\' y=\'60%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%23d1d5db\' font-family=\'sans-serif\' font-size=\'40\'%3E📚%3C/text%3E%3C/svg%3E'">
         <div class="detalhes-item">
             <span class="detalhes-label">Autor:</span>
             <span class="detalhes-valor">${livro.Autor || '—'}</span>

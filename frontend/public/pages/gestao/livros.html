@@ -183,17 +183,10 @@
                     <textarea id="resumo" name="resumo" rows="4" required placeholder="Digite um breve resumo do livro..."></textarea>
                 </div>
 
-                <!-- Capa: URL ou arquivo do PC -->
+                <!-- Capa: apenas arquivo do PC -->
                 <div class="form-group full-width">
                     <label>Imagem da Capa *</label>
-                    <div class="capa-tabs">
-                        <button type="button" class="capa-tab active" id="tabUrl" onclick="setCapaMode('url')">🔗 URL</button>
-                        <button type="button" class="capa-tab" id="tabFile" onclick="setCapaMode('file')">📁 Arquivo do PC</button>
-                    </div>
-                    <div id="capaUrlMode">
-                        <input type="url" id="capaUrl" name="capaUrl" placeholder="https://exemplo.com/capa.jpg">
-                    </div>
-                    <div id="capaFileMode" style="display:none">
+                    <div id="capaFileMode">
                         <input type="file" id="capaFile" name="capaFile" accept="image/*">
                     </div>
                     <div id="capaPreview" style="margin-top:12px"></div>

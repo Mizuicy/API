@@ -129,10 +129,18 @@ async function carregarLivroParaEditar(id) {
         if (btn) btn.textContent = 'Atualizar Livro';
         form.dataset.editarId = id;
 
-        // Capa
+        // Capa: ao editar, exibe a imagem atual como preview (somente base64 ou caminho já salvo)
         if (livro.Imagem) {
-            const capaUrl = document.getElementById('capaUrl');
-            if (capaUrl) capaUrl.value = livro.Imagem;
+            const preview = document.getElementById('capaPreview');
+            if (preview) {
+                preview.innerHTML = `
+                    <div class="capa-preview-container">
+                        <img src="${livro.Imagem}" class="capa-preview-img" alt="Prévia da capa" onerror="this.parentElement.innerHTML=''">
+                        <button type="button" class="capa-preview-remove" onclick="removeCapa()" title="Remover imagem">×</button>
+                    </div>`;
+            }
+            // Guarda a imagem atual no dataset para manter se não trocar o arquivo
+            form.dataset.imagemAtual = livro.Imagem;
         }
     } catch(e) {
         console.error('Erro ao carregar livro para edição:', e);
@@ -192,9 +200,8 @@ async function adicionarLivro(e) {
         }
     }
 
-    // Resolve capa
-    let imagem = null;
-    const capaUrl  = document.getElementById('capaUrl');
+    // Resolve capa: apenas arquivo local
+    let imagem = form.dataset.imagemAtual || null; // mantém imagem existente se não trocar
     const capaFile = document.getElementById('capaFile');
     if (capaFile && capaFile.files && capaFile.files[0]) {
         imagem = await new Promise((res) => {
@@ -202,8 +209,6 @@ async function adicionarLivro(e) {
             reader.onload = () => res(reader.result);
             reader.readAsDataURL(capaFile.files[0]);
         });
-    } else if (capaUrl && capaUrl.value.trim()) {
-        imagem = capaUrl.value.trim();
     }
 
     const dados = {
@@ -248,6 +253,7 @@ async function adicionarLivro(e) {
         AdminToast.success(isEdicao ? 'Livro atualizado com sucesso!' : 'Livro adicionado com sucesso!');
         form.reset();
         delete form.dataset.editarId;
+        delete form.dataset.imagemAtual;
 
         // Limpa gêneros
         if (typeof generosSelecionados !== 'undefined') {
@@ -270,38 +276,11 @@ function mostraNotificacao(mensagem, tipo) {
     AdminToast.show(mensagem, tipo || 'info');
 }
 
-// ── Imagem da Capa: toggle URL / Arquivo ─────────────────────
-function setCapaMode(mode) {
-    const urlMode  = document.getElementById('capaUrlMode');
-    const fileMode = document.getElementById('capaFileMode');
-    const tabUrl   = document.getElementById('tabUrl');
-    const tabFile  = document.getElementById('tabFile');
-    if (!urlMode || !fileMode) return;
-
-    if (mode === 'url') {
-        urlMode.style.display  = '';
-        fileMode.style.display = 'none';
-        tabUrl.classList.add('active');
-        tabFile.classList.remove('active');
-        const capaFile = document.getElementById('capaFile');
-        if (capaFile) capaFile.value = '';
-    } else {
-        urlMode.style.display  = 'none';
-        fileMode.style.display = '';
-        tabFile.classList.add('active');
-        tabUrl.classList.remove('active');
-        const capaUrl = document.getElementById('capaUrl');
-        if (capaUrl) capaUrl.value = '';
-    }
-    atualizarPreviewCapa();
-}
-
+// ── Imagem da Capa: apenas arquivo ───────────────────────────
 function atualizarPreviewCapa() {
     const preview  = document.getElementById('capaPreview');
-    if (!preview) return;
-    const capaUrl  = document.getElementById('capaUrl');
     const capaFile = document.getElementById('capaFile');
-    const url = capaUrl && capaUrl.offsetParent !== null ? capaUrl.value.trim() : '';
+    if (!preview) return;
 
     if (capaFile && capaFile.files && capaFile.files[0]) {
         const reader = new FileReader();
@@ -313,33 +292,21 @@ function atualizarPreviewCapa() {
                 </div>`;
         };
         reader.readAsDataURL(capaFile.files[0]);
-        return;
+    } else {
+        preview.innerHTML = '';
     }
-    if (url) {
-        preview.innerHTML = `
-            <div class="capa-preview-container">
-                <img src="${url}" class="capa-preview-img" alt="Prévia da capa"
-                     onerror="this.parentElement.innerHTML='<span class=\\'capa-preview-error\\'>Imagem não encontrada</span>'">
-                <button type="button" class="capa-preview-remove" onclick="removeCapa()" title="Remover imagem">×</button>
-            </div>`;
-        return;
-    }
-    preview.innerHTML = '';
 }
 
 function removeCapa() {
-    const capaUrl  = document.getElementById('capaUrl');
     const capaFile = document.getElementById('capaFile');
     const preview  = document.getElementById('capaPreview');
-    if (capaUrl)  capaUrl.value  = '';
     if (capaFile) capaFile.value = '';
     if (preview)  preview.innerHTML = '';
+    if (form.dataset.imagemAtual) delete form.dataset.imagemAtual;
 }
 
-// Atualiza prévia ao digitar URL
+// Atualiza prévia ao selecionar arquivo
 document.addEventListener('DOMContentLoaded', () => {
-    const capaUrl  = document.getElementById('capaUrl');
     const capaFile = document.getElementById('capaFile');
-    if (capaUrl)  capaUrl.addEventListener('input',  atualizarPreviewCapa);
     if (capaFile) capaFile.addEventListener('change', atualizarPreviewCapa);
 });
