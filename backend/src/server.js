@@ -1056,18 +1056,20 @@ app.put('/emprestimo/:id', (req, res) => {
         return res.status(400).json({ error: 'Status inválido. Use: ativo, devolvido ou atrasado.' });
     }
 
-    // Busca o empréstimo atual para pegar o Exemplar_id
     dbconfig.query('SELECT * FROM Emprestimo WHERE Emprestimo_id = ?', [id], (err, rows) => {
         if (err) return handleQuery(res, err);
         if (!rows.length) return res.status(404).json({ error: 'Empréstimo não encontrado.' });
 
         const emp = rows[0];
         const novoStatus = Status || emp.Status;
-        const novaData = DataDevolucao !== undefined ? DataDevolucao : emp.DataDevolucao;
+        const novaData   = DataDevolucao !== undefined ? DataDevolucao : emp.DataDevolucao;
+
+        // Ativa ElegivelAvaliacao quando status muda para 'devolvido'
+        const ativarElegivel = (novoStatus === 'devolvido' && emp.Status !== 'devolvido') ? 1 : (emp.ElegivelAvaliacao || 0);
 
         dbconfig.query(
-            'UPDATE Emprestimo SET Status = ?, DataDevolucao = ? WHERE Emprestimo_id = ?',
-            [novoStatus, novaData, id],
+            'UPDATE Emprestimo SET Status = ?, DataDevolucao = ?, ElegivelAvaliacao = ? WHERE Emprestimo_id = ?',
+            [novoStatus, novaData, ativarElegivel, id],
             (err2) => {
                 if (err2) return handleQuery(res, err2);
 
@@ -1076,10 +1078,36 @@ app.put('/emprestimo/:id', (req, res) => {
                     dbconfig.query(
                         "UPDATE Exemplar SET Status = 'Disponivel' WHERE Exemplar_id = ?",
                         [emp.Exemplar_id],
-                        (err3) => {
-                            if (err3) console.error('Aviso: falha ao liberar exemplar:', err3);
-                        }
+                        (err3) => { if (err3) console.error('Aviso: falha ao liberar exemplar:', err3); }
                     );
+                }
+
+                // Notificação de avaliação pendente ao devolver pela primeira vez
+                if (novoStatus === 'devolvido' && emp.Status !== 'devolvido') {
+                    const sqlInfo = `
+                        SELECT u.Usuario_id, l.Nome AS NomeLivro
+                        FROM Emprestimo e
+                        JOIN Exemplar ex ON e.Exemplar_id = ex.Exemplar_id
+                        JOIN Livro    l  ON ex.Livro_id   = l.Livro_id
+                        JOIN Usuario  u  ON e.Usuario_id  = u.Usuario_id
+                        WHERE e.Emprestimo_id = ?
+                    `;
+                    dbconfig.query(sqlInfo, [id], (errInfo, rowsInfo) => {
+                        if (errInfo || !rowsInfo.length) {
+                            console.error('[PUT /emprestimo] Aviso: não foi possível criar notificação de avaliação:', errInfo ? errInfo.message : 'sem dados');
+                            return;
+                        }
+                        const { Usuario_id, NomeLivro } = rowsInfo[0];
+                        const msg = `Seu empréstimo do livro "${NomeLivro}" foi finalizado. Compartilhe sua opinião avaliando a obra.`;
+                        dbconfig.query(
+                            'INSERT INTO Notificacao (Usuario_id, Emprestimo_id, Tipo, Mensagem) VALUES (?, ?, ?, ?)',
+                            [Usuario_id, id, 'avaliacao_pendente', msg],
+                            (errN) => {
+                                if (errN) console.error('[PUT /emprestimo] Erro ao criar notificação de avaliação:', errN.message);
+                                else console.log(`[PUT /emprestimo] Notificação avaliacao_pendente criada. Usuario_id=${Usuario_id}, Emprestimo_id=${id}`);
+                            }
+                        );
+                    });
                 }
 
                 res.json({ message: 'Empréstimo atualizado com sucesso.', Emprestimo_id: id, Status: novoStatus });
@@ -1088,9 +1116,6 @@ app.put('/emprestimo/:id', (req, res) => {
     });
 });
 
-// ─────────────────────────────────────────────────────────────
-// DELETE /emprestimo/:id — remover empréstimo
-// ─────────────────────────────────────────────────────────────
 app.delete('/emprestimo/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
@@ -2085,6 +2110,388 @@ app.delete('/autor/:id', (req, res) => {
 //  Garante que a resposta seja SEMPRE JSON — nunca HTML.
 //  DEVE ser o último middleware registrado (4 parâmetros obrigatórios).
 // ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+//  ROTAS DE AVALIAÇÕES DE LIVROS
+// ══════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────
+// GET /avaliacao/livro/:livro_id
+// Retorna media, distribuicao, total e lista de avaliações.
+// ─────────────────────────────────────────────────────────────
+app.get('/avaliacao/livro/:livro_id', (req, res) => {
+    const livroId = parseInt(req.params.livro_id, 10);
+    if (isNaN(livroId)) return res.status(400).json({ error: 'Livro_id inválido.' });
+
+    const sqlEstat = `
+        SELECT
+            COUNT(*)            AS total,
+            ROUND(AVG(Nota), 2) AS media,
+            SUM(Nota = 1)       AS estrelas1,
+            SUM(Nota = 2)       AS estrelas2,
+            SUM(Nota = 3)       AS estrelas3,
+            SUM(Nota = 4)       AS estrelas4,
+            SUM(Nota = 5)       AS estrelas5
+        FROM Avaliacao
+        WHERE Livro_id = ?
+    `;
+
+    dbconfig.query(sqlEstat, [livroId], (err, [estat]) => {
+        if (err) {
+            console.error('[GET /avaliacao/livro] Erro estatísticas:', err.message);
+            return res.status(500).json({ error: 'Erro interno no servidor.' });
+        }
+
+        const sqlLista = `
+            SELECT
+                a.Avaliacao_id,
+                a.Nota,
+                a.Comentario,
+                a.CriadaEm,
+                a.AtualizadaEm,
+                a.EditadaUmaVez,
+                a.Usuario_id,
+                u.Nome AS NomeUsuario
+            FROM Avaliacao a
+            JOIN Usuario   u ON a.Usuario_id = u.Usuario_id
+            WHERE a.Livro_id = ?
+            ORDER BY a.CriadaEm DESC
+            LIMIT 50
+        `;
+
+        dbconfig.query(sqlLista, [livroId], (err2, lista) => {
+            if (err2) {
+                console.error('[GET /avaliacao/livro] Erro lista:', err2.message);
+                return res.status(500).json({ error: 'Erro interno no servidor.' });
+            }
+
+            res.json({
+                total:  estat.total || 0,
+                media:  estat.media ? parseFloat(estat.media) : 0,
+                distribuicao: {
+                    1: estat.estrelas1 || 0,
+                    2: estat.estrelas2 || 0,
+                    3: estat.estrelas3 || 0,
+                    4: estat.estrelas4 || 0,
+                    5: estat.estrelas5 || 0
+                },
+                avaliacoes: lista
+            });
+        });
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+// GET /avaliacao/pendentes?usuario=ID
+// Empréstimos devolvidos + elegíveis ainda não avaliados.
+// ─────────────────────────────────────────────────────────────
+app.get('/avaliacao/pendentes', (req, res) => {
+    const usuarioId = parseInt(req.query.usuario, 10);
+    if (!usuarioId || isNaN(usuarioId)) return res.status(400).json({ error: 'usuario obrigatório.' });
+
+    const sql = `
+        SELECT
+            e.Emprestimo_id,
+            e.DataDevolucao,
+            l.Livro_id,
+            l.Nome   AS NomeLivro,
+            l.Autor  AS AutorLivro,
+            l.Imagem AS CapaLivro
+        FROM Emprestimo e
+        JOIN Exemplar   ex ON e.Exemplar_id = ex.Exemplar_id
+        JOIN Livro      l  ON ex.Livro_id   = l.Livro_id
+        WHERE e.Usuario_id        = ?
+          AND e.Status            = 'devolvido'
+          AND e.ElegivelAvaliacao = 1
+          AND NOT EXISTS (
+              SELECT 1 FROM Avaliacao av
+              WHERE av.Emprestimo_id = e.Emprestimo_id
+          )
+        ORDER BY e.DataDevolucao DESC
+    `;
+
+    dbconfig.query(sql, [usuarioId], (err, results) => {
+        if (err) {
+            console.error('[GET /avaliacao/pendentes] Erro:', err.message);
+            return res.status(500).json({ error: 'Erro interno no servidor.' });
+        }
+        res.json(results);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+// GET /avaliacao/historico?usuario=ID
+// Todas as avaliações já feitas pelo usuário.
+// ─────────────────────────────────────────────────────────────
+app.get('/avaliacao/historico', (req, res) => {
+    const usuarioId = parseInt(req.query.usuario, 10);
+    if (!usuarioId || isNaN(usuarioId)) return res.status(400).json({ error: 'usuario obrigatório.' });
+
+    const sql = `
+        SELECT
+            a.Avaliacao_id,
+            a.Nota,
+            a.Comentario,
+            a.CriadaEm,
+            a.AtualizadaEm,
+            a.EditadaUmaVez,
+            a.Emprestimo_id,
+            l.Livro_id,
+            l.Nome   AS NomeLivro,
+            l.Autor  AS AutorLivro,
+            l.Imagem AS CapaLivro
+        FROM Avaliacao  a
+        JOIN Emprestimo e  ON a.Emprestimo_id = e.Emprestimo_id
+        JOIN Exemplar   ex ON e.Exemplar_id   = ex.Exemplar_id
+        JOIN Livro      l  ON ex.Livro_id     = l.Livro_id
+        WHERE a.Usuario_id = ?
+        ORDER BY a.CriadaEm DESC
+    `;
+
+    dbconfig.query(sql, [usuarioId], (err, results) => {
+        if (err) {
+            console.error('[GET /avaliacao/historico] Erro:', err.message);
+            return res.status(500).json({ error: 'Erro interno no servidor.' });
+        }
+        res.json(results);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+// GET /avaliacao/emprestimo/:emprestimo_id?usuario=ID
+// Verifica se um empréstimo específico já foi avaliado.
+// ─────────────────────────────────────────────────────────────
+app.get('/avaliacao/emprestimo/:emprestimo_id', (req, res) => {
+    const emprestimoId = parseInt(req.params.emprestimo_id, 10);
+    const usuarioId    = parseInt(req.query.usuario, 10);
+
+    if (isNaN(emprestimoId)) return res.status(400).json({ error: 'Emprestimo_id inválido.' });
+    if (!usuarioId || isNaN(usuarioId)) return res.status(400).json({ error: 'usuario obrigatório.' });
+
+    dbconfig.query(
+        'SELECT * FROM Avaliacao WHERE Emprestimo_id = ? AND Usuario_id = ?',
+        [emprestimoId, usuarioId],
+        (err, rows) => {
+            if (err) {
+                console.error('[GET /avaliacao/emprestimo] Erro:', err.message);
+                return res.status(500).json({ error: 'Erro interno no servidor.' });
+            }
+            res.json({ avaliacao: rows.length ? rows[0] : null });
+        }
+    );
+});
+
+// ─────────────────────────────────────────────────────────────
+// POST /avaliacao
+// Cria nova avaliação. Validações completas no backend.
+// Body: { Usuario_id, Emprestimo_id, Nota, Comentario? }
+// ─────────────────────────────────────────────────────────────
+app.post('/avaliacao', (req, res) => {
+    const { Usuario_id, Emprestimo_id, Nota, Comentario } = req.body;
+
+    if (!Usuario_id || !Emprestimo_id || !Nota) {
+        return res.status(400).json({ error: 'Usuario_id, Emprestimo_id e Nota são obrigatórios.' });
+    }
+
+    const notaNum = parseInt(Nota, 10);
+    if (isNaN(notaNum) || notaNum < 1 || notaNum > 5) {
+        return res.status(400).json({ error: 'Nota deve ser um número inteiro entre 1 e 5.' });
+    }
+
+    const comentarioFinal = (Comentario && Comentario.trim()) ? Comentario.trim().substring(0, 500) : null;
+
+    const sqlEmp = `
+        SELECT e.Emprestimo_id, e.Status, e.ElegivelAvaliacao, e.Usuario_id, ex.Livro_id
+        FROM Emprestimo e
+        JOIN Exemplar ex ON e.Exemplar_id = ex.Exemplar_id
+        WHERE e.Emprestimo_id = ?
+    `;
+
+    dbconfig.query(sqlEmp, [Emprestimo_id], (err, rows) => {
+        if (err) {
+            console.error('[POST /avaliacao] Erro ao buscar empréstimo:', err.message);
+            return res.status(500).json({ error: 'Erro interno no servidor.' });
+        }
+
+        if (!rows.length) return res.status(404).json({ error: 'Empréstimo não encontrado.' });
+
+        const emp = rows[0];
+
+        if (emp.Usuario_id !== parseInt(Usuario_id, 10)) {
+            return res.status(403).json({ error: 'Você não tem permissão para avaliar este empréstimo.' });
+        }
+
+        if (emp.Status !== 'devolvido') {
+            return res.status(400).json({ error: 'Você ainda não pode avaliar este livro. O empréstimo precisa ser devolvido primeiro.' });
+        }
+
+        if (!emp.ElegivelAvaliacao) {
+            return res.status(400).json({ error: 'Você ainda não pode avaliar este livro. Aguarde a confirmação da devolução pelo administrador.' });
+        }
+
+        dbconfig.query(
+            'SELECT Avaliacao_id FROM Avaliacao WHERE Emprestimo_id = ?',
+            [Emprestimo_id],
+            (err2, existente) => {
+                if (err2) {
+                    console.error('[POST /avaliacao] Erro ao checar avaliação existente:', err2.message);
+                    return res.status(500).json({ error: 'Erro interno no servidor.' });
+                }
+
+                if (existente.length) {
+                    return res.status(400).json({ error: 'Avaliação já realizada para este empréstimo.' });
+                }
+
+                dbconfig.query(
+                    'INSERT INTO Avaliacao (Emprestimo_id, Usuario_id, Livro_id, Nota, Comentario) VALUES (?, ?, ?, ?, ?)',
+                    [Emprestimo_id, Usuario_id, emp.Livro_id, notaNum, comentarioFinal],
+                    (err3, result) => {
+                        if (err3) {
+                            console.error('[POST /avaliacao] Erro ao inserir:', err3.message);
+                            if (err3.code === 'ER_DUP_ENTRY') {
+                                return res.status(400).json({ error: 'Avaliação já realizada para este empréstimo.' });
+                            }
+                            return res.status(500).json({ error: 'Erro ao salvar avaliação.' });
+                        }
+
+                        // Marca notificações de avaliacao_pendente como lidas
+                        dbconfig.query(
+                            "UPDATE Notificacao SET Lida = 1 WHERE Emprestimo_id = ? AND Usuario_id = ? AND Tipo = 'avaliacao_pendente'",
+                            [Emprestimo_id, Usuario_id],
+                            (errN) => { if (errN) console.error('[POST /avaliacao] Erro ao marcar notificação:', errN.message); }
+                        );
+
+                        console.log(`[POST /avaliacao] Avaliação #${result.insertId} criada. Emprestimo_id=${Emprestimo_id}, Usuario_id=${Usuario_id}, Nota=${notaNum}`);
+
+                        res.status(201).json({
+                            Avaliacao_id  : result.insertId,
+                            Emprestimo_id : parseInt(Emprestimo_id, 10),
+                            Livro_id      : emp.Livro_id,
+                            Usuario_id    : parseInt(Usuario_id, 10),
+                            Nota          : notaNum,
+                            Comentario    : comentarioFinal,
+                            message       : 'Avaliação enviada com sucesso!'
+                        });
+                    }
+                );
+            }
+        );
+    });
+});
+
+// ─────────────────────────────────────────────────────────────
+// PUT /avaliacao/:id
+// Edição única. Somente o próprio usuário. EditadaUmaVez = 0.
+// Body: { Usuario_id, Nota, Comentario? }
+// ─────────────────────────────────────────────────────────────
+app.put('/avaliacao/:id', (req, res) => {
+    const avaliacaoId = parseInt(req.params.id, 10);
+    if (isNaN(avaliacaoId)) return res.status(400).json({ error: 'ID inválido.' });
+
+    const { Usuario_id, Nota, Comentario } = req.body;
+
+    if (!Usuario_id || !Nota) {
+        return res.status(400).json({ error: 'Usuario_id e Nota são obrigatórios.' });
+    }
+
+    const notaNum = parseInt(Nota, 10);
+    if (isNaN(notaNum) || notaNum < 1 || notaNum > 5) {
+        return res.status(400).json({ error: 'Nota deve ser um número inteiro entre 1 e 5.' });
+    }
+
+    const comentarioFinal = (Comentario && Comentario.trim()) ? Comentario.trim().substring(0, 500) : null;
+
+    dbconfig.query(
+        'SELECT Avaliacao_id, Usuario_id, EditadaUmaVez FROM Avaliacao WHERE Avaliacao_id = ?',
+        [avaliacaoId],
+        (err, rows) => {
+            if (err) {
+                console.error('[PUT /avaliacao] Erro ao buscar:', err.message);
+                return res.status(500).json({ error: 'Erro interno no servidor.' });
+            }
+
+            if (!rows.length) return res.status(404).json({ error: 'Avaliação não encontrada.' });
+
+            const av = rows[0];
+
+            if (av.Usuario_id !== parseInt(Usuario_id, 10)) {
+                return res.status(403).json({ error: 'Você não tem permissão para editar esta avaliação.' });
+            }
+
+            if (av.EditadaUmaVez) {
+                return res.status(400).json({ error: 'Esta avaliação já foi editada uma vez e não pode ser alterada novamente.' });
+            }
+
+            dbconfig.query(
+                'UPDATE Avaliacao SET Nota = ?, Comentario = ?, EditadaUmaVez = 1 WHERE Avaliacao_id = ?',
+                [notaNum, comentarioFinal, avaliacaoId],
+                (err2) => {
+                    if (err2) {
+                        console.error('[PUT /avaliacao] Erro ao atualizar:', err2.message);
+                        return res.status(500).json({ error: 'Erro ao salvar avaliação.' });
+                    }
+
+                    console.log(`[PUT /avaliacao] Avaliação #${avaliacaoId} editada por Usuario_id=${Usuario_id}.`);
+                    res.json({
+                        Avaliacao_id  : avaliacaoId,
+                        Nota          : notaNum,
+                        Comentario    : comentarioFinal,
+                        EditadaUmaVez : true,
+                        message       : 'Avaliação atualizada com sucesso!'
+                    });
+                }
+            );
+        }
+    );
+});
+
+// ─────────────────────────────────────────────────────────────
+// GET /admin/avaliacoes
+// Admin visualiza todas as avaliações. Apenas leitura.
+// Query params: ?livro_id=  ?usuario_id=  ?nota=
+// ─────────────────────────────────────────────────────────────
+app.get('/admin/avaliacoes', (req, res) => {
+    const livroId   = req.query.livro_id   ? parseInt(req.query.livro_id, 10)   : null;
+    const usuarioId = req.query.usuario_id ? parseInt(req.query.usuario_id, 10) : null;
+    const nota      = req.query.nota       ? parseInt(req.query.nota, 10)       : null;
+
+    let sql = `
+        SELECT
+            a.Avaliacao_id,
+            a.Nota,
+            a.Comentario,
+            a.CriadaEm,
+            a.AtualizadaEm,
+            a.EditadaUmaVez,
+            a.Emprestimo_id,
+            a.Usuario_id,
+            u.Nome   AS NomeUsuario,
+            u.Email  AS EmailUsuario,
+            l.Livro_id,
+            l.Nome   AS NomeLivro,
+            l.Autor  AS AutorLivro
+        FROM Avaliacao  a
+        JOIN Usuario    u ON a.Usuario_id = u.Usuario_id
+        JOIN Livro      l ON a.Livro_id   = l.Livro_id
+        WHERE 1=1
+    `;
+    const params = [];
+
+    if (livroId)   { sql += ' AND a.Livro_id   = ?'; params.push(livroId); }
+    if (usuarioId) { sql += ' AND a.Usuario_id = ?'; params.push(usuarioId); }
+    if (nota)      { sql += ' AND a.Nota       = ?'; params.push(nota); }
+
+    sql += ' ORDER BY a.CriadaEm DESC LIMIT 200';
+
+    dbconfig.query(sql, params, (err, results) => {
+        if (err) {
+            console.error('[GET /admin/avaliacoes] Erro:', err.message);
+            return res.status(500).json({ error: 'Erro interno no servidor.' });
+        }
+        res.json(results);
+    });
+});
+
 app.use((err, req, res, next) => {
     console.error(`[server] Erro não tratado em ${req.method} ${req.url}:`, err.message);
     console.error('[server] Stack:', err.stack);

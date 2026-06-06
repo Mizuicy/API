@@ -1,9 +1,11 @@
 // meus-emprestimos.js — Kairos Biblioteca
 // Mostra empréstimos ativos/devolvidos + solicitações pendentes/reprovadas
+// ATUALIZADO: exibe botão "Avaliar" nos devolvidos elegíveis + tab de avaliações pendentes
 
 const API = 'http://localhost:3000';
 let todosEmprestimos   = [];
 let todasSolicitacoes  = [];
+let todosAvalPendentes = [];
 let tabAtiva           = 'todos';
 
 // Avatar
@@ -38,16 +40,17 @@ function statusBadge(status) {
     return `<span class="badge ${cls}">${label}</span>`;
 }
 
-// Combina empréstimos + solicitações em uma lista unificada com tipo
+function emprestimoElegivelAvaliacao(emprestimoId) {
+    return todosAvalPendentes.some(p => p.Emprestimo_id === emprestimoId);
+}
+
 function itensParaExibir() {
     const items = [];
 
-    // Empréstimos normais
     todosEmprestimos.forEach(e => {
         items.push({ tipo: 'emprestimo', ...e, _status: (e.Status || 'ativo').toLowerCase() });
     });
 
-    // Solicitações pendentes e reprovadas (aprovadas já viraram empréstimo)
     todasSolicitacoes
         .filter(s => s.Status === 'pendente' || s.Status === 'reprovado')
         .forEach(s => {
@@ -66,7 +69,6 @@ function itensParaExibir() {
             });
         });
 
-    // Ordena por data (mais recente primeiro)
     items.sort((a, b) => new Date(b.DataEmprestimo || 0) - new Date(a.DataEmprestimo || 0));
     return items;
 }
@@ -80,6 +82,21 @@ function renderizar() {
         filtrados = todos;
     } else if (tabAtiva === 'pendente') {
         filtrados = todos.filter(i => i._status === 'pendente');
+    } else if (tabAtiva === 'avaliacoes') {
+        filtrados = todos.filter(i =>
+            i.tipo === 'emprestimo' &&
+            i._status === 'devolvido' &&
+            emprestimoElegivelAvaliacao(i.Emprestimo_id)
+        );
+        if (filtrados.length === 0) {
+            lista.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">⭐</div>
+                    <h3>Nenhuma avaliação pendente</h3>
+                    <p>Quando você devolver um livro, poderá avaliá-lo aqui.</p>
+                </div>`;
+            return;
+        }
     } else {
         filtrados = todos.filter(i => i._status === tabAtiva);
     }
@@ -110,6 +127,16 @@ function renderizar() {
             ? `<span class="emp-data" style="color:#b91c1c">Motivo: <strong>${item.ObservacaoAdmin}</strong></span>`
             : '';
 
+        const elegivelAval = !isSolicitacao && st === 'devolvido' && emprestimoElegivelAvaliacao(item.Emprestimo_id);
+        const btnAvaliar = elegivelAval
+            ? `<button
+                   class="btn-avaliar-emprestimo"
+                   onclick="abrirAvaliacaoCatalogo(${item.Livro_id}, ${item.Emprestimo_id})"
+                   title="Avaliar este livro">
+                   ⭐ Avaliar
+               </button>`
+            : '';
+
         return `
         <div class="emp-card ${cssClass}">
             ${capa
@@ -134,31 +161,40 @@ function renderizar() {
                     ${obsHtml}
                 </div>
             </div>
-            ${statusBadge(st)}
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
+                ${statusBadge(st)}
+                ${btnAvaliar}
+            </div>
         </div>`;
     }).join('');
+}
+
+function abrirAvaliacaoCatalogo(livroId, emprestimoId) {
+    window.location.href = `../biblioteca/catalogo.html?avaliar=${livroId}&emprestimo=${emprestimoId}`;
 }
 
 async function carregarDados() {
     const usuarioId = sessionStorage.getItem('usuarioId');
 
     try {
-        const [resEmp, resSolic] = await Promise.all([
+        const [resEmp, resSolic, resAval] = await Promise.all([
             fetch(usuarioId ? `${API}/emprestimo?usuario=${usuarioId}` : `${API}/emprestimo`),
-            usuarioId ? fetch(`${API}/solicitacao?usuario=${usuarioId}`) : Promise.resolve({ ok: true, json: async () => [] })
+            usuarioId ? fetch(`${API}/solicitacao?usuario=${usuarioId}`) : Promise.resolve({ ok: true, json: async () => [] }),
+            usuarioId ? fetch(`${API}/avaliacao/pendentes?usuario=${usuarioId}`) : Promise.resolve({ ok: true, json: async () => [] })
         ]);
 
-        todosEmprestimos  = resEmp.ok  ? await resEmp.json()  : [];
-        todasSolicitacoes = resSolic.ok ? await resSolic.json() : [];
+        todosEmprestimos   = resEmp.ok   ? await resEmp.json()   : [];
+        todasSolicitacoes  = resSolic.ok ? await resSolic.json() : [];
+        todosAvalPendentes = resAval.ok  ? await resAval.json()  : [];
 
         const total = itensParaExibir().length;
         document.getElementById('pageSubtitle').textContent = total > 0
             ? `${total} registro${total > 1 ? 's' : ''}`
             : 'Nenhum empréstimo ou solicitação no momento';
 
-        // Adiciona tab "Pendentes" dinamicamente se necessário
         const pendentes = todasSolicitacoes.filter(s => s.Status === 'pendente').length;
         _injetarTabPendente(pendentes);
+        _injetarTabAvaliacoes(todosAvalPendentes.length);
 
         renderizar();
     } catch(e) {
@@ -174,7 +210,6 @@ async function carregarDados() {
 }
 
 function _injetarTabPendente(count) {
-    // Adiciona/atualiza tab de Pendentes se não existir ainda
     let existente = document.querySelector('.tab-btn[data-tab="pendente"]');
     if (!existente) {
         const tabBar = document.querySelector('.tabs-bar, .tab-bar, .tabs');
@@ -190,5 +225,51 @@ function _injetarTabPendente(count) {
         existente.textContent = `Pendentes (${count})`;
     }
 }
+
+function _injetarTabAvaliacoes(count) {
+    let existente = document.querySelector('.tab-btn[data-tab="avaliacoes"]');
+    if (!existente && count > 0) {
+        const tabBar = document.querySelector('.tabs-bar, .tab-bar, .tabs');
+        if (tabBar) {
+            const btn = document.createElement('button');
+            btn.className = 'tab-btn tab-btn-aval-pendente';
+            btn.dataset.tab = 'avaliacoes';
+            btn.onclick = function() { mudarTab('avaliacoes', this); };
+            btn.innerHTML = `⭐ Avaliar (${count})`;
+            tabBar.appendChild(btn);
+        }
+    } else if (existente) {
+        existente.innerHTML = count > 0 ? `⭐ Avaliar (${count})` : '⭐ Avaliar';
+        existente.style.display = count > 0 ? '' : 'none';
+    }
+}
+
+// CSS do botão avaliar injetado dinamicamente
+(function injetarCssAvaliar() {
+    if (document.getElementById('emp-aval-css')) return;
+    const s = document.createElement('style');
+    s.id = 'emp-aval-css';
+    s.textContent = `
+    .btn-avaliar-emprestimo {
+        padding: 7px 14px;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity .2s, transform .15s;
+        white-space: nowrap;
+    }
+    .btn-avaliar-emprestimo:hover {
+        opacity: .88;
+        transform: translateY(-1px);
+    }
+    .tab-btn-aval-pendente { color: #d97706 !important; font-weight: 600; }
+    .tab-btn-aval-pendente.active { color: #d97706 !important; border-bottom-color: #d97706 !important; }`;
+    document.head.appendChild(s);
+})();
 
 carregarDados();

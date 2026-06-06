@@ -202,16 +202,30 @@
             const lida = n.Lida ? 1 : 0;
 
             // ── Configuração visual por tipo de notificação ──────────
-            const isNovoLivro = n.Tipo === 'novo_livro';
-            const icone = isNovoLivro ? '📗' : '📚';
-            const titulo = isNovoLivro
-                ? 'Novo livro no acervo!'
-                : (n.NomeLivro || 'Livro');
+            const isNovoLivro         = n.Tipo === 'novo_livro';
+            const isAvaliacaoPendente = n.Tipo === 'avaliacao_pendente';
 
-            // Estilo especial para novo_livro
-            const iconeBg = isNovoLivro
-                ? 'background:#f0fdf4; border:1px solid #16a34a;'
-                : '';
+            let icone, titulo, iconeBg, linkAvaliar;
+
+            if (isAvaliacaoPendente) {
+                icone       = '⭐';
+                titulo      = n.NomeLivro || 'Livro devolvido';
+                iconeBg     = 'background:#fefce8; border:1px solid #ca8a04;';
+                linkAvaliar = `<a class="kn-btn-acao" style="color:#d97706;font-weight:600;"
+                                   href="meus-emprestimos.html">
+                                   Ir para Meus Empréstimos →
+                               </a>`;
+            } else if (isNovoLivro) {
+                icone       = '📗';
+                titulo      = 'Novo livro no acervo!';
+                iconeBg     = 'background:#f0fdf4; border:1px solid #16a34a;';
+                linkAvaliar = '';
+            } else {
+                icone       = '📚';
+                titulo      = n.NomeLivro || 'Livro';
+                iconeBg     = '';
+                linkAvaliar = '';
+            }
             // ─────────────────────────────────────────────────────────
 
             return `
@@ -226,6 +240,7 @@
                                 ? `<button class="kn-btn-acao" data-action="nao-lida" data-id="${n.Notificacao_id}">Marcar como não lida</button>`
                                 : `<button class="kn-btn-acao" data-action="lida" data-id="${n.Notificacao_id}">Marcar como lida</button>`
                             }
+                            ${linkAvaliar}
                         </div>
                     </div>
                 </div>
