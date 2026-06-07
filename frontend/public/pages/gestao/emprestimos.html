@@ -202,6 +202,95 @@
         /* Linha atrasada em destaque */
         .row-atrasado { background: #fff9f9 !important; }
 
+        /* ── Botão Editar ─────────────────────────────────── */
+        .btn-editar {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            background: #ede9fe;
+            color: #6d28d9;
+            margin-left: 6px;
+            transition: background .15s;
+        }
+
+        .btn-editar:hover { background: #ddd6fe; }
+
+        /* ── Modal de Edição ──────────────────────────────── */
+        .modal-edit-box {
+            background: white;
+            border-radius: 14px;
+            padding: 32px;
+            width: 100%;
+            max-width: 560px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.2);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-edit-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .modal-edit-grid .form-group-full {
+            grid-column: 1 / -1;
+        }
+
+        .edit-section-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: #999;
+            margin: 18px 0 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #eee;
+            grid-column: 1 / -1;
+        }
+
+        .badge-status-edit {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            background: #ede9fe;
+            color: #6d28d9;
+            margin-bottom: 12px;
+        }
+
+        /* Dark mode para o modal de edição */
+        [data-theme="dark"] .modal-edit-box {
+            background: #1a1a24;
+            color: #e8e8f0;
+        }
+
+        [data-theme="dark"] .edit-section-title {
+            color: var(--muted);
+            border-bottom-color: var(--border);
+        }
+
+        [data-theme="dark"] .btn-editar {
+            background: #2d2250 !important;
+            color: #a78bfa !important;
+        }
+
+        [data-theme="dark"] .btn-editar:hover {
+            background: #3d3060 !important;
+        }
+
+        [data-theme="dark"] #editObservacao {
+            background: #22223a;
+            color: #e8e8f0;
+            border-color: #2e2e42;
+        }
+
         /* Vazio / loading */
         .table-msg {
             text-align: center;
@@ -559,6 +648,84 @@
     </div>
 </div>
 
+<!-- Modal: Editar Empréstimo (Admin) -->
+<div class="modal-overlay" id="modalEditar">
+    <div class="modal-edit-box">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+            <h3 class="modal-title" style="margin-bottom:0;">✏️ Editar Empréstimo</h3>
+            <span id="editBadgeId" class="badge-status-edit">—</span>
+        </div>
+        <p style="color:#888; font-size:0.8rem; margin-bottom:20px;">Alterações salvas aqui são persistidas diretamente no banco de dados.</p>
+
+        <div class="modal-edit-grid">
+
+            <!-- Seção: Datas -->
+            <div class="edit-section-title">📅 Datas</div>
+
+            <div class="form-group">
+                <label for="editDataSaida">Data do Empréstimo</label>
+                <input type="date" id="editDataSaida">
+            </div>
+
+            <div class="form-group">
+                <label for="editDataPrevista">Prazo de Devolução</label>
+                <input type="date" id="editDataPrevista">
+            </div>
+
+            <div class="form-group">
+                <label for="editDataDevolucao">Data de Devolução Real</label>
+                <input type="date" id="editDataDevolucao">
+            </div>
+
+            <div class="form-group">
+                <label for="editStatus">Status</label>
+                <select id="editStatus">
+                    <option value="ativo">📖 Ativo</option>
+                    <option value="atrasado">⚠️ Atrasado</option>
+                    <option value="devolvido">✅ Devolvido</option>
+                </select>
+            </div>
+
+            <!-- Seção: Vínculos -->
+            <div class="edit-section-title">🔗 Vínculos</div>
+
+            <div class="form-group form-group-full">
+                <label for="editUsuario">Usuário Vinculado</label>
+                <select id="editUsuario">
+                    <option value="">Selecione o usuário...</option>
+                </select>
+            </div>
+
+            <div class="form-group form-group-full">
+                <label for="editExemplar">Exemplar Vinculado</label>
+                <select id="editExemplar">
+                    <option value="">Selecione o exemplar...</option>
+                </select>
+            </div>
+
+            <!-- Seção: Observação -->
+            <div class="edit-section-title">📝 Observação Administrativa</div>
+
+            <div class="form-group form-group-full">
+                <label for="editObservacao">Observação (máx. 500 caracteres)</label>
+                <textarea id="editObservacao" rows="3" maxlength="500"
+                    style="width:100%; padding:10px 13px; border:1px solid #ddd; border-radius:8px; font-size:0.9rem; font-family:inherit; resize:vertical; outline:none; transition:border-color .2s, box-shadow .2s; box-sizing:border-box;"
+                    placeholder="Anotações administrativas sobre este empréstimo..."
+                    onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102,126,234,.12)'"
+                    onblur="this.style.borderColor='#ddd'; this.style.boxShadow='none'"></textarea>
+            </div>
+
+        </div>
+
+        <p id="erroEditModal" style="color:#dc2626; font-size:0.85rem; min-height:1.2em; margin-top:8px;"></p>
+
+        <div class="modal-actions">
+            <button class="btn-cancelar" onclick="fecharModalEditar()">Cancelar</button>
+            <button class="btn-confirmar" id="btnSalvarEdicao" onclick="salvarEdicaoEmprestimo()">💾 Salvar Alterações</button>
+        </div>
+    </div>
+</div>
+
 <!-- Toast -->
 
 <script>
@@ -717,6 +884,9 @@ function renderizarTabela(dados) {
                         ${podeDevolver ? '' : 'disabled'}>
                     Devolver
                 </button>
+                <button class="btn-editar"
+                        onclick="abrirModalEditar(${e.Emprestimo_id})"
+                        title="Editar empréstimo">✏️</button>
                 <button class="btn-excluir"
                         onclick="excluirEmprestimo(${e.Emprestimo_id})"
                         title="Excluir registro">🗑</button>
@@ -833,6 +1003,162 @@ async function carregarSolicitacoes() {
                     Não foi possível carregar as solicitações.
                 </div>
             </td></tr>`;
+    }
+}
+
+// ── Modal edição de empréstimo (admin) ───────────────────────
+let _editEmprestimoId = null;
+
+async function abrirModalEditar(id) {
+    _editEmprestimoId = id;
+    const erroEl = document.getElementById('erroEditModal');
+    erroEl.textContent = '';
+
+    // Exibe badge com ID
+    document.getElementById('editBadgeId').textContent = `Empréstimo #${id}`;
+
+    // Carrega selects de usuários e exemplares se ainda não carregados
+    await Promise.all([
+        _garantirSelectsEditCarregados(),
+        _carregarEmprestimoParaEdicao(id)
+    ]);
+
+    document.getElementById('modalEditar').classList.add('open');
+}
+
+async function _garantirSelectsEditCarregados() {
+    // Usuários
+    const selU = document.getElementById('editUsuario');
+    if (selU.options.length <= 1) {
+        try {
+            const resU = await fetch(`${API}/usuario`);
+            const usuarios = resU.ok ? await resU.json() : [];
+            usuarios.forEach(u => {
+                const op = document.createElement('option');
+                op.value       = u.Usuario_id;
+                op.textContent = `${u.Nome} (${u.Email})`;
+                selU.appendChild(op);
+            });
+        } catch(e) { console.error('Erro ao carregar usuários no edit:', e); }
+    }
+
+    // Exemplares
+    const selE = document.getElementById('editExemplar');
+    if (selE.options.length <= 1) {
+        try {
+            const resE = await fetch(`${API}/exemplar`);
+            const exemplares = resE.ok ? await resE.json() : [];
+            exemplares.forEach(ex => {
+                const op = document.createElement('option');
+                op.value       = ex.Exemplar_id;
+                op.textContent = `#${ex.Exemplar_id} — Tombo: ${ex.NumeroTombo || '—'} | ${ex.NomeLivro || ex.Livro_id || ''}`;
+                selE.appendChild(op);
+            });
+        } catch(e) { console.error('Erro ao carregar exemplares no edit:', e); }
+    }
+}
+
+function _dataParaInput(val) {
+    if (!val) return '';
+    const d = new Date(val);
+    const local = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+    const y = local.getFullYear();
+    const m = String(local.getMonth() + 1).padStart(2, '0');
+    const dia = String(local.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dia}`;
+}
+
+async function _carregarEmprestimoParaEdicao(id) {
+    try {
+        const res = await fetch(`${API}/admin/emprestimo/${id}`);
+        if (!res.ok) throw new Error('não encontrado');
+        const emp = await res.json();
+
+        document.getElementById('editDataSaida').value      = _dataParaInput(emp.DataEmprestimo);
+        document.getElementById('editDataPrevista').value   = _dataParaInput(emp.DataPrevista);
+        document.getElementById('editDataDevolucao').value  = _dataParaInput(emp.DataDevolucao);
+        document.getElementById('editStatus').value         = emp.Status || 'ativo';
+        document.getElementById('editUsuario').value        = emp.Usuario_id || '';
+        document.getElementById('editExemplar').value       = emp.Exemplar_id || '';
+        document.getElementById('editObservacao').value     = emp.Observacao || '';
+    } catch(e) {
+        document.getElementById('erroEditModal').textContent = 'Não foi possível carregar os dados do empréstimo.';
+        console.error('Erro ao carregar empréstimo para edição:', e);
+    }
+}
+
+function fecharModalEditar() {
+    document.getElementById('modalEditar').classList.remove('open');
+    document.getElementById('erroEditModal').textContent = '';
+    _editEmprestimoId = null;
+}
+
+async function salvarEdicaoEmprestimo() {
+    if (!_editEmprestimoId) return;
+    const erroEl = document.getElementById('erroEditModal');
+    erroEl.textContent = '';
+
+    const adminId = sessionStorage.getItem('usuarioId');
+    if (!adminId) {
+        erroEl.textContent = 'Sessão de administrador não encontrada. Faça login novamente.';
+        return;
+    }
+
+    const dataSaida     = document.getElementById('editDataSaida').value.trim();
+    const dataPrevista  = document.getElementById('editDataPrevista').value.trim();
+    const dataDevolucao = document.getElementById('editDataDevolucao').value.trim();
+    const status        = document.getElementById('editStatus').value;
+    const usuarioId     = document.getElementById('editUsuario').value;
+    const exemplarId    = document.getElementById('editExemplar').value;
+    const observacao    = document.getElementById('editObservacao').value.trim();
+
+    // Validações no cliente
+    if (!dataSaida)    { erroEl.textContent = 'A data do empréstimo é obrigatória.'; return; }
+    if (!dataPrevista) { erroEl.textContent = 'O prazo de devolução é obrigatório.'; return; }
+    if (!status)       { erroEl.textContent = 'O status é obrigatório.'; return; }
+    if (!usuarioId)    { erroEl.textContent = 'Selecione o usuário vinculado.'; return; }
+    if (!exemplarId)   { erroEl.textContent = 'Selecione o exemplar vinculado.'; return; }
+
+    if (dataPrevista && dataSaida && dataPrevista < dataSaida) {
+        erroEl.textContent = 'O prazo de devolução não pode ser anterior à data do empréstimo.';
+        return;
+    }
+
+    const body = {
+        admin_id:       parseInt(adminId),
+        DataSaida:      dataSaida,
+        DataPrevista:   dataPrevista,
+        DataDevolucao:  dataDevolucao || null,
+        Status:         status,
+        Usuario_id:     parseInt(usuarioId),
+        Exemplar_id:    parseInt(exemplarId),
+        Observacao:     observacao || null
+    };
+
+    const btn = document.getElementById('btnSalvarEdicao');
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    try {
+        const res = await fetch(`${API}/admin/emprestimo/${_editEmprestimoId}`, {
+            method : 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify(body)
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            fecharModalEditar();
+            AdminToast.success('Empréstimo atualizado com sucesso!');
+            await carregarEmprestimos();
+        } else {
+            erroEl.textContent = data.error || 'Erro ao salvar alterações.';
+        }
+    } catch {
+        erroEl.textContent = 'Erro de conexão com o servidor.';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Salvar Alterações';
     }
 }
 
