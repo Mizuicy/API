@@ -33,6 +33,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 24px;
+            align-items: stretch; /* altura uniforme por linha */
         }
 
         .page-title {
@@ -89,11 +90,15 @@ body { transition: background 0.25s, color 0.25s; }
 [data-theme="dark"] .empty-state { color: var(--muted); }
 
 /* ── Múltiplos gêneros no card do catálogo ─────────────────── */
+/* 1 linha fixa: badges excedentes ficam ocultos para garantir
+   altura uniforme entre todos os cards do grid. */
 .book-generos {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;       /* 1 linha apenas */
     gap: 4px;
     margin-bottom: 6px;
+    min-height: 22px;        /* reserva espaço mesmo quando vazio */
+    overflow: hidden;        /* oculta badges excedentes */
 }
 
 .book-genero-pill {

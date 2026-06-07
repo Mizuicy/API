@@ -204,6 +204,7 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 25px;
     margin-top: 20px;
+    align-items: stretch; /* garante altura uniforme por linha */
 }
 
 .livro-card {
@@ -215,6 +216,8 @@ body {
     cursor: pointer;
     display: flex;
     flex-direction: column;
+    /* Altura uniforme: todos os cards da linha crescem para o mesmo tamanho */
+    align-self: stretch;
 }
 
 .livro-card:hover {
@@ -233,7 +236,14 @@ body {
     padding: 15px;
     display: flex;
     flex-direction: column;
-    flex-grow: 1;
+    flex: 1 1 auto; /* cresce para preencher todo o espaço restante do card */
+}
+
+/* ── Zona de conteúdo variável: ocupa todo o espaço disponível acima dos botões ── */
+.livro-corpo-conteudo {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .livro-titulo {
@@ -242,18 +252,31 @@ body {
     color: #333;
     margin-bottom: 8px;
     line-height: 1.3;
+    /* Clamp fixo a 2 linhas — reserva altura igual em todos os cards */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: calc(16px * 1.3 * 2);
 }
 
 .livro-autor {
     font-size: 13px;
     color: #666;
     margin-bottom: 5px;
+    /* Clamp a 1 linha — autores longos não quebram o alinhamento */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .livro-info {
     font-size: 12px;
     color: #999;
     margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ── Badge único (legado) ── */
@@ -269,12 +292,17 @@ body {
     border: 1px solid var(--card-pill-border);
 }
 
-/* ── Container de múltiplos badges no card ── */
+/* ── Container de múltiplos badges no card ──
+   Altura fixa: máximo 1 linha de badges (28px) + margem.
+   Badges excedentes ficam ocultos — evita que livros com muitos
+   gêneros empurrem os botões para baixo. ── */
 .livro-generos-badges {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;       /* 1 linha apenas */
     gap: 5px;
     margin-top: 8px;
+    min-height: 28px;        /* reserva altura mesmo quando vazio */
+    overflow: hidden;        /* oculta badges que ultrapassem a linha */
 }
 
 .livro-genero-badge {
@@ -308,7 +336,8 @@ body {
 .livro-action {
     display: flex;
     gap: 10px;
-    margin-top: 12px;
+    margin-top: auto;   /* empurra os botões para a base do card */
+    padding-top: 12px;  /* espaço mínimo entre o conteúdo e os botões */
 }
 
 .btn-detalhes,

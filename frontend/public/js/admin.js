@@ -101,7 +101,7 @@ function renderizarLivros(livrosParaRender) {
                 <p class="livro-info">📖 ${livro.NumeroPaginas || '—'} páginas</p>
                 <p class="livro-info">🌍 ${livro.Idioma || '—'}</p>
                 ${renderGeneroBadges(livro)}
-                ${livro.Resumo ? `<p class="livro-resumo-card" title="${(livro.Resumo||'').replace(/"/g,'&quot;')}">${livro.Resumo}</p>` : ''}
+                <p class="livro-resumo-card" title="${(livro.Resumo||'').replace(/"/g,'&quot;')}">${livro.Resumo || ''}</p>
                 <div class="livro-action">
                     <button class="btn-detalhes" onclick="mostrarDetalhes(${livro.Livro_id})">Detalhes</button>
                     <button class="btn-editar-livro" onclick="abrirEdicaoLivro(${livro.Livro_id})">✏️ Editar</button>
