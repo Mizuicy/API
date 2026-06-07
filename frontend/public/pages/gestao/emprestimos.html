@@ -193,7 +193,6 @@
             border: none;
             background: #fee2e2;
             color: #b91c1c;
-            margin-left: 8px;
             transition: background .15s, transform .1s;
         }
 
@@ -212,7 +211,6 @@
             border: none;
             background: #ede9fe;
             color: #6d28d9;
-            margin-left: 8px;
             transition: background .15s, transform .1s;
         }
 
@@ -879,17 +877,19 @@ function renderizarTabela(dados) {
             <td>${fmtData(e.DataDevolucao)}</td>
             <td>${badgeHtml(e.Status)}</td>
             <td>
-                <button class="btn-devolver"
-                        onclick="devolverLivro(${e.Emprestimo_id})"
-                        ${podeDevolver ? '' : 'disabled'}>
-                    Devolver
-                </button>
-                <button class="btn-editar"
-                        onclick="abrirModalEditar(${e.Emprestimo_id})"
-                        title="Editar empréstimo">✏️</button>
-                <button class="btn-excluir"
-                        onclick="excluirEmprestimo(${e.Emprestimo_id})"
-                        title="Excluir registro">🗑</button>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">
+                    <button class="btn-devolver"
+                            onclick="devolverLivro(${e.Emprestimo_id})"
+                            ${podeDevolver ? '' : 'disabled'}>
+                        Devolver
+                    </button>
+                    <button class="btn-editar"
+                            onclick="abrirModalEditar(${e.Emprestimo_id})"
+                            title="Editar empréstimo">✏️</button>
+                    <button class="btn-excluir"
+                            onclick="excluirEmprestimo(${e.Emprestimo_id})"
+                            title="Excluir registro">🗑</button>
+                </div>
             </td>
         </tr>`;
     }).join('');
