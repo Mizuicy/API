@@ -63,6 +63,9 @@ table {
     --card-pill-bg:     rgba(91, 76, 245, 0.10);
     --card-pill-border: rgba(91, 76, 245, 0.18);
 
+    /* Fundo roxo dos cards de livro (placeholder de capa, header do admin, etc.) */
+    --card-purple-bg:   linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
     --bg:           #f0f0f0;
     --surface:      #ffffff;
     --border:       #e4e4e4;
@@ -102,6 +105,9 @@ table {
     /* Fundo dos pills/badges de gênero nos cards — versão escura */
     --card-pill-bg:     rgba(124, 111, 247, 0.16);
     --card-pill-border: rgba(124, 111, 247, 0.28);
+
+    /* Fundo roxo dos cards de livro — versão escura (mesma tonalidade, mais profunda) */
+    --card-purple-bg:   linear-gradient(135deg, #4a5fbd 0%, #5a3580 100%);
 
     --bg:           #0f0f13;
     --surface:      #1a1a24;

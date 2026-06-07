@@ -47,8 +47,16 @@ function _avCoresAvatar(idx) {
 }
 
 function _avRenderAvatar(av, idx) {
-    if (av.FotoPerfilUsuario) {
-        return `<div class="avaliacao-avatar avaliacao-avatar-foto" style="background:${_avCoresAvatar(idx)}"><img src="${av.FotoPerfilUsuario}" alt="${av.NomeUsuario}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"></div>`;
+    // Normaliza a foto: aceita Buffer do MySQL (converte para string) ou string direta
+    let foto = av.FotoPerfilUsuario;
+    if (foto && typeof foto === 'object' && foto.type === 'Buffer') {
+        foto = Buffer.from(foto.data).toString('utf8');
+    }
+    if (foto && typeof foto === 'string' && foto.trim()) {
+        // Usa background-image — mesma lógica do kairos-avatar.js e perfil.html
+        return `<div class="avaliacao-avatar avaliacao-avatar-foto"
+                     style="background-color:${_avCoresAvatar(idx)};background-image:url('${foto.replace(/'/g, "\\'")}');background-size:cover;background-position:center;background-repeat:no-repeat;"
+                     aria-label="${av.NomeUsuario}"></div>`;
     }
     return `<div class="avaliacao-avatar" style="background:${_avCoresAvatar(idx)}">${_avInicialAvatar(av.NomeUsuario)}</div>`;
 }

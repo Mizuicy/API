@@ -104,6 +104,12 @@ const API = 'http://localhost:3000';
                 sessionStorage.setItem('usuarioId', data.usuario.Usuario_id);
                 sessionStorage.setItem('nomeUsuario', data.usuario.Nome);
                 sessionStorage.setItem('tipoUsuario', data.usuario.Tipo === 'admin' ? 'admin' : 'usuario');
+                // Salva FotoPerfil no sessionStorage para kairos-avatar.js e demais telas
+                if (data.usuario.FotoPerfil) {
+                    sessionStorage.setItem('avatarDataUrl', data.usuario.FotoPerfil);
+                } else {
+                    sessionStorage.removeItem('avatarDataUrl');
+                }
             }
 
             const tipo = sessionStorage.getItem('tipoUsuario');

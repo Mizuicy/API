@@ -18,7 +18,7 @@
 }
 
 .btn-add {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--card-purple-bg);
     color: white;
     padding: 10px 20px;
     border-radius: 4px;
@@ -208,7 +208,7 @@ input, select, textarea, .search-input, .filter-select {
 }
 
 .btn-add {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--card-purple-bg);
     color: white;
     padding: 10px 22px;
     border-radius: 10px;
@@ -227,11 +227,30 @@ input, select, textarea, .search-input, .filter-select {
 /* ── Grid de livros: melhor espaçamento entre cards ──────── */
 .livros-grid {
     gap: 24px !important;
+    padding: 0 4px !important;
 }
 
-/* ── Seção principal com mais respiro ────────────────────── */
+/* ── Seção principal com padding lateral adequado ────────── */
 .catalogo-section {
-    padding: 28px 0;
+    padding: 28px 32px;
+}
+
+/* Padding lateral reduzido em telas médias */
+@media (max-width: 1100px) {
+    .catalogo-section {
+        padding: 24px 20px;
+    }
+}
+
+/* Padding mínimo em telas menores */
+@media (max-width: 720px) {
+    .catalogo-section {
+        padding: 18px 12px;
+    }
+    .livros-grid {
+        gap: 16px !important;
+        padding: 0 !important;
+    }
 }
 
 /* ── Dark mode para filtros ─────────────────────────────── */

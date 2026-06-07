@@ -75,7 +75,7 @@
 .btn:active { transform: translateY(0); }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--card-purple-bg);
     color: white;
     box-shadow: 0 3px 10px rgba(102,126,234,.35);
 }
@@ -192,7 +192,7 @@
 }
 
 /* Cores de avatar por índice (fallback quando sem foto) */
-.autor-avatar[data-color="0"] { background: linear-gradient(135deg, #667eea, #764ba2); }
+.autor-avatar[data-color="0"] { background: var(--card-purple-bg); }
 .autor-avatar[data-color="1"] { background: linear-gradient(135deg, #f093fb, #f5576c); }
 .autor-avatar[data-color="2"] { background: linear-gradient(135deg, #4facfe, #00f2fe); }
 .autor-avatar[data-color="3"] { background: linear-gradient(135deg, #43e97b, #38f9d7); }

@@ -269,7 +269,7 @@ app.post('/usuario/authcode/verify', (req, res) => {
     console.log('[authcode/verify] Código correto! Email autorizado:', Email);
 
     // ✅ FIX: Retorna dados do usuario para o frontend salvar usuarioId na sessão
-    dbconfig.query('SELECT Usuario_id, Nome, Email, Tipo FROM Usuario WHERE Email = ?', [Email], (errU, rowsU) => {
+    dbconfig.query('SELECT Usuario_id, Nome, Email, Tipo, FotoPerfil FROM Usuario WHERE Email = ?', [Email], (errU, rowsU) => {
         if (errU || !rowsU.length) return res.json({ message: 'Código verificado com sucesso.' });
         res.json({ message: 'Código verificado com sucesso.', usuario: rowsU[0] });
     });
