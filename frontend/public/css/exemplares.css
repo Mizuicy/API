@@ -151,7 +151,7 @@ body {
 
 .page-header-actions {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     flex-wrap: wrap;
     align-items: center;
 }
@@ -454,22 +454,24 @@ body {
 /* Botões de ação */
 .acoes-cell {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
+    flex-wrap: nowrap;
 }
 
 .btn-acao {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 7px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
     border: none;
     cursor: pointer;
     font-size: 0.95rem;
-    transition: background 0.15s, transform 0.12s;
+    transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
     flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
 }
 
 .btn-acao:hover { transform: translateY(-1px); }

@@ -78,3 +78,170 @@ input, select, textarea, .search-input, .filter-select {
     color: #a5b4fc;
     border-color: rgba(102,126,234,.3);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MELHORIAS DE LAYOUT — Espaçamento das ações administrativas
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Cards de livros: ações com espaçamento adequado ─────── */
+.livro-action {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+.livro-action > button {
+    flex: 1;
+    min-width: 60px;
+    padding: 9px 8px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+/* ── Botão editar nos cards ─────────────────────────────── */
+.btn-editar-livro {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: white !important;
+}
+.btn-editar-livro:hover {
+    background: linear-gradient(135deg, #d97706, #b45309) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245,158,11,.35);
+}
+
+/* ── Tabelas administrativas: ações com mais espaço ──────── */
+.acoes-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.btn-acao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 7px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, background .15s;
+    flex-shrink: 0;
+}
+.btn-acao:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+
+.btn-visualizar { background: var(--bg, #f3f4f6); color: var(--text, #374151); }
+.btn-visualizar:hover { background: #e0e7ff; color: #4f46e5; }
+
+.btn-editar { background: #fef3c7; color: #d97706; }
+.btn-editar:hover { background: #fde68a; color: #b45309; }
+
+.btn-excluir { background: #fee2e2; color: #dc2626; }
+.btn-excluir:hover { background: #fecaca; color: #b91c1c; }
+
+/* ── Filtros do catálogo: melhor espaçamento ─────────────── */
+.filtros {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 16px;
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    font-size: .9rem;
+    background: var(--surface, #fff);
+    color: var(--text, #111);
+    transition: border-color .2s, box-shadow .2s;
+    outline: none;
+}
+.search-input:focus {
+    border-color: var(--purple, #667eea);
+    box-shadow: 0 0 0 3px rgba(102,126,234,.12);
+}
+
+.filter-select {
+    padding: 10px 14px;
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    font-size: .88rem;
+    background: var(--surface, #fff);
+    color: var(--text, #111);
+    cursor: pointer;
+    outline: none;
+    min-width: 160px;
+    transition: border-color .2s;
+}
+.filter-select:focus { border-color: var(--purple, #667eea); }
+
+/* ── Header do catálogo com melhor espaçamento ───────────── */
+.catalogo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.catalogo-header h2 {
+    color: var(--text, #111);
+    font-size: 1.3rem;
+    margin: 0;
+    font-weight: 700;
+}
+
+.btn-add {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 22px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: .88rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(102,126,234,.3);
+}
+.btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(102, 126, 234, 0.45);
+}
+
+/* ── Grid de livros: melhor espaçamento entre cards ──────── */
+.livros-grid {
+    gap: 24px !important;
+}
+
+/* ── Seção principal com mais respiro ────────────────────── */
+.catalogo-section {
+    padding: 28px 0;
+}
+
+/* ── Dark mode para filtros ─────────────────────────────── */
+[data-theme="dark"] .search-input,
+[data-theme="dark"] .filter-select {
+    background: var(--surface, #1e1e2e);
+    border-color: var(--border, #374151);
+    color: var(--text, #f3f4f6);
+}
+[data-theme="dark"] .search-input:focus,
+[data-theme="dark"] .filter-select:focus {
+    border-color: var(--purple, #667eea);
+}

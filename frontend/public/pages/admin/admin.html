@@ -6,92 +6,646 @@
     <script>(function(){var t=localStorage.getItem('kairos-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kairos - Painel Admin</title>
+    <title>Kairos — Painel Admin</title>
     <link rel="stylesheet" href="../../css/livros.css">
     <link rel="stylesheet" href="../../css/admin.css">
+    <link rel="stylesheet" href="../../css/navbar.css">
     <link rel="stylesheet" href="../../css/notificacoes.css">
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <div class="header-content">
-                <h1 class="logo">🏛️ Kairos</h1>
-                                <nav class="nav">
-                    <a href="../../index.html" class="nav-link">Início</a>
-                    <a href="../gestao/livros.html" class="nav-link">Adicionar Livro</a>
-                    <a href="admin.html" class="nav-link active">Catálogo</a>
+<div class="container">
 
-                    <div class="nav-dropdown">
-                        <button class="nav-link nav-dropdown-btn">Gestão ▾</button>
-                        <div class="nav-dropdown-menu">
-                            <a href="../gestao/autores.html" class="dropdown-item">✍️ Autores</a>
-                            <a href="../gestao/exemplares.html" class="dropdown-item">📦 Exemplares</a>
-                            <a href="../gestao/emprestimos.html" class="dropdown-item">🔄 Empréstimos</a>
-                            <a href="../gestao/solicitacoes.html" class="dropdown-item">📋 Solicitações</a>
-                        </div>
+    <!-- ═══════════════════════════════════════════════
+         NAVBAR
+         ═══════════════════════════════════════════════ -->
+    <header class="header">
+        <div class="header-content">
+            <a href="../../index.html" class="logo">
+                <svg class="logo-icon" width="24" height="24" viewBox="0 0 26 26" fill="none">
+                    <rect x="3" y="3" width="20" height="20" rx="4"
+                          stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M8 8h10M8 12h10M8 16h6"
+                          stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                Kairos
+            </a>
+
+            <nav class="nav" id="mainNav">
+                <a href="../../index.html" class="nav-link">Início</a>
+                <a href="../gestao/livros.html" class="nav-link">Adicionar Livro</a>
+                <a href="admin.html" class="nav-link active">Catálogo</a>
+
+                <div class="nav-dropdown">
+                    <button class="nav-link nav-dropdown-btn">
+                        Gestão <span class="arrow">▾</span>
+                    </button>
+                    <div class="nav-dropdown-menu">
+                        <a href="../gestao/autores.html"     class="dropdown-item">✍️ Autores</a>
+                        <a href="../gestao/exemplares.html"  class="dropdown-item">📦 Exemplares</a>
+                        <a href="../gestao/emprestimos.html" class="dropdown-item">🔄 Empréstimos</a>
+                        <a href="../gestao/solicitacoes.html" class="dropdown-item">📋 Solicitações</a>
                     </div>
+                </div>
+            </nav>
 
-                    <a href="../perfil.html" class="nav-link nav-link-perfil" title="Perfil">👤</a>
-                </nav>
+            <div class="nav-actions">
+                <button class="nav-icon-btn" title="Notificações" id="btnNotificacoes">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="badge" id="notifBadge" style="display:none"></span>
+                </button>
+
+                <div class="nav-sep"></div>
+
+                <a href="../perfil.html" class="nav-avatar keep"
+                   id="navAvatar" title="Meu perfil"></a>
+
+                <button class="theme-toggle" title="Alternar tema" aria-label="Alternar tema">
+                    <span class="tt-icon tt-sun">☀️</span>
+                    <span class="tt-track"><span class="tt-ball"></span></span>
+                    <span class="tt-icon tt-moon">🌙</span>
+                </button>
             </div>
-        </header>
 
-        <main class="main">
-            <section class="catalogo-section">
-                <div class="catalogo-header">
-                    <h2>Painel de Gestão — Catálogo Completo</h2>
-                    <a href="../gestao/livros.html" class="btn-add">+ Adicionar Livro</a>
-                </div>
-
-                <!-- Filtros -->
-                <div class="filtros">
-                    <input type="text" id="searchInput" class="search-input" placeholder="🔍 Pesquisar livros...">
-                    <select id="generoFilter" class="filter-select">
-                        <option value="">Todos os Gêneros</option>
-                        <option value="Ficção">Ficção</option>
-                        <option value="Não-Ficção">Não-Ficção</option>
-                        <option value="Ficção Científica">Ficção Científica</option>
-                        <option value="Fantasia">Fantasia</option>
-                        <option value="Romance">Romance</option>
-                        <option value="Mistério">Mistério</option>
-                        <option value="História">História</option>
-                        <option value="Infantil">Infantil</option>
-                    </select>
-                </div>
-
-                <!-- Grid de Livros -->
-                <div id="livrosGrid" class="livros-grid">
-                    <div class="loading">Carregando livros...</div>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Modal para Detalhes do Livro -->
-    <div id="modalDetalhes" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="detalhesConteudo" class="detalhes-conteudo"></div>
+            <button class="nav-hamburger" id="navHamburger" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
         </div>
+    </header>
+
+    <main class="main">
+        <section class="catalogo-section">
+            <div class="catalogo-header">
+                <h2>Painel de Gestão — Catálogo Completo</h2>
+                <a href="../gestao/livros.html" class="btn-add">+ Adicionar Livro</a>
+            </div>
+
+            <div class="filtros">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Pesquisar livros...">
+                <select id="generoFilter" class="filter-select">
+                    <option value="">Todos os Gêneros</option>
+                </select>
+            </div>
+
+            <div id="livrosGrid" class="livros-grid">
+                <div class="loading">Carregando livros...</div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- Modal para Detalhes do Livro -->
+<div id="modalDetalhes" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="detalhesConteudo" class="detalhes-conteudo"></div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAINEL LATERAL — EDIÇÃO DE LIVRO
+     ═══════════════════════════════════════════════════════════ -->
+<div class="panel-overlay-admin" id="overlayEdicaoLivro" onclick="fecharEdicaoLivro()"></div>
+<aside class="side-panel-admin" id="painelEdicaoLivro">
+    <div class="panel-header-admin">
+        <h2>✏️ Editar Livro</h2>
+        <button class="panel-close-admin" onclick="fecharEdicaoLivro()" title="Fechar">×</button>
     </div>
 
-    <script src="../../js/admin-toast.js"></script>
-    <script src="../../js/admin.js"></script>
-    <script src="../../js/nav.js"></script>
-    <script src="../../js/kairos-notificacoes-admin.js"></script>
-    <style>
-        .user-icon-link { text-decoration: none; }
-        .user-icon { cursor: pointer; transition: transform 0.18s ease; font-size: 1.5rem; }
-        .user-icon:hover { transform: scale(1.15); }
-    </style>
-<div style="position:fixed;top:16px;right:16px;z-index:9999">
-  <button class="theme-toggle" title="Alternar tema">
-    <span class="tt-icon tt-sun">☀️</span>
-    <span class="tt-track"><span class="tt-ball"></span></span>
-    <span class="tt-icon tt-moon">🌙</span>
-  </button>
-</div>
+    <div class="panel-body-admin">
+        <input type="hidden" id="editLivroId">
+
+        <!-- Título e Autor -->
+        <p class="panel-section-title">📖 Identificação</p>
+        <div class="panel-form-row">
+            <div class="panel-form-group">
+                <label for="editLivroTitulo">Título *</label>
+                <input type="text" id="editLivroTitulo" placeholder="Título do livro">
+            </div>
+            <div class="panel-form-group">
+                <label for="editLivroAutor">Autor *</label>
+                <input type="text" id="editLivroAutor" placeholder="Nome do autor">
+            </div>
+        </div>
+
+        <hr class="panel-divider">
+        <p class="panel-section-title">🏢 Publicação</p>
+        <div class="panel-form-row">
+            <div class="panel-form-group">
+                <label for="editLivroEditora">Editora *</label>
+                <input type="text" id="editLivroEditora" placeholder="Editora">
+            </div>
+            <div class="panel-form-group">
+                <label for="editLivroAno">Ano de Publicação *</label>
+                <input type="number" id="editLivroAno" min="1000" max="2099" placeholder="Ex: 2023">
+            </div>
+        </div>
+        <div class="panel-form-row">
+            <div class="panel-form-group">
+                <label for="editLivroIdioma">Idioma *</label>
+                <select id="editLivroIdioma">
+                    <option value="">Selecione…</option>
+                    <option value="Português">Português</option>
+                    <option value="Inglês">Inglês</option>
+                    <option value="Espanhol">Espanhol</option>
+                    <option value="Francês">Francês</option>
+                    <option value="Alemão">Alemão</option>
+                    <option value="Italiano">Italiano</option>
+                    <option value="Outro">Outro</option>
+                </select>
+            </div>
+            <div class="panel-form-group">
+                <label for="editLivroPaginas">Nº de Páginas *</label>
+                <input type="number" id="editLivroPaginas" min="1" placeholder="Ex: 320">
+            </div>
+        </div>
+        <div class="panel-form-row">
+            <div class="panel-form-group">
+                <label for="editLivroClassEtaria">Classificação Etária *</label>
+                <select id="editLivroClassEtaria">
+                    <option value="">Selecione…</option>
+                    <option value="Livre">Livre</option>
+                    <option value="6+">6+</option>
+                    <option value="10+">10+</option>
+                    <option value="12+">12+</option>
+                    <option value="14+">14+</option>
+                    <option value="16+">16+</option>
+                    <option value="18+">18+</option>
+                </select>
+            </div>
+            <div class="panel-form-group">
+                <label for="editLivroNumeroChamada">Número de Chamada</label>
+                <input type="text" id="editLivroNumeroChamada" placeholder="Ex: 823.914">
+            </div>
+        </div>
+
+        <hr class="panel-divider">
+        <p class="panel-section-title">🏷️ Gênero(s) *</p>
+        <div class="panel-form-group">
+            <div class="genero-wrapper-admin">
+                <div class="genero-selector" id="editLivroGeneroSelector">
+                    <div class="genero-selected-tags" id="editLivroGeneroTags">
+                        <span class="genero-placeholder" id="editLivroGeneroPH">Selecione um ou mais gêneros...</span>
+                    </div>
+                    <button type="button" class="genero-toggle-btn" id="editLivroGeneroToggle" aria-expanded="false">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                </div>
+                <div class="genero-dropdown" id="editLivroGeneroDropdown" style="display:none">
+                    <div class="genero-dropdown-search">
+                        <input type="text" id="editLivroGeneroSearch" placeholder="Buscar gênero..." autocomplete="off">
+                    </div>
+                    <div class="genero-options-list" id="editLivroGeneroOpcoes"></div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="panel-divider">
+        <p class="panel-section-title">📝 Resumo</p>
+        <div class="panel-form-group">
+            <label for="editLivroResumo">Resumo *</label>
+            <textarea id="editLivroResumo" rows="4" placeholder="Resumo do livro..."></textarea>
+        </div>
+
+        <hr class="panel-divider">
+        <p class="panel-section-title">🖼️ Capa do Livro</p>
+        <div class="panel-form-group">
+            <label for="editLivroCapa">Substituir capa (arquivo de imagem)</label>
+            <input type="file" id="editLivroCapa" accept="image/*">
+            <div id="editLivroCapaPreview"></div>
+        </div>
+
+        <div id="editLivroErro" class="panel-form-erro" style="display:none"></div>
+    </div>
+
+    <div class="panel-footer-admin">
+        <button class="panel-btn-primary" id="btnSalvarEdicaoLivro" onclick="salvarEdicaoLivro()">
+            💾 Salvar Alterações
+        </button>
+        <button class="panel-btn-secondary" onclick="fecharEdicaoLivro()">Cancelar</button>
+    </div>
+</aside>
+
+<!-- ESTILOS do painel de edição de livros + melhorias gerais de layout -->
+<style>
+/* ── Botão Editar nos cards de livro ──────────────────────── */
+.btn-editar-livro {
+    flex: 1;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+.btn-editar-livro:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245,158,11,.35);
+}
+
+/* Garante que as 3 ações dos cards ficam com espaçamento correto */
+.livro-action {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+.livro-action > button {
+    flex: 1;
+    min-width: 60px;
+}
+
+/* ── Overlay e painel lateral de edição ─────────────────── */
+.panel-overlay-admin {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+.panel-overlay-admin.open { display: block; }
+
+.side-panel-admin {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 520px;
+    max-width: 95vw;
+    height: 100vh;
+    background: var(--surface, #fff);
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -8px 0 40px rgba(0,0,0,.15);
+    transform: translateX(100%);
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+.side-panel-admin.open { transform: translateX(0); }
+
+.panel-header-admin {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    flex-shrink: 0;
+}
+.panel-header-admin h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text, #111);
+    margin: 0;
+}
+.panel-close-admin {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--bg, #f3f4f6);
+    border-radius: 8px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--muted, #6b7280);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s, color .15s;
+}
+.panel-close-admin:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.panel-body-admin {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.panel-footer-admin {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border, #e5e7eb);
+    flex-shrink: 0;
+    background: var(--surface, #fff);
+}
+
+.panel-btn-primary {
+    flex: 1;
+    padding: 11px 20px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .2s, transform .15s;
+    box-shadow: 0 4px 14px rgba(102,126,234,.35);
+}
+.panel-btn-primary:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+.panel-btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+
+.panel-btn-secondary {
+    padding: 11px 20px;
+    background: var(--bg, #f3f4f6);
+    color: var(--text, #374151);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+}
+.panel-btn-secondary:hover { background: var(--border, #e5e7eb); }
+
+.panel-section-title {
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin: 12px 0 8px;
+}
+
+.panel-divider {
+    border: none;
+    border-top: 1px solid var(--border, #e5e7eb);
+    margin: 8px 0 4px;
+}
+
+.panel-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.panel-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+.panel-form-group label {
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--text, #374151);
+}
+.panel-form-group input,
+.panel-form-group select,
+.panel-form-group textarea {
+    padding: 9px 12px;
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    font-size: .88rem;
+    color: var(--text, #111);
+    background: var(--surface, #fff);
+    transition: border-color .2s, box-shadow .2s;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+.panel-form-group input:focus,
+.panel-form-group select:focus,
+.panel-form-group textarea:focus {
+    border-color: var(--purple, #667eea);
+    box-shadow: 0 0 0 3px rgba(102,126,234,.15);
+}
+.panel-form-group textarea { resize: vertical; min-height: 90px; }
+.panel-form-group input[type="file"] {
+    padding: 7px 10px;
+    cursor: pointer;
+}
+
+.panel-form-erro {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: .85rem;
+    margin-top: 8px;
+}
+[data-theme="dark"] .panel-form-erro {
+    background: #3b0f0f;
+    border-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+/* Seletor de gêneros dentro do painel */
+.genero-wrapper-admin { position: relative; }
+
+/* Spinner de loading dentro dos botões */
+.btn-spinner-edicao {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,.5);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spinAdmin .6s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+@keyframes spinAdmin { to { transform: rotate(360deg); } }
+
+/* Dark mode para o painel */
+[data-theme="dark"] .side-panel-admin {
+    background: var(--surface, #1e1e2e);
+}
+[data-theme="dark"] .panel-close-admin {
+    background: rgba(255,255,255,.08);
+    color: var(--muted, #9ca3af);
+}
+[data-theme="dark"] .panel-close-admin:hover {
+    background: rgba(239,68,68,.2);
+    color: #f87171;
+}
+[data-theme="dark"] .panel-form-group input,
+[data-theme="dark"] .panel-form-group select,
+[data-theme="dark"] .panel-form-group textarea {
+    background: var(--bg, #111827);
+    border-color: var(--border, #374151);
+    color: var(--text, #f3f4f6);
+}
+
+/* Gêneros - reutiliza as classes existentes do livros.html */
+.genero-selector {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-height: 44px;
+    padding: 6px 10px 6px 12px;
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    background: var(--surface, #fff);
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+    position: relative;
+}
+.genero-selector:focus-within,
+.genero-selector.open {
+    border-color: var(--purple, #667eea);
+    box-shadow: 0 0 0 3px rgba(102,126,234,.15);
+}
+.genero-selected-tags {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    min-height: 30px;
+}
+.genero-placeholder {
+    color: var(--muted, #9ca3af);
+    font-size: .88rem;
+    line-height: 30px;
+}
+.genero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    background: linear-gradient(135deg, #667eea22, #764ba222);
+    border: 1px solid #667eea55;
+    color: var(--purple, #667eea);
+    border-radius: 20px;
+    font-size: .78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.genero-tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: transparent;
+    color: var(--purple, #667eea);
+    cursor: pointer;
+    border-radius: 50%;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    transition: background .15s;
+}
+.genero-tag-remove:hover { background: #667eea33; }
+.genero-toggle-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted, #9ca3af);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: transform .2s, color .2s;
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+.genero-toggle-btn.open { transform: rotate(180deg); color: var(--purple, #667eea); }
+.genero-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--surface, #fff);
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 12px;
+    z-index: 1200;
+    box-shadow: 0 8px 30px rgba(0,0,0,.13);
+    overflow: hidden;
+    max-height: 260px;
+    display: flex;
+    flex-direction: column;
+}
+.genero-dropdown-search {
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    flex-shrink: 0;
+}
+.genero-dropdown-search input {
+    width: 100%;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: .85rem;
+    background: var(--bg, #f9fafb);
+    color: var(--text, #111);
+    outline: none;
+    box-sizing: border-box;
+}
+.genero-dropdown-search input:focus { border-color: var(--purple, #667eea); }
+.genero-options-list { overflow-y: auto; padding: 6px 0; flex: 1; }
+.genero-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    cursor: pointer;
+    font-size: .9rem;
+    color: var(--text, #111);
+    transition: background .12s;
+    user-select: none;
+}
+.genero-option:hover { background: var(--surface-hover, #f3f4f6); }
+.genero-option.selected { background: linear-gradient(90deg, #667eea12, #764ba212); color: var(--purple, #667eea); font-weight: 600; }
+.genero-option-check {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border, #d1d5db);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background .12s, border-color .12s;
+}
+.genero-option.selected .genero-option-check {
+    background: var(--purple, #667eea);
+    border-color: var(--purple, #667eea);
+}
+.genero-option.selected .genero-option-check::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
+[data-theme="dark"] .genero-selector { background: var(--surface,#1e1e2e); border-color: var(--border,#374151); }
+[data-theme="dark"] .genero-dropdown { background: var(--surface,#1e1e2e); border-color: var(--border,#374151); }
+[data-theme="dark"] .genero-option:hover { background: rgba(255,255,255,.06); }
+[data-theme="dark"] .genero-dropdown-search input { background: var(--bg,#111827); color: var(--text,#f3f4f6); border-color: var(--border,#374151); }
+</style>
+
+<script src="../../js/admin-toast.js"></script>
+<script src="../../js/admin.js"></script>
+<script src="../../js/nav.js"></script>
+<script src="../../js/kairos-notificacoes-admin.js"></script>
 <script src="../../js/theme.js"></script>
+<script>
+document.getElementById('navHamburger').addEventListener('click', function () {
+    document.getElementById('mainNav').classList.toggle('open');
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const av = document.getElementById('navAvatar');
+    if (!av) return;
+    const nome = sessionStorage.getItem('nomeUsuario') || '';
+    const foto = sessionStorage.getItem('fotoUsuario') || '';
+    if (foto) {
+        av.style.backgroundImage = `url('${foto}')`;
+    } else {
+        const iniciais = nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || '?';
+        av.textContent = iniciais;
+    }
+});
+</script>
 <link rel="stylesheet" href="../../css/kairos-chat.css">
 <script src="../../js/kairos-chat.js" defer></script>
 </body>
