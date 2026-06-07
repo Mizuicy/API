@@ -94,6 +94,19 @@
         @media (max-width: 480px) {
             .catalog-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
         }
+
+        /* ── Resumo/Descrição no card do catálogo ─── */
+        .book-resumo {
+            font-size: 0.76rem;
+            color: var(--muted, #9ca3af);
+            line-height: 1.5;
+            margin-top: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        [data-theme="dark"] .book-resumo { color: var(--muted); }
     </style>
     <link rel="stylesheet" href="../../css/notificacoes.css">
     <link rel="stylesheet" href="../../css/avaliacoes.css">
@@ -356,6 +369,11 @@ function filtrar() {
             ? `<div class="book-generos">${nomes.map(n => `<span class="book-genero-pill">${n}</span>`).join('')}</div>`
             : '<div class="book-category">—</div>';
 
+        const resumo = livro.Resumo || livro.resumo || '';
+        const resumoHtml = resumo
+            ? `<p class="book-resumo" title="${resumo.replace(/"/g,'&quot;')}">${resumo}</p>`
+            : '';
+
         return `
         <div class="book-card" onclick="abrirModal(${id})">
             ${capa
@@ -376,6 +394,7 @@ function filtrar() {
                      onmouseover="this.style.color='var(--purple,#667eea)'"
                      onmouseout="this.style.color=''"
                      title="Filtrar por ${autor}">${autor}</div>
+                ${resumoHtml}
             </div>
         </div>`;
     }).join('');

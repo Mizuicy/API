@@ -180,10 +180,10 @@
 
     <!-- Tabs -->
     <div class="tabs">
-        <button class="tab-btn active" onclick="mudarTab('todos', this)">Todos</button>
-        <button class="tab-btn" onclick="mudarTab('ativo', this)">Solicitados</button>
-        <button class="tab-btn" onclick="mudarTab('atrasado', this)">Atrasados</button>
-        <button class="tab-btn" onclick="mudarTab('devolvido', this)">Devolvidos</button>
+        <button class="tab-btn active" data-tab="todos" onclick="mudarTab('todos', this)">Todos</button>
+        <button class="tab-btn" data-tab="solicitados" onclick="mudarTab('solicitados', this)">Solicitados</button>
+        <button class="tab-btn" data-tab="atrasado" onclick="mudarTab('atrasado', this)">Atrasados</button>
+        <button class="tab-btn" data-tab="devolvido" onclick="mudarTab('devolvido', this)">Devolvidos</button>
     </div>
 
     <div id="listaEmprestimos" class="emprestimos-lista"></div>
@@ -205,33 +205,23 @@
 // ── Proteção de rota ──────────────────────────────────────────────
 (function() {
     const token = sessionStorage.getItem('authToken');
-    if (!token) {
-        window.location.replace('../auth/login.html');
-    }
+    if (!token) window.location.replace('../auth/login.html');
 })();
 
-// Função de logout
+// ── Logout ────────────────────────────────────────────────────────
 function logout() {
     document.getElementById('logoutModal').classList.add('open');
-    // Previne fechar com ESC
     document.addEventListener('keydown', preventEscape);
 }
-
 function confirmarLogout() {
     sessionStorage.clear();
     window.location.href = '../auth/login.html';
 }
-
 function fecharLogoutModal() {
     document.getElementById('logoutModal').classList.remove('open');
     document.removeEventListener('keydown', preventEscape);
 }
-
-function preventEscape(e) {
-    if (e.key === 'Escape') {
-        e.preventDefault();
-    }
-}
+function preventEscape(e) { if (e.key === 'Escape') e.preventDefault(); }
 
 // Redirecionar busca para catálogo
 function buscarGlobal(valor) {
@@ -240,145 +230,13 @@ function buscarGlobal(valor) {
         window.location.href = 'catalogo.html';
     }
 }
-document.getElementById('globalSearch').addEventListener('keydown', e => {
-    if (e.key === 'Enter') buscarGlobal(e.target.value);
+document.addEventListener('DOMContentLoaded', function() {
+    const gs = document.getElementById('globalSearch');
+    if (gs) gs.addEventListener('keydown', e => { if (e.key === 'Enter') buscarGlobal(e.target.value); });
 });
-
-const API = 'http://localhost:3000';
-let todosEmprestimos = [];
-let tabAtiva = 'todos';
-
-// Avatar: gerenciado por kairos-avatar.js
-
-function mudarTab(tab, btn) {
-    tabAtiva = tab;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    renderizar();
-}
-
-function formatarData(data) {
-    if (!data) return '—';
-    const dt = new Date(data);
-    const local = new Date(dt.getTime() + dt.getTimezoneOffset() * 60000);
-    return local.toLocaleDateString('pt-BR');
-}
-
-function statusBadge(status) {
-    const map = {
-        ativo:     ['badge-pendente',  '📖 Ativo'],
-        devolvido: ['badge-devolvido', '✅ Devolvido'],
-        atrasado:  ['badge-atrasado',  '⚠️ Atrasado'],
-    };
-    const [cls, label] = map[status] || ['badge-pendente', status || 'Ativo'];
-    return `<span class="badge ${cls}">${label}</span>`;
-}
-
-function atualizarContadores() {
-    const total     = todosEmprestimos.length;
-    const ativos    = todosEmprestimos.filter(e => (e.Status || '').toLowerCase() === 'ativo').length;
-    const atrasados = todosEmprestimos.filter(e => (e.Status || '').toLowerCase() === 'atrasado').length;
-    const devolvidos= todosEmprestimos.filter(e => (e.Status || '').toLowerCase() === 'devolvido').length;
-    const countTodos    = document.getElementById('countTodos');
-    const countAtivo    = document.getElementById('countAtivo');
-    const countAtrasado = document.getElementById('countAtrasado');
-    const countDevolvido= document.getElementById('countDevolvido');
-    if (countTodos)     countTodos.textContent     = total;
-    if (countAtivo)     countAtivo.textContent     = ativos;
-    if (countAtrasado)  countAtrasado.textContent  = atrasados;
-    if (countDevolvido) countDevolvido.textContent = devolvidos;
-}
-
-function renderizar() {
-    const filtrados = tabAtiva === 'todos'
-        ? todosEmprestimos
-        : todosEmprestimos.filter(e => (e.Status || '').toLowerCase() === tabAtiva);
-
-    const lista = document.getElementById('listaEmprestimos');
-
-    if (!filtrados.length) {
-        const msgs = {
-            todos:     ['Nenhum empréstimo registrado', 'Visite o catálogo para solicitar seu primeiro livro.'],
-            ativo:     ['Nenhum empréstimo solicitado', 'Visite o catálogo para solicitar um novo livro.'],
-            atrasado:  ['Nenhum empréstimo atrasado',   'Tudo em dia! Continue assim. 🎉'],
-            devolvido: ['Nenhum livro devolvido ainda',  'Suas devoluções aparecerão aqui.'],
-        };
-        const [titulo, sub] = msgs[tabAtiva] || msgs.todos;
-        lista.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">📋</div>
-                <h3>${titulo}</h3>
-                <p>${sub}</p>
-            </div>`;
-        return;
-    }
-
-    lista.innerHTML = filtrados.map(emp => {
-        // O novo backend retorna NomeLivro, AutorLivro, CapaLivro diretamente via JOIN
-        const titulo  = emp.NomeLivro   || `Livro #${emp.Livro_id || '—'}`;
-        const autor   = emp.AutorLivro  || '';
-        const capa    = emp.CapaLivro   || '';
-        const status  = emp.Status      || 'ativo';
-        const cssClass = status === 'atrasado' ? 'atrasado' : status === 'devolvido' ? 'devolvido' : '';
-
-        return `
-        <div class="emp-card ${cssClass}">
-            ${capa
-                ? `<img class="emp-cover" src="${capa}" alt="${titulo}"
-                       onerror="this.outerHTML='<div class=emp-cover-placeholder><svg width=24 height=24 viewBox=\\'0 0 24 24\\' fill=none stroke=currentColor stroke-width=1.5><path d=\\'M4 19.5A2.5 2.5 0 0 1 6.5 17H20\\'/><path d=\\'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z\\'/></svg></div>'">`
-                : `<div class="emp-cover-placeholder">
-                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                       </svg>
-                   </div>`}
-            <div class="emp-info">
-                <div class="emp-titulo">${titulo}</div>
-                <div class="emp-autor">${autor}</div>
-                <div class="emp-datas">
-                    <span class="emp-data">Emprestado em: <strong>${formatarData(emp.DataEmprestimo)}</strong></span>
-                    <span class="emp-data">Devolver até: <strong>${formatarData(emp.DataPrevista)}</strong></span>
-                    ${emp.DataDevolucao
-                        ? `<span class="emp-data">Devolvido em: <strong>${formatarData(emp.DataDevolucao)}</strong></span>`
-                        : ''}
-                </div>
-            </div>
-            ${statusBadge(status)}
-        </div>`;
-    }).join('');
-}
-
-async function carregarDados() {
-    const usuarioId = sessionStorage.getItem('usuarioId');
-
-    try {
-        const url = usuarioId
-            ? `${API}/emprestimo?usuario=${usuarioId}`
-            : `${API}/emprestimo`;
-
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('Falha ao carregar');
-        todosEmprestimos = await res.json();
-
-        const total = todosEmprestimos.length;
-        document.getElementById('pageSubtitle').textContent = total > 0
-            ? `${total} empréstimo${total !== 1 ? 's' : ''} no histórico`
-            : 'Nenhum livro emprestado no momento';
-
-        atualizarContadores();
-        renderizar();
-    } catch {
-        document.getElementById('pageSubtitle').textContent = 'Erro ao carregar dados';
-        document.getElementById('listaEmprestimos').innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">⚠️</div>
-                <h3>Não foi possível conectar ao servidor</h3>
-                <p>Verifique se o servidor está rodando e tente novamente.</p>
-            </div>`;
-    }
-}
-
-carregarDados();
 </script>
+
+<script src="../../js/meus-emprestimos.js"></script>
 <script src="../../js/kairos-toast.js"></script>
 <script src="../../js/theme.js"></script>
 <script src="../../js/kairos-notificacoes.js"></script>

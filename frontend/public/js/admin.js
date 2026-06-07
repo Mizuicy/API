@@ -101,6 +101,7 @@ function renderizarLivros(livrosParaRender) {
                 <p class="livro-info">📖 ${livro.NumeroPaginas || '—'} páginas</p>
                 <p class="livro-info">🌍 ${livro.Idioma || '—'}</p>
                 ${renderGeneroBadges(livro)}
+                ${livro.Resumo ? `<p class="livro-resumo-card" title="${(livro.Resumo||'').replace(/"/g,'&quot;')}">${livro.Resumo}</p>` : ''}
                 <div class="livro-action">
                     <button class="btn-detalhes" onclick="mostrarDetalhes(${livro.Livro_id})">Detalhes</button>
                     <button class="btn-editar-livro" onclick="abrirEdicaoLivro(${livro.Livro_id})">✏️ Editar</button>
@@ -153,8 +154,8 @@ function mostrarDetalhes(id) {
             <span class="detalhes-valor">${generosHtml}</span>
         </div>
         <div>
-            <span class="detalhes-label">Resumo:</span>
-            <p class="detalhes-resumo">${livro.Resumo || '—'}</p>
+            <span class="detalhes-label">Descrição / Resumo:</span>
+            <p class="detalhes-resumo">${livro.Resumo || '<em style="color:var(--muted)">Sem descrição cadastrada.</em>'}</p>
         </div>
     `;
     modal.classList.add('show');
