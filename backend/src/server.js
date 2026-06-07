@@ -2492,7 +2492,8 @@ app.get('/avaliacao/livro/:livro_id', (req, res) => {
                 a.AtualizadaEm,
                 a.EditadaUmaVez,
                 a.Usuario_id,
-                u.Nome AS NomeUsuario
+                u.Nome       AS NomeUsuario,
+                u.FotoPerfil AS FotoPerfilUsuario
             FROM Avaliacao a
             JOIN Usuario   u ON a.Usuario_id = u.Usuario_id
             WHERE a.Livro_id = ?
@@ -2806,8 +2807,9 @@ app.get('/admin/avaliacoes', (req, res) => {
             a.EditadaUmaVez,
             a.Emprestimo_id,
             a.Usuario_id,
-            u.Nome   AS NomeUsuario,
-            u.Email  AS EmailUsuario,
+            u.Nome       AS NomeUsuario,
+            u.Email      AS EmailUsuario,
+            u.FotoPerfil AS FotoPerfilUsuario,
             l.Livro_id,
             l.Nome   AS NomeLivro,
             l.Autor  AS AutorLivro

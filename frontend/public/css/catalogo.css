@@ -102,9 +102,9 @@ body { transition: background 0.25s, color 0.25s; }
     border-radius: 20px;
     font-size: 10px;
     font-weight: 600;
-    background: linear-gradient(135deg, #667eea22, #764ba222);
-    color: #667eea;
-    border: 1px solid #667eea33;
+    background: var(--card-pill-bg);
+    color: var(--purple);
+    border: 1px solid var(--card-pill-border);
     white-space: nowrap;
     letter-spacing: .01em;
 }
@@ -123,15 +123,15 @@ body { transition: background 0.25s, color 0.25s; }
     border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
-    background: linear-gradient(135deg, #667eea22, #764ba222);
-    color: #667eea;
-    border: 1px solid #667eea44;
+    background: var(--card-pill-bg);
+    color: var(--purple);
+    border: 1px solid var(--card-pill-border);
 }
 
-/* Dark mode */
+/* Dark mode — handled by the CSS variable redefinition in :root / [data-theme="dark"] */
 [data-theme="dark"] .book-genero-pill,
 [data-theme="dark"] .modal-genero-pill {
-    background: rgba(102,126,234,.18);
-    color: #a5b4fc;
-    border-color: rgba(102,126,234,.3);
+    background: var(--card-pill-bg);
+    color: var(--purple);
+    border-color: var(--card-pill-border);
 }

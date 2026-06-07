@@ -46,6 +46,13 @@ function _avCoresAvatar(idx) {
     return cores[idx % cores.length];
 }
 
+function _avRenderAvatar(av, idx) {
+    if (av.FotoPerfilUsuario) {
+        return `<div class="avaliacao-avatar avaliacao-avatar-foto" style="background:${_avCoresAvatar(idx)}"><img src="${av.FotoPerfilUsuario}" alt="${av.NomeUsuario}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"></div>`;
+    }
+    return `<div class="avaliacao-avatar" style="background:${_avCoresAvatar(idx)}">${_avInicialAvatar(av.NomeUsuario)}</div>`;
+}
+
 function _avFormatarData(iso) {
     if (!iso) return '';
     const d = new Date(iso);
@@ -250,7 +257,7 @@ async function renderAvaliacoes(livroId) {
                 <div class="avaliacao-card ${destaque}" style="animation-delay:${idx * .07}s">
                     <div class="avaliacao-card-header">
                         <div class="avaliacao-card-user">
-                            <div class="avaliacao-avatar" style="background:${_avCoresAvatar(idx)}">${_avInicialAvatar(av.NomeUsuario)}</div>
+                            ${_avRenderAvatar(av, idx)}
                             <div class="avaliacao-user-info">
                                 <div class="avaliacao-user-nome">${av.NomeUsuario}</div>
                                 <div class="avaliacao-user-data">${dataLabel}</div>

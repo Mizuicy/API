@@ -59,6 +59,10 @@ table {
     --purple-soft:  #ede9fe;
     --purple-deep:  #3a0fb6;
 
+    /* Fundo dos pills/badges de gênero nos cards */
+    --card-pill-bg:     rgba(91, 76, 245, 0.10);
+    --card-pill-border: rgba(91, 76, 245, 0.18);
+
     --bg:           #f0f0f0;
     --surface:      #ffffff;
     --border:       #e4e4e4;
@@ -94,6 +98,10 @@ table {
     --purple-dark:  #5b4cf5;
     --purple-soft:  #2a2060;
     --purple-deep:  #6355e8;
+
+    /* Fundo dos pills/badges de gênero nos cards — versão escura */
+    --card-pill-bg:     rgba(124, 111, 247, 0.16);
+    --card-pill-border: rgba(124, 111, 247, 0.28);
 
     --bg:           #0f0f13;
     --surface:      #1a1a24;

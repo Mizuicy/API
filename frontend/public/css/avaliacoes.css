@@ -372,6 +372,11 @@
     color: white;
     flex-shrink: 0;
     letter-spacing: .02em;
+    overflow: hidden;
+}
+
+.avaliacao-avatar-foto {
+    padding: 0;
 }
 
 .avaliacao-user-info {
