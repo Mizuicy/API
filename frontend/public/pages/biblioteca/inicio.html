@@ -102,6 +102,45 @@
             .featured-grid { grid-template-columns: 1fr; }
             .skel-featured  { grid-template-columns: 1fr; }
         }
+
+        /* ── Resumo nos cards da página início ─────────────── */
+        .book-resumo-inicio {
+            font-size: 0.76rem;
+            color: var(--muted, #9ca3af);
+            line-height: 1.5;
+            margin-top: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        [data-theme="dark"] .book-resumo-inicio { color: var(--muted); }
+
+        /* ── Seção de descrição no modal ───────────────────── */
+        .modal-desc-section {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border, #e5e7eb);
+        }
+        .modal-desc-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--muted, #888);
+            margin-bottom: 8px;
+        }
+        .modal-desc {
+            font-size: 0.925rem;
+            line-height: 1.65;
+            color: var(--text, #1a1a2e);
+        }
+        .modal-desc.sem-desc {
+            color: var(--muted, #888);
+            font-style: italic;
+        }
+        [data-theme="dark"] .modal-desc { color: var(--text); }
+        [data-theme="dark"] .modal-desc-section { border-top-color: var(--border); }
     </style>
     <link rel="stylesheet" href="../../css/notificacoes.css">
 </head>
@@ -273,11 +312,28 @@ async function carregarLivros() {
 }
 
 function cardHTML(livro) {
-    const capa = livro.Imagem || livro.capa || '';
-    const img  = capa
-        ? `<img class="book-cover" src="${capa}" alt="${livro.titulo || livro.Nome}"
-               onerror="this.outerHTML=this.nextElementSibling.outerHTML">`
+    const capa   = livro.Imagem || livro.capa || '';
+    const titulo = livro.Nome   || livro.titulo || '—';
+    const autor  = livro.Autor  || livro.autor  || '';
+    const resumo = livro.Resumo || livro.resumo  || '';
+
+    // Gêneros: suporte a array Generos ou campo Categoria legado
+    let generoLabel = '';
+    if (Array.isArray(livro.Generos) && livro.Generos.length) {
+        generoLabel = livro.Generos.map(g => typeof g === 'string' ? g : g.Nome).filter(Boolean).join(', ');
+    } else {
+        generoLabel = livro.Categoria || livro.genero || '';
+    }
+
+    const img = capa
+        ? `<img class="book-cover" src="${capa}" alt="${titulo}"
+               onerror="this.parentElement.querySelector('.book-cover-placeholder').style.display='flex';this.style.display='none'">`
         : '';
+
+    const resumoHtml = resumo
+        ? `<p class="book-resumo-inicio" title="${resumo.replace(/"/g,'&quot;')}">${resumo}</p>`
+        : '';
+
     return `
     <div class="book-card" onclick="abrirModal(${livro.Livro_id || livro.id})">
         ${img}
@@ -287,9 +343,10 @@ function cardHTML(livro) {
             </svg>
         </div>
         <div class="book-info">
-            <div class="book-category">${livro.Categoria || livro.genero || 'Geral'}</div>
-            <div class="book-title">${livro.Nome || livro.titulo}</div>
-            <div class="book-author">${livro.Autor || livro.autor || ''}</div>
+            ${generoLabel ? `<div class="book-category">${generoLabel}</div>` : ''}
+            <div class="book-title">${titulo}</div>
+            <div class="book-author">${autor}</div>
+            ${resumoHtml}
         </div>
     </div>`;
 }
@@ -312,12 +369,21 @@ function abrirModal(id) {
     const livro = todosLivros.find(l => (l.Livro_id || l.id) === id);
     if (!livro) return;
 
-    const titulo   = livro.Nome || livro.titulo || '—';
-    const autor    = livro.Autor || livro.autor || '—';
-    const categoria= livro.Categoria || livro.genero || 'Geral';
-    const desc     = livro.Descricao || livro.resumo || 'Sem descrição disponível.';
-    const ano      = livro.DataPublicacao || livro.ano_publicacao || '';
-    const capa     = livro.Imagem || livro.capa || '';
+    const titulo  = livro.Nome   || livro.titulo || '—';
+    const autor   = livro.Autor  || livro.autor  || '—';
+    const capa    = livro.Imagem || livro.capa   || '';
+    const desc    = livro.Resumo || livro.resumo || '';
+    const ano     = livro.AnoPublicacao || livro.DataPublicacao || '';
+    const idioma  = livro.Idioma || '';
+    const paginas = livro.NumeroPaginas || '';
+    const livroId = livro.Livro_id || livro.id;
+
+    let generoLabel = '';
+    if (Array.isArray(livro.Generos) && livro.Generos.length) {
+        generoLabel = livro.Generos.map(g => typeof g === 'string' ? g : g.Nome).filter(Boolean).join(', ');
+    } else {
+        generoLabel = livro.Categoria || livro.genero || '';
+    }
 
     document.getElementById('modalConteudo').innerHTML = `
         <div class="modal-book-header">
@@ -325,22 +391,43 @@ function abrirModal(id) {
                 ? `<img class="modal-cover" src="${capa}" alt="${titulo}" onerror="this.style.background='var(--border)'">`
                 : `<div class="modal-cover" style="background:var(--border);border-radius:8px"></div>`}
             <div class="modal-meta">
-                <span class="modal-category">${categoria}</span>
+                ${generoLabel ? `<span class="modal-category">${generoLabel}</span>` : ''}
                 <h2 class="modal-title">${titulo}</h2>
                 <p class="modal-author">${autor}</p>
                 <div class="modal-row">
-                    ${ano ? `<span class="modal-tag">📅 ${ano}</span>` : ''}
-                    ${livro.idioma ? `<span class="modal-tag">🌍 ${livro.idioma}</span>` : ''}
-                    ${livro.numero_paginas ? `<span class="modal-tag">📄 ${livro.numero_paginas} pág.</span>` : ''}
+                    ${ano     ? `<span class="modal-tag">📅 ${ano}</span>`          : ''}
+                    ${idioma  ? `<span class="modal-tag">🌍 ${idioma}</span>`       : ''}
+                    ${paginas ? `<span class="modal-tag">📄 ${paginas} pág.</span>` : ''}
                 </div>
             </div>
         </div>
-        <p class="modal-desc">${desc}</p>
-        <button class="btn-emprestimo" onclick="solicitarEmprestimo(${livro.Livro_id || livro.id}, '${titulo.replace(/'/g,"\\'")}')">
-            Solicitar Empréstimo
+        <div class="modal-desc-section">
+            <div class="modal-desc-label">Descrição</div>
+            ${desc
+                ? `<p class="modal-desc">${desc}</p>`
+                : `<p class="modal-desc sem-desc">Descrição não disponível.</p>`}
+        </div>
+        <button class="btn-emprestimo" id="btnSolicitar"
+                onclick="solicitarEmprestimo(${livroId}, '${titulo.replace(/'/g,"\\'")}')">
+            📖 Solicitar Empréstimo
         </button>`;
 
     document.getElementById('modal').classList.add('open');
+
+    fetch(`${API}/exemplar?livro_id=${livroId}&status=Disponivel`)
+        .then(r => r.json())
+        .then(exemplares => {
+            const btn = document.getElementById('btnSolicitar');
+            if (!btn) return;
+            if (!Array.isArray(exemplares) || exemplares.length === 0) {
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                btn.style.cursor  = 'not-allowed';
+                btn.title = 'Não há exemplares disponíveis no momento';
+                btn.textContent = '⛔ Indisponível no momento';
+            }
+        })
+        .catch(() => {});
 }
 
 function fecharModal() {
@@ -354,8 +441,8 @@ async function solicitarEmprestimo(id, titulo) {
         return;
     }
 
-    const btn = document.querySelector('.btn-emprestimo');
-    if (btn) { btn.disabled = true; btn.textContent = 'Enviando solicitação...'; }
+    const btn = document.getElementById('btnSolicitar');
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando solicitação…'; }
 
     try {
         const res = await fetch('http://localhost:3000/solicitacao', {
