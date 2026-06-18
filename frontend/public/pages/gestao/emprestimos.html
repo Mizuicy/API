@@ -384,64 +384,6 @@
 
         .btn-confirmar:hover { background: #5a6fd6; }
 
-        /* ── Busca rápida por Número de Tombo ──────────────────────── */
-        .tombo-hint {
-            font-size: 0.72rem;
-            color: #999;
-            margin-top: 5px;
-        }
-
-        .tombo-resultado:empty { margin: 0; }
-
-        .tombo-resultado { margin-top: 10px; }
-
-        .tombo-card {
-            border-radius: 10px;
-            padding: 12px 14px;
-            font-size: 0.85rem;
-            line-height: 1.55;
-            border: 1px solid transparent;
-        }
-
-        .tombo-card-header { font-weight: 700; margin-bottom: 4px; }
-        .tombo-card .tombo-titulo { color: #222; font-weight: 600; }
-
-        .tombo-loading {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.82rem;
-            color: #888;
-        }
-
-        .tombo-ok           { background: #dcfce7; border-color: #bbf7d0; color: #15803d; }
-        .tombo-indisponivel { background: #fef3c7; border-color: #fde68a; color: #92400e; }
-        .tombo-erro         { background: #fee2e2; border-color: #fecaca; color: #b91c1c; }
-
-        .form-divider {
-            display: flex;
-            align-items: center;
-            color: #999;
-            font-size: 0.75rem;
-            margin: 18px 0 14px;
-        }
-        .form-divider::before,
-        .form-divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid #e5e5e5;
-        }
-        .form-divider span { padding: 0 10px; white-space: nowrap; }
-
-        [data-theme="dark"] .tombo-ok           { background: rgba(34,197,94,.12);  border-color: rgba(34,197,94,.3);  color: #4ade80; }
-        [data-theme="dark"] .tombo-indisponivel { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.3); color: #fbbf24; }
-        [data-theme="dark"] .tombo-erro         { background: rgba(220,38,38,.12);  border-color: rgba(220,38,38,.3);  color: #f87171; }
-        [data-theme="dark"] .tombo-card .tombo-titulo { color: var(--text); }
-        [data-theme="dark"] .tombo-hint         { color: var(--muted); }
-        [data-theme="dark"] .form-divider       { color: var(--muted); }
-        [data-theme="dark"] .form-divider::before,
-        [data-theme="dark"] .form-divider::after { border-bottom-color: #2e2e42; }
-
         /* Dark mode básico */
         [data-theme="dark"] .stat-card,
         [data-theme="dark"] .emp-table,
@@ -684,21 +626,9 @@
         </div>
 
         <div class="form-group">
-            <label for="inputTombo">🔎 Número de Tombo (busca rápida)</label>
-            <input type="text" id="inputTombo" placeholder="Digite ou escaneie o número de tombo do exemplar..."
-                   autocomplete="off"
-                   oninput="onInputTombo(this.value)"
-                   onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarPorTombo(this.value); }">
-            <div class="tombo-hint">Encontre o exemplar exato pelo tombo sem precisar procurar na lista de exemplares.</div>
-            <div id="resultadoTombo" class="tombo-resultado"></div>
-        </div>
-
-        <div class="form-divider"><span>ou selecione manualmente</span></div>
-
-        <div class="form-group">
-            <label for="selectExemplar">Exemplar</label>
-            <select id="selectExemplar" onchange="onSelecionarExemplarManual(this.value)">
-                <option value="">Selecione o exemplar...</option>
+            <label for="selectLivro">Livro</label>
+            <select id="selectLivro">
+                <option value="">Selecione o livro...</option>
             </select>
         </div>
 
@@ -764,22 +694,6 @@
                 </select>
             </div>
 
-            <div class="form-group form-group-full">
-                <label for="inputTomboEdit">🔎 Trocar exemplar por Número de Tombo</label>
-                <input type="text" id="inputTomboEdit" placeholder="Digite ou escaneie o número de tombo do novo exemplar..."
-                       autocomplete="off"
-                       oninput="onInputTombo(this.value, 'resultadoTomboEdit', 'editExemplar')"
-                       onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarPorTombo(this.value, 'resultadoTomboEdit', 'editExemplar'); }">
-                <div id="resultadoTomboEdit" class="tombo-resultado"></div>
-            </div>
-
-            <div class="form-group form-group-full">
-                <label for="editExemplar">Exemplar Vinculado</label>
-                <select id="editExemplar">
-                    <option value="">Selecione o exemplar...</option>
-                </select>
-            </div>
-
             <!-- Seção: Observação -->
             <div class="edit-section-title">📝 Observação Administrativa</div>
 
@@ -809,15 +723,9 @@
 const API = 'http://localhost:3000';
 let todosEmprestimos  = [];
 let todasSolicitacoes = [];
-let todosExemplares   = [];
+let todosLivros       = [];
 let todosUsuarios     = [];
 let abaAtiva          = 'emprestimos';
-
-// Exemplar localizado pela busca por Número de Tombo (modal Novo Empréstimo).
-// Quando preenchido e Disponivel, é usado diretamente no empréstimo (em vez de
-// deixar o servidor escolher automaticamente qualquer exemplar do livro).
-let exemplarSelecionado  = null;
-let _tomboDebounceTimer  = null;
 
 // ── Alternância de abas ───────────────────────────────────────
 function mudarAba(aba) {
@@ -1098,13 +1006,12 @@ async function abrirModalEditar(id) {
     _editEmprestimoId = id;
     const erroEl = document.getElementById('erroEditModal');
     erroEl.textContent = '';
-    document.getElementById('inputTomboEdit').value = '';
-    document.getElementById('resultadoTomboEdit').innerHTML = '';
 
     // Exibe badge com ID
     document.getElementById('editBadgeId').textContent = `Empréstimo #${id}`;
 
-    // Carrega selects de usuários e exemplares se ainda não carregados
+    // Carrega select de usuários se ainda não carregado
+    // (o exemplar vinculado ao empréstimo é mantido automaticamente e não é mais selecionável aqui)
     await Promise.all([
         _garantirSelectsEditCarregados(),
         _carregarEmprestimoParaEdicao(id)
@@ -1127,21 +1034,6 @@ async function _garantirSelectsEditCarregados() {
                 selU.appendChild(op);
             });
         } catch(e) { console.error('Erro ao carregar usuários no edit:', e); }
-    }
-
-    // Exemplares
-    const selE = document.getElementById('editExemplar');
-    if (selE.options.length <= 1) {
-        try {
-            const resE = await fetch(`${API}/exemplar`);
-            const exemplares = resE.ok ? await resE.json() : [];
-            exemplares.forEach(ex => {
-                const op = document.createElement('option');
-                op.value       = ex.Exemplar_id;
-                op.textContent = `#${ex.Exemplar_id} — Tombo: ${ex.NumeroTombo || '—'} | ${ex.NomeLivro || ex.Livro_id || ''}`;
-                selE.appendChild(op);
-            });
-        } catch(e) { console.error('Erro ao carregar exemplares no edit:', e); }
     }
 }
 
@@ -1166,7 +1058,6 @@ async function _carregarEmprestimoParaEdicao(id) {
         document.getElementById('editDataDevolucao').value  = _dataParaInput(emp.DataDevolucao);
         document.getElementById('editStatus').value         = emp.Status || 'ativo';
         document.getElementById('editUsuario').value        = emp.Usuario_id || '';
-        document.getElementById('editExemplar').value       = emp.Exemplar_id || '';
         document.getElementById('editObservacao').value     = emp.Observacao || '';
     } catch(e) {
         document.getElementById('erroEditModal').textContent = 'Não foi possível carregar os dados do empréstimo.';
@@ -1177,8 +1068,6 @@ async function _carregarEmprestimoParaEdicao(id) {
 function fecharModalEditar() {
     document.getElementById('modalEditar').classList.remove('open');
     document.getElementById('erroEditModal').textContent = '';
-    document.getElementById('inputTomboEdit').value = '';
-    document.getElementById('resultadoTomboEdit').innerHTML = '';
     _editEmprestimoId = null;
 }
 
@@ -1198,7 +1087,6 @@ async function salvarEdicaoEmprestimo() {
     const dataDevolucao = document.getElementById('editDataDevolucao').value.trim();
     const status        = document.getElementById('editStatus').value;
     const usuarioId     = document.getElementById('editUsuario').value;
-    const exemplarId    = document.getElementById('editExemplar').value;
     const observacao    = document.getElementById('editObservacao').value.trim();
 
     // Validações no cliente
@@ -1206,7 +1094,6 @@ async function salvarEdicaoEmprestimo() {
     if (!dataPrevista) { erroEl.textContent = 'O prazo de devolução é obrigatório.'; return; }
     if (!status)       { erroEl.textContent = 'O status é obrigatório.'; return; }
     if (!usuarioId)    { erroEl.textContent = 'Selecione o usuário vinculado.'; return; }
-    if (!exemplarId)   { erroEl.textContent = 'Selecione o exemplar vinculado.'; return; }
 
     if (dataPrevista && dataSaida && dataPrevista < dataSaida) {
         erroEl.textContent = 'O prazo de devolução não pode ser anterior à data do empréstimo.';
@@ -1220,7 +1107,6 @@ async function salvarEdicaoEmprestimo() {
         DataDevolucao:  dataDevolucao || null,
         Status:         status,
         Usuario_id:     parseInt(usuarioId),
-        Exemplar_id:    parseInt(exemplarId),
         Observacao:     observacao || null
     };
 
@@ -1253,13 +1139,13 @@ async function salvarEdicaoEmprestimo() {
 
 async function carregarSelects() {
     try {
-        const [resU, resE] = await Promise.all([
+        const [resU, resL] = await Promise.all([
             fetch(`${API}/usuario`),
-            fetch(`${API}/exemplar`)
+            fetch(`${API}/livro`)
         ]);
 
-        todosUsuarios   = resU.ok ? await resU.json() : [];
-        todosExemplares = resE.ok ? await resE.json() : [];
+        todosUsuarios = resU.ok ? await resU.json() : [];
+        todosLivros   = resL.ok ? await resL.json() : [];
 
         const selU = document.getElementById('selectUsuario');
         todosUsuarios.forEach(u => {
@@ -1269,14 +1155,12 @@ async function carregarSelects() {
             selU.appendChild(op);
         });
 
-        const selE = document.getElementById('selectExemplar');
-        todosExemplares.forEach(ex => {
+        const selL = document.getElementById('selectLivro');
+        todosLivros.forEach(l => {
             const op = document.createElement('option');
-            op.value       = ex.Exemplar_id;
-            const disponivel = ex.Status === 'Disponivel';
-            op.textContent  = `Tombo ${ex.NumeroTombo || '—'} — ${ex.NomeLivro || 'Livro #' + ex.Livro_id}${disponivel ? '' : ` (${ex.Status})`}`;
-            if (!disponivel) op.disabled = true;
-            selE.appendChild(op);
+            op.value       = l.Livro_id || l.id;
+            op.textContent = `${l.Nome || l.titulo}${l.Autor ? ' — ' + l.Autor : ''}`;
+            selL.appendChild(op);
         });
     } catch(e) {
         console.error('Erro ao carregar selects:', e);
@@ -1335,171 +1219,33 @@ async function reprovarSolicitacao(solicitacaoId) {
     }
 }
 
-// ── Busca por Número de Tombo (compartilhada entre os modais de
-// Novo Empréstimo e Editar Empréstimo) ────────────────────────
-// resultId/selectId identificam onde exibir o resultado e qual select
-// manter sincronizado, permitindo reutilizar a mesma lógica nos dois modais.
-
-// Dispara a busca por tombo automaticamente, com um pequeno atraso (debounce)
-// para evitar uma requisição a cada tecla digitada.
-function onInputTombo(valor, resultId = 'resultadoTombo', selectId = 'selectExemplar') {
-    clearTimeout(_tomboDebounceTimer);
-    if (!valor || !valor.trim()) {
-        if (selectId === 'selectExemplar') exemplarSelecionado = null;
-        document.getElementById(resultId).innerHTML = '';
-        return;
-    }
-    _tomboDebounceTimer = setTimeout(() => buscarPorTombo(valor, resultId, selectId), 450);
-}
-
-// Busca otimizada: consulta apenas o exemplar correspondente ao tombo informado
-// (GET /exemplar/tombo/:numeroTombo), sem carregar a lista completa de exemplares.
-let _tomboBuscaSeq = 0;
-async function buscarPorTombo(numeroTombo, resultId = 'resultadoTombo', selectId = 'selectExemplar') {
-    clearTimeout(_tomboDebounceTimer);
-    const valor = (numeroTombo || '').trim();
-    const resultadoEl = document.getElementById(resultId);
-    const selEl       = document.getElementById(selectId);
-    const ehModalNovo = (selectId === 'selectExemplar'); // controla o estado exemplarSelecionado, usado só no modal de criação
-
-    if (!valor) {
-        if (ehModalNovo) exemplarSelecionado = null;
-        resultadoEl.innerHTML = '';
-        return;
-    }
-
-    const minhaSeq = ++_tomboBuscaSeq; // protege contra respostas fora de ordem (digitação rápida)
-    resultadoEl.innerHTML = '<div class="tombo-loading">🔄 Buscando exemplar...</div>';
-
-    try {
-        const res = await fetch(`${API}/exemplar/tombo/${encodeURIComponent(valor)}`);
-        if (minhaSeq !== _tomboBuscaSeq) return; // já existe uma busca mais recente em andamento
-
-        if (res.status === 404) {
-            if (ehModalNovo) exemplarSelecionado = null;
-            selEl.value = '';
-            resultadoEl.innerHTML = `
-                <div class="tombo-card tombo-erro">
-                    ❌ Nenhum exemplar encontrado com o tombo <strong>"${valor}"</strong>.
-                </div>`;
-            return;
-        }
-
-        if (!res.ok) throw new Error('Falha na busca por tombo.');
-
-        const ex = await res.json();
-        if (minhaSeq !== _tomboBuscaSeq) return;
-
-        if (ex.Disponivel) {
-            if (ehModalNovo) exemplarSelecionado = ex;
-
-            // Mantém o select correspondente sincronizado com o resultado da busca
-            const jaExiste = Array.from(selEl.options).some(o => o.value === String(ex.Exemplar_id));
-            if (!jaExiste) {
-                const op = document.createElement('option');
-                op.value       = ex.Exemplar_id;
-                op.textContent = `Tombo ${ex.NumeroTombo || '—'} — ${ex.NomeLivro || 'Livro #' + ex.Livro_id}`;
-                selEl.appendChild(op);
-            }
-            selEl.value = ex.Exemplar_id;
-
-            resultadoEl.innerHTML = `
-                <div class="tombo-card tombo-ok">
-                    <div class="tombo-card-header">✅ Exemplar disponível — selecionado</div>
-                    <span class="tombo-titulo">${ex.NomeLivro || 'Sem título'}</span><br>
-                    Autor: ${ex.AutorLivro || '—'}<br>
-                    Tombo: ${ex.NumeroTombo}
-                </div>`;
-        } else {
-            if (ehModalNovo) exemplarSelecionado = null;
-            selEl.value = '';
-            resultadoEl.innerHTML = `
-                <div class="tombo-card tombo-indisponivel">
-                    <div class="tombo-card-header">⚠️ Exemplar indisponível</div>
-                    <span class="tombo-titulo">${ex.NomeLivro || 'Sem título'}</span><br>
-                    Autor: ${ex.AutorLivro || '—'}<br>
-                    Tombo: ${ex.NumeroTombo}<br>
-                    ${ex.MotivoIndisponivel || 'Este exemplar não está disponível no momento.'}
-                </div>`;
-        }
-    } catch (e) {
-        if (minhaSeq !== _tomboBuscaSeq) return;
-        console.error('Erro ao buscar exemplar por tombo:', e);
-        if (ehModalNovo) exemplarSelecionado = null;
-        selEl.value = '';
-        resultadoEl.innerHTML = '<div class="tombo-card tombo-erro">❌ Erro ao buscar exemplar. Tente novamente.</div>';
-    }
-}
-
 // ── Modal novo empréstimo (pelo admin, direto) ────────────────
-
-// Manual: seleção direta de um exemplar na lista (busca por tombo tem prioridade,
-// mas esta opção continua disponível para quando o tombo não estiver em mãos).
-function onSelecionarExemplarManual(exemplarId) {
-    document.getElementById('inputTombo').value = '';
-    document.getElementById('resultadoTombo').innerHTML = '';
-
-    if (!exemplarId) {
-        exemplarSelecionado = null;
-        return;
-    }
-
-    const ex = todosExemplares.find(e => String(e.Exemplar_id) === String(exemplarId));
-    exemplarSelecionado = ex ? {
-        Exemplar_id: ex.Exemplar_id,
-        Livro_id   : ex.Livro_id,
-        NomeLivro  : ex.NomeLivro,
-        AutorLivro : ex.AutorLivro,
-        NumeroTombo: ex.NumeroTombo,
-        Status     : ex.Status,
-        Disponivel : ex.Status === 'Disponivel'
-    } : null;
-}
-
 function abrirModalNovo() {
     const d = new Date();
     d.setDate(d.getDate() + 14);
     document.getElementById('inputDataPrevista').value = d.toISOString().split('T')[0];
     document.getElementById('erroModal').textContent = '';
-    document.getElementById('inputTombo').value = '';
-    document.getElementById('resultadoTombo').innerHTML = '';
-    document.getElementById('selectExemplar').value = '';
-    exemplarSelecionado = null;
     document.getElementById('modalNovo').classList.add('open');
-    document.getElementById('inputTombo').focus();
 }
 
 function fecharModalNovo() {
     document.getElementById('modalNovo').classList.remove('open');
-    document.getElementById('selectUsuario').value  = '';
-    document.getElementById('selectExemplar').value = '';
-    document.getElementById('inputTombo').value     = '';
-    document.getElementById('resultadoTombo').innerHTML = '';
+    document.getElementById('selectUsuario').value = '';
+    document.getElementById('selectLivro').value   = '';
     document.getElementById('erroModal').textContent = '';
-    exemplarSelecionado = null;
 }
 
 async function criarEmprestimo() {
     const usuarioId = document.getElementById('selectUsuario').value;
+    const livroId   = document.getElementById('selectLivro').value;
     const dataPrev  = document.getElementById('inputDataPrevista').value;
     const erroEl    = document.getElementById('erroModal');
 
-    if (!usuarioId) {
-        erroEl.textContent = 'Selecione o usuário.';
-        return;
-    }
-    if (!exemplarSelecionado) {
-        erroEl.textContent = 'Busque pelo número de tombo ou selecione um exemplar na lista.';
-        return;
-    }
-    if (!exemplarSelecionado.Disponivel) {
-        erroEl.textContent = 'O exemplar selecionado não está disponível para empréstimo.';
+    if (!usuarioId || !livroId) {
+        erroEl.textContent = 'Selecione o usuário e o livro.';
         return;
     }
     erroEl.textContent = '';
-
-    const livroId    = exemplarSelecionado.Livro_id;
-    const exemplarId = exemplarSelecionado.Exemplar_id;
 
     // Admin cria solicitação e aprova em sequência
     try {
@@ -1524,8 +1270,7 @@ async function criarEmprestimo() {
             headers: { 'Content-Type': 'application/json' },
             body   : JSON.stringify({
                 admin_id    : parseInt(sessionStorage.getItem('usuarioId') || 0),
-                DataPrevista: dataPrev || undefined,
-                Exemplar_id : exemplarId
+                DataPrevista: dataPrev || undefined
             })
         });
         const dataAprova = await resAprova.json();

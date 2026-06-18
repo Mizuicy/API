@@ -1226,9 +1226,10 @@ app.delete('/emprestimo/:id', (req, res) => {
 //    DataDevolucao   (opcional — data real de devolução)
 //    Status          (opcional — ativo | devolvido | atrasado)
 //    Usuario_id      (opcional — trocar usuário vinculado)
-//    Exemplar_id     (opcional — trocar exemplar vinculado)
 //    Observacao      (opcional — observação administrativa)
 //  }
+//  OBS: o exemplar vinculado ao empréstimo NÃO é alterado por esta rota.
+//       O Exemplar_id já associado ao registro é sempre mantido.
 // ══════════════════════════════════════════════════════════════
 app.put('/admin/emprestimo/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
@@ -1241,7 +1242,6 @@ app.put('/admin/emprestimo/:id', (req, res) => {
         DataDevolucao,
         Status,
         Usuario_id,
-        Exemplar_id,
         Observacao
     } = req.body;
 
@@ -1285,12 +1285,12 @@ app.put('/admin/emprestimo/:id', (req, res) => {
 
         const emp = rows[0];
 
-        // ── IDs finais (usa valor atual se não enviado) ────────
-        const novoUsuarioId  = Usuario_id  ? parseInt(Usuario_id, 10)  : emp.Usuario_id;
-        const novoExemplarId = Exemplar_id ? parseInt(Exemplar_id, 10) : emp.Exemplar_id;
+        // ── ID final do usuário (usa valor atual se não enviado) ──
+        // O exemplar vinculado nunca é alterado por esta rota: mantém-se sempre o já associado ao registro.
+        const novoUsuarioId = Usuario_id ? parseInt(Usuario_id, 10) : emp.Usuario_id;
+        const exemplarId    = emp.Exemplar_id;
 
-        if (isNaN(novoUsuarioId))  return res.status(400).json({ error: 'Usuario_id inválido.' });
-        if (isNaN(novoExemplarId)) return res.status(400).json({ error: 'Exemplar_id inválido.' });
+        if (isNaN(novoUsuarioId)) return res.status(400).json({ error: 'Usuario_id inválido.' });
 
         // ── Passo 2: Valida existência de usuário (se alterado) ──
         const validarUsuario = (next) => {
@@ -1302,173 +1302,140 @@ app.put('/admin/emprestimo/:id', (req, res) => {
             });
         };
 
-        // ── Passo 3: Valida existência de exemplar (se alterado) ──
-        const validarExemplar = (next) => {
-            if (!Exemplar_id || parseInt(Exemplar_id, 10) === emp.Exemplar_id) return next();
-            dbconfig.query('SELECT Exemplar_id, Status FROM Exemplar WHERE Exemplar_id = ?', [novoExemplarId], (errE, rowsE) => {
-                if (errE) return res.status(500).json({ error: 'Erro ao validar exemplar.' });
-                if (!rowsE.length) return res.status(404).json({ error: `Exemplar #${novoExemplarId} não encontrado.` });
-                next();
-            });
-        };
-
         validarUsuario(() => {
-            validarExemplar(() => {
-                // ── Calcula campos finais ──────────────────────
-                const novoStatus       = Status       || emp.Status;
-                const novaDataSaida    = DataSaida    || (emp.DataSaida    ? emp.DataSaida.toISOString().split('T')[0]    : null);
-                const novaDataPrevista = DataPrevista || (emp.DataPrevista ? emp.DataPrevista.toISOString().split('T')[0] : null);
+            // ── Calcula campos finais ──────────────────────
+            const novoStatus       = Status       || emp.Status;
+            const novaDataSaida    = DataSaida    || (emp.DataSaida    ? emp.DataSaida.toISOString().split('T')[0]    : null);
+            const novaDataPrevista = DataPrevista || (emp.DataPrevista ? emp.DataPrevista.toISOString().split('T')[0] : null);
 
-                // DataDevolucao: permite zerar (null) se enviado explicitamente como null/''
-                let novaDataDevolucao;
-                if (DataDevolucao === null || DataDevolucao === '') {
-                    novaDataDevolucao = null;
-                } else if (DataDevolucao) {
-                    novaDataDevolucao = DataDevolucao;
-                } else {
-                    novaDataDevolucao = emp.DataDevolucao ? emp.DataDevolucao.toISOString().split('T')[0] : null;
+            // DataDevolucao: permite zerar (null) se enviado explicitamente como null/''
+            let novaDataDevolucao;
+            if (DataDevolucao === null || DataDevolucao === '') {
+                novaDataDevolucao = null;
+            } else if (DataDevolucao) {
+                novaDataDevolucao = DataDevolucao;
+            } else {
+                novaDataDevolucao = emp.DataDevolucao ? emp.DataDevolucao.toISOString().split('T')[0] : null;
+            }
+
+            // ElegivelAvaliacao: ativa quando status muda para devolvido pela primeira vez
+            const ativarElegivel = (novoStatus === 'devolvido' && emp.Status !== 'devolvido')
+                ? 1
+                : (emp.ElegivelAvaliacao || 0);
+
+            const obsLimpa = Observacao !== undefined
+                ? (Observacao && Observacao.trim() ? Observacao.trim().substring(0, 500) : null)
+                : (emp.Observacao || null);
+
+            // ── Passo 3: Executa o UPDATE principal (Exemplar_id permanece inalterado) ──
+            const sql = `
+                UPDATE Emprestimo
+                SET
+                    DataSaida        = ?,
+                    DataPrevista     = ?,
+                    DataDevolucao    = ?,
+                    Status           = ?,
+                    Usuario_id       = ?,
+                    ElegivelAvaliacao = ?,
+                    Observacao       = ?
+                WHERE Emprestimo_id = ?
+            `;
+            const vals = [
+                novaDataSaida,
+                novaDataPrevista,
+                novaDataDevolucao,
+                novoStatus,
+                novoUsuarioId,
+                ativarElegivel,
+                obsLimpa,
+                id
+            ];
+
+            dbconfig.query(sql, vals, (errUpd) => {
+                if (errUpd) {
+                    console.error(`[PUT /admin/emprestimo/${id}] Erro no UPDATE:`, errUpd.message);
+                    return res.status(500).json({ error: 'Erro ao salvar alterações no banco.', detalhe: errUpd.sqlMessage || errUpd.message });
                 }
 
-                // ElegivelAvaliacao: ativa quando status muda para devolvido pela primeira vez
-                const ativarElegivel = (novoStatus === 'devolvido' && emp.Status !== 'devolvido')
-                    ? 1
-                    : (emp.ElegivelAvaliacao || 0);
+                // ── Passo 4: Atualiza status do exemplar já vinculado, conforme o novo status do empréstimo ──
+                const statusExemplarNovo = (novoStatus === 'devolvido') ? 'Disponivel' : 'Emprestado';
+                dbconfig.query(
+                    'UPDATE Exemplar SET Status = ? WHERE Exemplar_id = ?',
+                    [statusExemplarNovo, exemplarId],
+                    (errEx) => { if (errEx) console.warn(`[admin/emprestimo] Aviso: falha ao atualizar exemplar #${exemplarId}:`, errEx.message); }
+                );
 
-                const obsLimpa = Observacao !== undefined
-                    ? (Observacao && Observacao.trim() ? Observacao.trim().substring(0, 500) : null)
-                    : (emp.Observacao || null);
-
-                // ── Passo 4: Atualiza exemplar anterior se Exemplar_id mudou ──
-                const atualizarExemplarAnterior = (next) => {
-                    if (!Exemplar_id || parseInt(Exemplar_id, 10) === emp.Exemplar_id) return next();
-                    // Libera o exemplar anterior se o empréstimo estava ativo/atrasado
-                    if (emp.Exemplar_id && emp.Status !== 'devolvido') {
-                        dbconfig.query(
-                            "UPDATE Exemplar SET Status = 'Disponivel' WHERE Exemplar_id = ?",
-                            [emp.Exemplar_id],
-                            (errL) => { if (errL) console.warn(`[admin/emprestimo] Aviso: falha ao liberar exemplar #${emp.Exemplar_id}:`, errL.message); next(); }
-                        );
-                    } else {
-                        next();
-                    }
-                };
-
-                atualizarExemplarAnterior(() => {
-                    // ── Passo 5: Executa o UPDATE principal ───────────────
-                    const sql = `
-                        UPDATE Emprestimo
-                        SET
-                            DataSaida        = ?,
-                            DataPrevista     = ?,
-                            DataDevolucao    = ?,
-                            Status           = ?,
-                            Usuario_id       = ?,
-                            Exemplar_id      = ?,
-                            ElegivelAvaliacao = ?,
-                            Observacao       = ?
-                        WHERE Emprestimo_id = ?
+                // ── Passo 5: Notificação de avaliação se devolvido pela 1ª vez ──
+                if (novoStatus === 'devolvido' && emp.Status !== 'devolvido') {
+                    const sqlInfo = `
+                        SELECT u.Usuario_id, l.Nome AS NomeLivro
+                        FROM Emprestimo e
+                        JOIN Exemplar ex ON e.Exemplar_id = ex.Exemplar_id
+                        JOIN Livro    l  ON ex.Livro_id   = l.Livro_id
+                        JOIN Usuario  u  ON e.Usuario_id  = u.Usuario_id
+                        WHERE e.Emprestimo_id = ?
                     `;
-                    const vals = [
-                        novaDataSaida,
-                        novaDataPrevista,
-                        novaDataDevolucao,
-                        novoStatus,
-                        novoUsuarioId,
-                        novoExemplarId,
-                        ativarElegivel,
-                        obsLimpa,
-                        id
-                    ];
-
-                    dbconfig.query(sql, vals, (errUpd) => {
-                        if (errUpd) {
-                            console.error(`[PUT /admin/emprestimo/${id}] Erro no UPDATE:`, errUpd.message);
-                            return res.status(500).json({ error: 'Erro ao salvar alterações no banco.', detalhe: errUpd.sqlMessage || errUpd.message });
-                        }
-
-                        // ── Passo 6: Atualiza status do exemplar novo/atual ──
-                        const statusExemplarNovo = (novoStatus === 'devolvido') ? 'Disponivel' : 'Emprestado';
+                    dbconfig.query(sqlInfo, [id], (errInfo, rowsInfo) => {
+                        if (errInfo || !rowsInfo.length) return;
+                        const { Usuario_id: uid, NomeLivro } = rowsInfo[0];
+                        const msg = `Seu empréstimo do livro "${NomeLivro}" foi finalizado pelo administrador. Compartilhe sua opinião avaliando a obra.`;
                         dbconfig.query(
-                            'UPDATE Exemplar SET Status = ? WHERE Exemplar_id = ?',
-                            [statusExemplarNovo, novoExemplarId],
-                            (errEx) => { if (errEx) console.warn(`[admin/emprestimo] Aviso: falha ao atualizar exemplar #${novoExemplarId}:`, errEx.message); }
+                            'INSERT INTO Notificacao (Usuario_id, Emprestimo_id, Tipo, Mensagem) VALUES (?, ?, ?, ?)',
+                            [uid, id, 'avaliacao_pendente', msg],
+                            (errN) => { if (errN) console.error('[admin/emprestimo] Erro ao criar notificação:', errN.message); }
                         );
-
-                        // ── Passo 7: Notificação de avaliação se devolvido pela 1ª vez ──
-                        if (novoStatus === 'devolvido' && emp.Status !== 'devolvido') {
-                            const sqlInfo = `
-                                SELECT u.Usuario_id, l.Nome AS NomeLivro
-                                FROM Emprestimo e
-                                JOIN Exemplar ex ON e.Exemplar_id = ex.Exemplar_id
-                                JOIN Livro    l  ON ex.Livro_id   = l.Livro_id
-                                JOIN Usuario  u  ON e.Usuario_id  = u.Usuario_id
-                                WHERE e.Emprestimo_id = ?
-                            `;
-                            dbconfig.query(sqlInfo, [id], (errInfo, rowsInfo) => {
-                                if (errInfo || !rowsInfo.length) return;
-                                const { Usuario_id: uid, NomeLivro } = rowsInfo[0];
-                                const msg = `Seu empréstimo do livro "${NomeLivro}" foi finalizado pelo administrador. Compartilhe sua opinião avaliando a obra.`;
-                                dbconfig.query(
-                                    'INSERT INTO Notificacao (Usuario_id, Emprestimo_id, Tipo, Mensagem) VALUES (?, ?, ?, ?)',
-                                    [uid, id, 'avaliacao_pendente', msg],
-                                    (errN) => { if (errN) console.error('[admin/emprestimo] Erro ao criar notificação:', errN.message); }
-                                );
-                            });
-                        }
-
-                        // ── Passo 8: Log de auditoria ─────────────────────
-                        const alteracoes = JSON.stringify({
-                            antes: {
-                                Status:        emp.Status,
-                                DataSaida:     emp.DataSaida,
-                                DataPrevista:  emp.DataPrevista,
-                                DataDevolucao: emp.DataDevolucao,
-                                Usuario_id:    emp.Usuario_id,
-                                Exemplar_id:   emp.Exemplar_id
-                            },
-                            depois: {
-                                Status:        novoStatus,
-                                DataSaida:     novaDataSaida,
-                                DataPrevista:  novaDataPrevista,
-                                DataDevolucao: novaDataDevolucao,
-                                Usuario_id:    novoUsuarioId,
-                                Exemplar_id:   novoExemplarId
-                            }
-                        });
-                        console.log(`[ADMIN-EDIT] Empréstimo #${id} editado por Admin #${adminIdNum}. Alterações: ${alteracoes}`);
-
-                        // ── Passo 9: Retorna empréstimo completo ──────────
-                        const sqlRetorno = `
-                            SELECT
-                                e.Emprestimo_id,
-                                e.DataSaida     AS DataEmprestimo,
-                                e.DataPrevista,
-                                e.DataDevolucao,
-                                e.Status,
-                                e.Usuario_id,
-                                e.Exemplar_id,
-                                e.ElegivelAvaliacao,
-                                e.Observacao,
-                                ex.Livro_id,
-                                ex.NumeroTombo,
-                                u.Nome          AS NomeUsuario,
-                                u.Email         AS EmailUsuario,
-                                l.Nome          AS NomeLivro,
-                                l.Autor         AS AutorLivro,
-                                l.Imagem        AS CapaLivro
-                            FROM Emprestimo e
-                            LEFT JOIN Exemplar ex ON e.Exemplar_id = ex.Exemplar_id
-                            LEFT JOIN Livro    l  ON ex.Livro_id   = l.Livro_id
-                            LEFT JOIN Usuario  u  ON e.Usuario_id  = u.Usuario_id
-                            WHERE e.Emprestimo_id = ?
-                        `;
-                        dbconfig.query(sqlRetorno, [id], (errRet, rowsRet) => {
-                            if (errRet || !rowsRet.length) {
-                                return res.json({ message: 'Empréstimo atualizado com sucesso.', Emprestimo_id: id });
-                            }
-                            res.json({ message: 'Empréstimo atualizado com sucesso.', emprestimo: rowsRet[0] });
-                        });
                     });
+                }
+
+                // ── Passo 6: Log de auditoria ─────────────────────
+                const alteracoes = JSON.stringify({
+                    antes: {
+                        Status:        emp.Status,
+                        DataSaida:     emp.DataSaida,
+                        DataPrevista:  emp.DataPrevista,
+                        DataDevolucao: emp.DataDevolucao,
+                        Usuario_id:    emp.Usuario_id
+                    },
+                    depois: {
+                        Status:        novoStatus,
+                        DataSaida:     novaDataSaida,
+                        DataPrevista:  novaDataPrevista,
+                        DataDevolucao: novaDataDevolucao,
+                        Usuario_id:    novoUsuarioId
+                    }
+                });
+                console.log(`[ADMIN-EDIT] Empréstimo #${id} editado por Admin #${adminIdNum}. Alterações: ${alteracoes}`);
+
+                // ── Passo 7: Retorna empréstimo completo ──────────
+                const sqlRetorno = `
+                    SELECT
+                        e.Emprestimo_id,
+                        e.DataSaida     AS DataEmprestimo,
+                        e.DataPrevista,
+                        e.DataDevolucao,
+                        e.Status,
+                        e.Usuario_id,
+                        e.Exemplar_id,
+                        e.ElegivelAvaliacao,
+                        e.Observacao,
+                        ex.Livro_id,
+                        ex.NumeroTombo,
+                        u.Nome          AS NomeUsuario,
+                        u.Email         AS EmailUsuario,
+                        l.Nome          AS NomeLivro,
+                        l.Autor         AS AutorLivro,
+                        l.Imagem        AS CapaLivro
+                    FROM Emprestimo e
+                    LEFT JOIN Exemplar ex ON e.Exemplar_id = ex.Exemplar_id
+                    LEFT JOIN Livro    l  ON ex.Livro_id   = l.Livro_id
+                    LEFT JOIN Usuario  u  ON e.Usuario_id  = u.Usuario_id
+                    WHERE e.Emprestimo_id = ?
+                `;
+                dbconfig.query(sqlRetorno, [id], (errRet, rowsRet) => {
+                    if (errRet || !rowsRet.length) {
+                        return res.json({ message: 'Empréstimo atualizado com sucesso.', Emprestimo_id: id });
+                    }
+                    res.json({ message: 'Empréstimo atualizado com sucesso.', emprestimo: rowsRet[0] });
                 });
             });
         });
@@ -1573,56 +1540,6 @@ app.get('/exemplar/stats', (req, res) => {
     dbconfig.query(sql, (err, results) => {
         if (err) return handleQuery(res, err);
         res.json(results[0]);
-    });
-});
-
-// GET /exemplar/tombo/:numeroTombo — busca exemplar específico pelo Número de Tombo
-// Usado pela tela de Empréstimos para localizar rapidamente um exemplar (ex: leitura
-// de etiqueta/código de barras) sem precisar carregar a lista completa de exemplares.
-// Consulta otimizada: busca exata (índice/igualdade) por NumeroTombo, LIMIT 1.
-app.get('/exemplar/tombo/:numeroTombo', (req, res) => {
-    const numeroTombo = (req.params.numeroTombo || '').trim();
-    if (!numeroTombo) {
-        return res.status(400).json({ error: 'Número de Tombo é obrigatório.' });
-    }
-
-    const sql = `
-        SELECT
-            ex.Exemplar_id, ex.Status, ex.Localizacao, ex.NumeroTombo,
-            ex.Observacoes, ex.DataAquisicao, ex.CriadoEm, ex.Livro_id,
-            l.Nome   AS NomeLivro,
-            l.Autor  AS AutorLivro,
-            l.Imagem AS CapaLivro
-        FROM Exemplar ex
-        LEFT JOIN Livro l ON ex.Livro_id = l.Livro_id
-        WHERE ex.NumeroTombo = ?
-        LIMIT 1
-    `;
-
-    dbconfig.query(sql, [numeroTombo], (err, results) => {
-        if (err) {
-            console.error('[GET /exemplar/tombo] Erro:', err.sqlMessage || err.message);
-            return res.status(500).json({ error: 'Erro interno no servidor.' });
-        }
-
-        if (results.length === 0) {
-            return res.status(404).json({ error: `Nenhum exemplar encontrado com o número de tombo "${numeroTombo}".` });
-        }
-
-        const exemplar = results[0];
-        const disponivel = exemplar.Status === 'Disponivel';
-
-        const motivosIndisponibilidade = {
-            Emprestado: 'Este exemplar já está emprestado.',
-            Reservado : 'Este exemplar está reservado.',
-            Manutencao: 'Este exemplar está em manutenção.'
-        };
-
-        res.json({
-            ...exemplar,
-            Disponivel        : disponivel,
-            MotivoIndisponivel: disponivel ? null : (motivosIndisponibilidade[exemplar.Status] || `Este exemplar não está disponível (status: ${exemplar.Status}).`)
-        });
     });
 });
 
@@ -2077,62 +1994,14 @@ app.post('/solicitacao', (req, res) => {
     );
 });
 
-// ── Helper: resolve qual exemplar usar na aprovação do empréstimo.
-// Se exemplarIdForcado for informado (ex: localizado via busca por Número de Tombo
-// na tela de Empréstimos), valida e usa exatamente aquele exemplar. Caso contrário,
-// mantém o comportamento padrão de buscar automaticamente o primeiro disponível.
-function resolverExemplarParaAprovacao(livroId, exemplarIdForcado, cb) {
-    if (exemplarIdForcado) {
-        dbconfig.query(
-            'SELECT Exemplar_id, Livro_id, Status FROM Exemplar WHERE Exemplar_id = ?',
-            [exemplarIdForcado],
-            (err, rows) => {
-                if (err) return cb(err);
-                if (!rows.length) {
-                    return cb(null, null, { status: 404, error: 'O exemplar informado não foi encontrado.' });
-                }
-                const ex = rows[0];
-                if (ex.Livro_id !== livroId) {
-                    return cb(null, null, { status: 400, error: 'O exemplar informado não pertence ao livro desta solicitação.' });
-                }
-                if (ex.Status !== 'Disponivel') {
-                    const motivos = {
-                        Emprestado: 'Este exemplar já está emprestado.',
-                        Reservado : 'Este exemplar está reservado.',
-                        Manutencao: 'Este exemplar está em manutenção.'
-                    };
-                    return cb(null, null, { status: 409, error: motivos[ex.Status] || `Este exemplar não está disponível (status: ${ex.Status}).` });
-                }
-                cb(null, ex.Exemplar_id, null);
-            }
-        );
-    } else {
-        dbconfig.query(
-            "SELECT Exemplar_id FROM Exemplar WHERE Livro_id = ? AND Status = 'Disponivel' LIMIT 1",
-            [livroId],
-            (err, rows) => {
-                if (err) return cb(err);
-                if (!rows.length) {
-                    return cb(null, null, { status: 409, error: 'Não há exemplares disponíveis no momento. Não é possível aprovar.' });
-                }
-                cb(null, rows[0].Exemplar_id, null);
-            }
-        );
-    }
-}
-
 // POST /solicitacao/:id/aprovar — admin aprova a solicitação e cria o empréstimo ativo
-// Body: { admin_id, DataPrevista?, Exemplar_id? }
-// Exemplar_id (opcional): quando informado, força o uso deste exemplar específico
-// (ex: localizado via busca por Número de Tombo) em vez de escolher automaticamente
-// o primeiro exemplar disponível do livro.
+// Body: { admin_id, DataPrevista? }
 app.post('/solicitacao/:id/aprovar', (req, res) => {
-    const id              = parseInt(req.params.id, 10);
-    const adminId         = req.body.admin_id ? parseInt(req.body.admin_id, 10) : null;
-    const exemplarForcado = req.body.Exemplar_id ? parseInt(req.body.Exemplar_id, 10) : null;
+    const id      = parseInt(req.params.id, 10);
+    const adminId = req.body.admin_id ? parseInt(req.body.admin_id, 10) : null;
     if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
 
-    console.log(`[POST /solicitacao/${id}/aprovar] admin_id=${adminId}${exemplarForcado ? `, Exemplar_id=${exemplarForcado}` : ''}`);
+    console.log(`[POST /solicitacao/${id}/aprovar] admin_id=${adminId}`);
 
     dbconfig.query("SELECT * FROM SolicitacaoEmprestimo WHERE Solicitacao_id = ?", [id], (err, rows) => {
         if (err) {
@@ -2146,16 +2015,20 @@ app.post('/solicitacao/:id/aprovar', (req, res) => {
             return res.status(400).json({ error: `Esta solicitação já foi ${solic.Status}.` });
         }
 
-        // Busca exemplar a ser usado (forçado por tombo, ou automaticamente o primeiro disponível)
-        resolverExemplarParaAprovacao(solic.Livro_id, exemplarForcado, (err2, exemplarId, erroResolucao) => {
+        // Busca exemplar disponível
+        dbconfig.query(
+            "SELECT Exemplar_id FROM Exemplar WHERE Livro_id = ? AND Status = 'Disponivel' LIMIT 1",
+            [solic.Livro_id],
+            (err2, exemplares) => {
                 if (err2) {
                     console.error('[aprovar] Erro ao buscar exemplar:', err2.sqlMessage || err2.message);
                     return res.status(500).json({ error: 'Erro interno ao buscar exemplar.', detalhe: err2.sqlMessage || err2.message });
                 }
-                if (erroResolucao) {
-                    return res.status(erroResolucao.status).json({ error: erroResolucao.error });
+                if (!exemplares.length) {
+                    return res.status(409).json({ error: 'Não há exemplares disponíveis no momento. Não é possível aprovar.' });
                 }
 
+                const exemplarId = exemplares[0].Exemplar_id;
                 const hoje = new Date();
                 const dataSaida = hoje.toISOString().split('T')[0];
                 const dataPrevista = req.body.DataPrevista || (() => {
