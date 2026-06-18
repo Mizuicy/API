@@ -694,6 +694,14 @@
                 </select>
             </div>
 
+            <div class="form-group form-group-full">
+                <label for="editExemplar">Exemplar Vinculado <span style="font-weight:400; color:#888;">(opcional — mantém o atual se não alterar)</span></label>
+                <p id="editExemplarAtual" style="margin:0 0 6px; font-size:0.82rem; color:#555;">Exemplar atual: <em>carregando...</em></p>
+                <select id="editExemplar">
+                    <option value="">Manter exemplar atual</option>
+                </select>
+            </div>
+
             <!-- Seção: Observação -->
             <div class="edit-section-title">📝 Observação Administrativa</div>
 
@@ -1010,8 +1018,11 @@ async function abrirModalEditar(id) {
     // Exibe badge com ID
     document.getElementById('editBadgeId').textContent = `Empréstimo #${id}`;
 
-    // Carrega select de usuários se ainda não carregado
-    // (o exemplar vinculado ao empréstimo é mantido automaticamente e não é mais selecionável aqui)
+    // O select de exemplar sempre abre no estado "Manter exemplar atual" — isso evita qualquer
+    // condição de corrida com o carregamento da lista de exemplares e elimina a obrigatoriedade
+    // de selecionar algo: só é usado se o admin realmente quiser trocar o exemplar vinculado.
+    document.getElementById('editExemplar').value = '';
+
     await Promise.all([
         _garantirSelectsEditCarregados(),
         _carregarEmprestimoParaEdicao(id)
@@ -1034,6 +1045,27 @@ async function _garantirSelectsEditCarregados() {
                 selU.appendChild(op);
             });
         } catch(e) { console.error('Erro ao carregar usuários no edit:', e); }
+    }
+
+    // Exemplares — usado apenas se o admin quiser trocar o exemplar vinculado.
+    // A opção padrão "Manter exemplar atual" (value="") já cobre o caso comum de não alterar nada,
+    // então uma falha aqui não deve travar o restante da edição.
+    const selE = document.getElementById('editExemplar');
+    if (selE.options.length <= 1) {
+        try {
+            const resE = await fetch(`${API}/exemplar`);
+            const exemplares = resE.ok ? await resE.json() : [];
+            exemplares.forEach(ex => {
+                const op = document.createElement('option');
+                op.value       = ex.Exemplar_id;
+                op.textContent = `#${ex.Exemplar_id} — Tombo: ${ex.NumeroTombo || '—'} | ${ex.NomeLivro || ex.Livro_id || ''}`;
+                selE.appendChild(op);
+            });
+        } catch(e) {
+            // Falha ao buscar exemplares não impede a edição: o select continua
+            // utilizável com a opção "Manter exemplar atual".
+            console.error('Erro ao carregar exemplares no edit (troca de exemplar ficará indisponível):', e);
+        }
     }
 }
 
@@ -1059,6 +1091,15 @@ async function _carregarEmprestimoParaEdicao(id) {
         document.getElementById('editStatus').value         = emp.Status || 'ativo';
         document.getElementById('editUsuario').value        = emp.Usuario_id || '';
         document.getElementById('editObservacao').value     = emp.Observacao || '';
+
+        // Mostra qual exemplar está vinculado hoje, só como informação — não depende do
+        // select já estar populado, então não há condição de corrida aqui.
+        const infoEl = document.getElementById('editExemplarAtual');
+        if (infoEl) {
+            const tombo = emp.NumeroTombo || '—';
+            const livro = emp.NomeLivro || `Exemplar #${emp.Exemplar_id}`;
+            infoEl.innerHTML = `Exemplar atual: <strong>#${emp.Exemplar_id}</strong> — Tombo: ${tombo} | ${livro}`;
+        }
     } catch(e) {
         document.getElementById('erroEditModal').textContent = 'Não foi possível carregar os dados do empréstimo.';
         console.error('Erro ao carregar empréstimo para edição:', e);
@@ -1087,9 +1128,11 @@ async function salvarEdicaoEmprestimo() {
     const dataDevolucao = document.getElementById('editDataDevolucao').value.trim();
     const status        = document.getElementById('editStatus').value;
     const usuarioId     = document.getElementById('editUsuario').value;
+    const exemplarId    = document.getElementById('editExemplar').value; // '' = manter exemplar atual (não obrigatório)
     const observacao    = document.getElementById('editObservacao').value.trim();
 
-    // Validações no cliente
+    // Validações no cliente — a seleção de exemplar NUNCA é obrigatória aqui.
+    // Deixar em "Manter exemplar atual" é o comportamento padrão e válido.
     if (!dataSaida)    { erroEl.textContent = 'A data do empréstimo é obrigatória.'; return; }
     if (!dataPrevista) { erroEl.textContent = 'O prazo de devolução é obrigatório.'; return; }
     if (!status)       { erroEl.textContent = 'O status é obrigatório.'; return; }
@@ -1109,6 +1152,12 @@ async function salvarEdicaoEmprestimo() {
         Usuario_id:     parseInt(usuarioId),
         Observacao:     observacao || null
     };
+
+    // Só inclui Exemplar_id no corpo se o admin explicitamente escolheu trocar o exemplar.
+    // Caso contrário, o back-end mantém automaticamente o exemplar já vinculado ao registro.
+    if (exemplarId) {
+        body.Exemplar_id = parseInt(exemplarId);
+    }
 
     const btn = document.getElementById('btnSalvarEdicao');
     btn.disabled = true;
