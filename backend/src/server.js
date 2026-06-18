@@ -1576,6 +1576,56 @@ app.get('/exemplar/stats', (req, res) => {
     });
 });
 
+// GET /exemplar/tombo/:numeroTombo — busca exemplar específico pelo Número de Tombo
+// Usado pela tela de Empréstimos para localizar rapidamente um exemplar (ex: leitura
+// de etiqueta/código de barras) sem precisar carregar a lista completa de exemplares.
+// Consulta otimizada: busca exata (índice/igualdade) por NumeroTombo, LIMIT 1.
+app.get('/exemplar/tombo/:numeroTombo', (req, res) => {
+    const numeroTombo = (req.params.numeroTombo || '').trim();
+    if (!numeroTombo) {
+        return res.status(400).json({ error: 'Número de Tombo é obrigatório.' });
+    }
+
+    const sql = `
+        SELECT
+            ex.Exemplar_id, ex.Status, ex.Localizacao, ex.NumeroTombo,
+            ex.Observacoes, ex.DataAquisicao, ex.CriadoEm, ex.Livro_id,
+            l.Nome   AS NomeLivro,
+            l.Autor  AS AutorLivro,
+            l.Imagem AS CapaLivro
+        FROM Exemplar ex
+        LEFT JOIN Livro l ON ex.Livro_id = l.Livro_id
+        WHERE ex.NumeroTombo = ?
+        LIMIT 1
+    `;
+
+    dbconfig.query(sql, [numeroTombo], (err, results) => {
+        if (err) {
+            console.error('[GET /exemplar/tombo] Erro:', err.sqlMessage || err.message);
+            return res.status(500).json({ error: 'Erro interno no servidor.' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: `Nenhum exemplar encontrado com o número de tombo "${numeroTombo}".` });
+        }
+
+        const exemplar = results[0];
+        const disponivel = exemplar.Status === 'Disponivel';
+
+        const motivosIndisponibilidade = {
+            Emprestado: 'Este exemplar já está emprestado.',
+            Reservado : 'Este exemplar está reservado.',
+            Manutencao: 'Este exemplar está em manutenção.'
+        };
+
+        res.json({
+            ...exemplar,
+            Disponivel        : disponivel,
+            MotivoIndisponivel: disponivel ? null : (motivosIndisponibilidade[exemplar.Status] || `Este exemplar não está disponível (status: ${exemplar.Status}).`)
+        });
+    });
+});
+
 // GET /exemplar/:id — busca exemplar por ID com gêneros
 app.get('/exemplar/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
@@ -2027,14 +2077,62 @@ app.post('/solicitacao', (req, res) => {
     );
 });
 
+// ── Helper: resolve qual exemplar usar na aprovação do empréstimo.
+// Se exemplarIdForcado for informado (ex: localizado via busca por Número de Tombo
+// na tela de Empréstimos), valida e usa exatamente aquele exemplar. Caso contrário,
+// mantém o comportamento padrão de buscar automaticamente o primeiro disponível.
+function resolverExemplarParaAprovacao(livroId, exemplarIdForcado, cb) {
+    if (exemplarIdForcado) {
+        dbconfig.query(
+            'SELECT Exemplar_id, Livro_id, Status FROM Exemplar WHERE Exemplar_id = ?',
+            [exemplarIdForcado],
+            (err, rows) => {
+                if (err) return cb(err);
+                if (!rows.length) {
+                    return cb(null, null, { status: 404, error: 'O exemplar informado não foi encontrado.' });
+                }
+                const ex = rows[0];
+                if (ex.Livro_id !== livroId) {
+                    return cb(null, null, { status: 400, error: 'O exemplar informado não pertence ao livro desta solicitação.' });
+                }
+                if (ex.Status !== 'Disponivel') {
+                    const motivos = {
+                        Emprestado: 'Este exemplar já está emprestado.',
+                        Reservado : 'Este exemplar está reservado.',
+                        Manutencao: 'Este exemplar está em manutenção.'
+                    };
+                    return cb(null, null, { status: 409, error: motivos[ex.Status] || `Este exemplar não está disponível (status: ${ex.Status}).` });
+                }
+                cb(null, ex.Exemplar_id, null);
+            }
+        );
+    } else {
+        dbconfig.query(
+            "SELECT Exemplar_id FROM Exemplar WHERE Livro_id = ? AND Status = 'Disponivel' LIMIT 1",
+            [livroId],
+            (err, rows) => {
+                if (err) return cb(err);
+                if (!rows.length) {
+                    return cb(null, null, { status: 409, error: 'Não há exemplares disponíveis no momento. Não é possível aprovar.' });
+                }
+                cb(null, rows[0].Exemplar_id, null);
+            }
+        );
+    }
+}
+
 // POST /solicitacao/:id/aprovar — admin aprova a solicitação e cria o empréstimo ativo
-// Body: { admin_id, DataPrevista? }
+// Body: { admin_id, DataPrevista?, Exemplar_id? }
+// Exemplar_id (opcional): quando informado, força o uso deste exemplar específico
+// (ex: localizado via busca por Número de Tombo) em vez de escolher automaticamente
+// o primeiro exemplar disponível do livro.
 app.post('/solicitacao/:id/aprovar', (req, res) => {
-    const id      = parseInt(req.params.id, 10);
-    const adminId = req.body.admin_id ? parseInt(req.body.admin_id, 10) : null;
+    const id              = parseInt(req.params.id, 10);
+    const adminId         = req.body.admin_id ? parseInt(req.body.admin_id, 10) : null;
+    const exemplarForcado = req.body.Exemplar_id ? parseInt(req.body.Exemplar_id, 10) : null;
     if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
 
-    console.log(`[POST /solicitacao/${id}/aprovar] admin_id=${adminId}`);
+    console.log(`[POST /solicitacao/${id}/aprovar] admin_id=${adminId}${exemplarForcado ? `, Exemplar_id=${exemplarForcado}` : ''}`);
 
     dbconfig.query("SELECT * FROM SolicitacaoEmprestimo WHERE Solicitacao_id = ?", [id], (err, rows) => {
         if (err) {
@@ -2048,20 +2146,16 @@ app.post('/solicitacao/:id/aprovar', (req, res) => {
             return res.status(400).json({ error: `Esta solicitação já foi ${solic.Status}.` });
         }
 
-        // Busca exemplar disponível
-        dbconfig.query(
-            "SELECT Exemplar_id FROM Exemplar WHERE Livro_id = ? AND Status = 'Disponivel' LIMIT 1",
-            [solic.Livro_id],
-            (err2, exemplares) => {
+        // Busca exemplar a ser usado (forçado por tombo, ou automaticamente o primeiro disponível)
+        resolverExemplarParaAprovacao(solic.Livro_id, exemplarForcado, (err2, exemplarId, erroResolucao) => {
                 if (err2) {
                     console.error('[aprovar] Erro ao buscar exemplar:', err2.sqlMessage || err2.message);
                     return res.status(500).json({ error: 'Erro interno ao buscar exemplar.', detalhe: err2.sqlMessage || err2.message });
                 }
-                if (!exemplares.length) {
-                    return res.status(409).json({ error: 'Não há exemplares disponíveis no momento. Não é possível aprovar.' });
+                if (erroResolucao) {
+                    return res.status(erroResolucao.status).json({ error: erroResolucao.error });
                 }
 
-                const exemplarId = exemplares[0].Exemplar_id;
                 const hoje = new Date();
                 const dataSaida = hoje.toISOString().split('T')[0];
                 const dataPrevista = req.body.DataPrevista || (() => {
