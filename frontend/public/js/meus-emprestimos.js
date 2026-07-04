@@ -22,6 +22,38 @@ function formatarData(data) {
     return local.toLocaleDateString('pt-BR');
 }
 
+// Prazo de empréstimo do sistema: 14 dias a partir da retirada.
+// Calcula quantos dias faltam (ou quantos dias já se passaram do
+// vencimento) para exibir esse detalhe junto à data prevista.
+const PRAZO_EMPRESTIMO_DIAS = 14;
+
+function diasParaVencimento(dataPrevista) {
+    if (!dataPrevista) return null;
+    const hoje = new Date();
+    const hojeUTC = Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    const dp = new Date(dataPrevista);
+    const dpUTC = Date.UTC(dp.getUTCFullYear(), dp.getUTCMonth(), dp.getUTCDate());
+    return Math.round((dpUTC - hojeUTC) / 86400000);
+}
+
+function textoPrazo(status, dataPrevista) {
+    const st = (status || '').toLowerCase();
+    if (st === 'devolvido') return '';
+    const dias = diasParaVencimento(dataPrevista);
+    if (dias === null) return '';
+    if (dias < 0) {
+        const atraso = Math.abs(dias);
+        return `<span class="emp-prazo emp-prazo-atrasado">⚠️ Prazo de ${PRAZO_EMPRESTIMO_DIAS} dias vencido há ${atraso} dia${atraso > 1 ? 's' : ''}</span>`;
+    }
+    if (dias === 0) {
+        return `<span class="emp-prazo emp-prazo-alerta">⏰ Vence hoje (prazo de ${PRAZO_EMPRESTIMO_DIAS} dias)</span>`;
+    }
+    if (dias <= 2) {
+        return `<span class="emp-prazo emp-prazo-alerta">⏰ Faltam ${dias} dia${dias > 1 ? 's' : ''} (prazo de ${PRAZO_EMPRESTIMO_DIAS} dias)</span>`;
+    }
+    return `<span class="emp-prazo">Prazo de ${PRAZO_EMPRESTIMO_DIAS} dias — faltam ${dias} dias</span>`;
+}
+
 function statusBadgeEmprestimo(status) {
     const map = {
         'ativo':     ['badge-pendente',  '📖 Ativo'],
@@ -182,6 +214,7 @@ function renderizar() {
                     ${emp.DataDevolucao
                         ? `<span class="emp-data">Devolvido em: <strong>${formatarData(emp.DataDevolucao)}</strong></span>`
                         : ''}
+                    ${textoPrazo(status, emp.DataPrevista)}
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
@@ -280,6 +313,12 @@ function _injetarTabAvaliacoes(count) {
     .tab-btn-aval-pendente { color: #d97706 !important; font-weight: 600; }
     .tab-btn-aval-pendente.active { color: #d97706 !important; border-bottom-color: #d97706 !important; }
     .badge-em-analise { background: #dbeafe; color: #1d4ed8; }
+    .emp-prazo {
+        display: inline-block; font-size: 0.78rem; font-weight: 600;
+        color: var(--muted); margin-top: 2px;
+    }
+    .emp-prazo-alerta { color: #d97706; }
+    .emp-prazo-atrasado { color: #b91c1c; }
     `;
     document.head.appendChild(s);
 })();

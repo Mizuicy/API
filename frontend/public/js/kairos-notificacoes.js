@@ -204,6 +204,7 @@
             // ── Configuração visual por tipo de notificação ──────────
             const isNovoLivro         = n.Tipo === 'novo_livro';
             const isAvaliacaoPendente = n.Tipo === 'avaliacao_pendente';
+            const isAtraso            = n.Tipo === 'atraso';
 
             let icone, titulo, iconeBg, linkAvaliar;
 
@@ -220,6 +221,14 @@
                 titulo      = 'Novo livro no acervo!';
                 iconeBg     = 'background:#f0fdf4; border:1px solid #16a34a;';
                 linkAvaliar = '';
+            } else if (isAtraso) {
+                icone       = '🔴';
+                titulo      = n.NomeLivro ? `Atraso: ${n.NomeLivro}` : 'Devolução em atraso';
+                iconeBg     = 'background:#fef2f2; border:1px solid #dc2626;';
+                linkAvaliar = `<a class="kn-btn-acao" style="color:#b91c1c;font-weight:600;"
+                                   href="meus-emprestimos.html">
+                                   Ver Meus Empréstimos →
+                               </a>`;
             } else {
                 icone       = '📚';
                 titulo      = n.NomeLivro || 'Livro';
@@ -234,7 +243,7 @@
                     <div class="kn-item-body">
                         <div class="kn-item-book">${titulo}</div>
                         <div class="kn-item-msg">${n.Mensagem || 'Vencimento se aproximando'}</div>
-                        ${dataFmt ? `<div class="kn-item-date">⏰ Vence em: ${dataFmt}</div>` : ''}
+                        ${dataFmt ? `<div class="kn-item-date" style="${isAtraso ? 'color:#b91c1c;' : ''}">${isAtraso ? '🔴 Prazo era' : '⏰ Vence em'}: ${dataFmt}</div>` : ''}
                         <div class="kn-item-actions">
                             ${lida
                                 ? `<button class="kn-btn-acao" data-action="nao-lida" data-id="${n.Notificacao_id}">Marcar como não lida</button>`

@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import dbconfig from './db/dbconfig.js';
 import { validarUsuario, validarLivro, validarAutor } from './utils/validacoes.js';
-import { validateEmail, generateAuthCode, sendAuthEmail, sendWelcomeEmail, sendLoanExpiryEmail } from './utils/emailService.js';
+import { validateEmail, generateAuthCode, sendAuthEmail, sendWelcomeEmail, sendLoanExpiryEmail, sendLoanOverdueEmail } from './utils/emailService.js';
 import chatRoutes from './chat/routes/chatRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,6 +58,56 @@ function handleQuery(res, err, results) {
 // ─────────────────────────────────────────────────────────────
 const authCodes = new Map();      // { email → { code, expiresAt } }
 const verifiedEmails = new Map(); // { email → expiresAt }  ← ✅ NOVO
+
+// ─────────────────────────────────────────────────────────────
+// CONTROLE DE DEVOLUÇÃO — Regra de negócio: prazo de empréstimo
+// ─────────────────────────────────────────────────────────────
+// Todo empréstimo criado no sistema (seja diretamente via
+// POST /emprestimo, seja via aprovação de solicitação em
+// POST /solicitacao/:id/aprovar) recebe automaticamente um prazo
+// de devolução de PRAZO_EMPRESTIMO_DIAS dias a partir da data de
+// saída, salvo quando uma DataPrevista específica é informada.
+// Este valor é centralizado aqui para ser reutilizado em todos os
+// pontos do sistema que dependem da regra do prazo (criação de
+// empréstimo, aprovação de solicitação, mensagens de notificação
+// e envio de emails), evitando divergência entre eles.
+const PRAZO_EMPRESTIMO_DIAS = 14;
+
+// Calcula a DataPrevista (YYYY-MM-DD) somando PRAZO_EMPRESTIMO_DIAS
+// dias a partir de uma data base (por padrão, hoje).
+function calcularDataPrevista(dataBase = new Date()) {
+    const d = new Date(dataBase);
+    d.setDate(d.getDate() + PRAZO_EMPRESTIMO_DIAS);
+    return d.toISOString().split('T')[0];
+}
+
+// Diferença em dias entre duas datas no formato 'YYYY-MM-DD',
+// sem sofrer o efeito de fuso horário (compara sempre à meia-noite UTC).
+function diffDiasDatas(dataInicioStr, dataFimStr) {
+    const [iy, im, id] = dataInicioStr.split('-').map(Number);
+    const [fy, fm, fd] = dataFimStr.split('-').map(Number);
+    return Math.round((Date.UTC(fy, fm - 1, fd) - Date.UTC(iy, im - 1, id)) / 86400000);
+}
+
+// Monta a mensagem de notificação (persistida e exibida na interface)
+// para um empréstimo cujo prazo está próximo do vencimento ou vence hoje.
+// Deixa explícito que o prazo total do empréstimo é de 14 dias.
+function montarMensagemVencimentoProximo(nomeLivro, dataPrevista, diasRestantes) {
+    const diasTexto = diasRestantes <= 0 ? 'hoje' : `em ${diasRestantes} dia(s)`;
+    return `Seu empréstimo do livro "${nomeLivro}" vence ${diasTexto} (${dataPrevista}). ` +
+           `Lembrete: o prazo de empréstimo é de ${PRAZO_EMPRESTIMO_DIAS} dias a partir da retirada. ` +
+           `Por favor, devolva o livro até a data prevista.`;
+}
+
+// Monta a mensagem de notificação para um empréstimo já em atraso.
+// Deixa claro que o prazo original era de 14 dias e que a devolução
+// está pendente.
+function montarMensagemAtraso(nomeLivro, dataPrevista, diasAtraso) {
+    const diasTexto = diasAtraso === 1 ? '1 dia' : `${diasAtraso} dias`;
+    return `O prazo de devolução do livro "${nomeLivro}" está vencido. ` +
+           `O prazo de empréstimo era de ${PRAZO_EMPRESTIMO_DIAS} dias, com devolução prevista para ${dataPrevista}, ` +
+           `e a devolução está pendente há ${diasTexto}. Por favor, devolva o livro o quanto antes para evitar novos atrasos.`;
+}
 
 // ══════════════════════════════════════════════════════════════
 //  ROTAS DE USUÁRIO
@@ -794,11 +844,86 @@ function atualizarAtrasados(cb) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Helper: notifica (persiste no banco + envia email) os usuários
+// com empréstimos em atraso. Reaproveitado por:
+//   - GET  /emprestimo               (fire-and-forget a cada consulta)
+//   - POST /emprestimo/atrasado/notificar (chamada manual/cron externo)
+//   - Cron interno (roda diariamente às 07h)
+// A notificação deixa explícito que o prazo de empréstimo era de
+// 14 dias e que a devolução está pendente (regra de negócio).
+// Envia no máximo 1 notificação/email por empréstimo por dia,
+// evitando duplicidade caso a função seja chamada mais de uma vez.
+// ─────────────────────────────────────────────────────────────
+function notificarEmprestimosAtrasados(callback) {
+    const sql = `
+        SELECT
+            e.Emprestimo_id, e.DataPrevista, e.Usuario_id,
+            u.Nome AS NomeUsuario, u.Email AS EmailUsuario,
+            l.Nome AS NomeLivro
+        FROM Emprestimo e
+        LEFT JOIN Exemplar ex ON e.Exemplar_id = ex.Exemplar_id
+        LEFT JOIN Livro    l  ON ex.Livro_id   = l.Livro_id
+        LEFT JOIN Usuario  u  ON e.Usuario_id  = u.Usuario_id
+        WHERE e.Status = 'atrasado'
+    `;
+
+    dbconfig.query(sql, async (err, emprestimos) => {
+        if (err) {
+            console.error('[notificarEmprestimosAtrasados] Erro no banco:', err.message);
+            if (callback) callback(err);
+            return;
+        }
+        if (!emprestimos.length) {
+            if (callback) callback(null, { total: 0, enviados: 0 });
+            return;
+        }
+
+        const hojeStr = new Date().toISOString().split('T')[0];
+        let enviados = 0;
+
+        for (const emp of emprestimos) {
+            const dataPrevistaStr = new Date(emp.DataPrevista).toISOString().split('T')[0];
+            const diasAtraso = Math.max(1, diffDiasDatas(dataPrevistaStr, hojeStr));
+            const nomeLivro  = emp.NomeLivro || 'Livro';
+            const msg = montarMensagemAtraso(nomeLivro, dataPrevistaStr, diasAtraso);
+
+            // Persiste notificação apenas se ainda não houver uma do tipo 'atraso'
+            // criada hoje para este empréstimo (evita duplicidade em disparos repetidos).
+            dbconfig.query(
+                `INSERT INTO Notificacao (Usuario_id, Emprestimo_id, Tipo, Mensagem)
+                 SELECT ?, ?, 'atraso', ?
+                 FROM DUAL
+                 WHERE NOT EXISTS (
+                     SELECT 1 FROM Notificacao
+                     WHERE Emprestimo_id = ? AND Tipo = 'atraso' AND DATE(CriadaEm) = CURDATE()
+                 )`,
+                [emp.Usuario_id, emp.Emprestimo_id, msg, emp.Emprestimo_id],
+                (errN, resultN) => {
+                    if (errN) console.error('[notificarEmprestimosAtrasados] Erro ao persistir notificação:', errN.message);
+                }
+            );
+
+            if (emp.EmailUsuario) {
+                const ok = await sendLoanOverdueEmail(emp.EmailUsuario, emp.NomeUsuario, nomeLivro, dataPrevistaStr, diasAtraso);
+                if (ok) enviados++;
+            }
+        }
+
+        console.log(`[notificarEmprestimosAtrasados] ${enviados}/${emprestimos.length} email(s) de atraso enviado(s).`);
+        if (callback) callback(null, { total: emprestimos.length, enviados });
+    });
+}
+
+// ─────────────────────────────────────────────────────────────
 // GET /emprestimo — lista todos (admin) ou filtrado por usuário
 // GET /emprestimo?usuario=ID
 // ─────────────────────────────────────────────────────────────
 app.get('/emprestimo', (req, res) => {
     atualizarAtrasados(() => {
+        // Dispara (sem bloquear a resposta) a checagem de notificações de atraso.
+        // A função já garante no máximo 1 notificação/email por empréstimo por dia.
+        notificarEmprestimosAtrasados();
+
         const usuarioId = req.query.usuario ? parseInt(req.query.usuario, 10) : null;
 
         let sql = `
@@ -920,6 +1045,20 @@ app.post('/emprestimo/vencendo/notificar', async (req, res) => {
     });
 });
 
+// POST /emprestimo/atrasado/notificar
+// Dispara notificações (persistidas + email) para empréstimos já em
+// atraso, deixando explícito que o prazo de empréstimo era de 14 dias
+// e que a devolução está pendente. Chamado pelo cron job externo/interno
+// ou manualmente pelo painel administrativo.
+app.post('/emprestimo/atrasado/notificar', (req, res) => {
+    atualizarAtrasados(() => {
+        notificarEmprestimosAtrasados((err, resultado) => {
+            if (err) return res.status(500).json({ error: 'Erro interno.' });
+            res.json({ message: 'Notificacoes de atraso processadas.', ...resultado });
+        });
+    });
+});
+
 // ─────────────────────────────────────────────────────────────
 // GET /admin/emprestimo/:id — busca empréstimo com dados administrativos extras
 // ─────────────────────────────────────────────────────────────
@@ -1031,14 +1170,10 @@ app.post('/emprestimo', (req, res) => {
 
                 const exemplarId = exemplares[0].Exemplar_id;
 
-                // Data de hoje e data prevista (+14 dias por padrão)
+                // Data de hoje e data prevista (regra de negócio: +14 dias por padrão)
                 const hoje = new Date();
                 const dataSaida = hoje.toISOString().split('T')[0];
-                const dataPrevista = DataPrevista || (() => {
-                    const d = new Date(hoje);
-                    d.setDate(d.getDate() + 14);
-                    return d.toISOString().split('T')[0];
-                })();
+                const dataPrevista = DataPrevista || calcularDataPrevista(hoje);
 
                 const sqlInsert = `
                     INSERT INTO Emprestimo (DataSaida, DataPrevista, Status, Usuario_id, Exemplar_id)
@@ -1061,11 +1196,9 @@ app.post('/emprestimo', (req, res) => {
                         }
                     );
 
-                    // ✅ FIX: diff de datas sem bug de fuso horário
+                    // Diferença de dias sem bug de fuso horário (reaproveita helper central)
                     const hojeStr = new Date().toISOString().split('T')[0];
-                    const [hy, hm, hd] = hojeStr.split('-').map(Number);
-                    const [py, pm, pd] = dataPrevista.split('-').map(Number);
-                    const diffDias = Math.round((Date.UTC(py, pm-1, pd) - Date.UTC(hy, hm-1, hd)) / 86400000);
+                    const diffDias = diffDiasDatas(hojeStr, dataPrevista);
                     if (diffDias <= 2 && diffDias >= 0) {
                         // Busca email/nome do usuario para notificar
                         dbconfig.query(
@@ -1081,9 +1214,8 @@ app.post('/emprestimo', (req, res) => {
                                             const nomeLivro = (!errL && rowsL.length) ? rowsL[0].Nome : 'Livro';
                                             await sendLoanExpiryEmail(u.Email, u.Nome, nomeLivro, dataPrevista);
                                             console.log('[emprestimo] Email de vencimento imediato enviado para:', u.Email);
-                                            // ✅ FIX: Persiste notificação no banco
-                                            const diasTexto = diffDias === 0 ? 'hoje' : `em ${diffDias} dia(s)`;
-                                            const msgNotif = `Seu empréstimo do livro "${nomeLivro}" vence ${diasTexto}. Por favor, devolva até ${dataPrevista}.`;
+                                            // Persiste notificação no banco, reaproveitando a mensagem padronizada
+                                            const msgNotif = montarMensagemVencimentoProximo(nomeLivro, dataPrevista, diffDias);
                                             dbconfig.query(
                                                 'INSERT INTO Notificacao (Usuario_id, Emprestimo_id, Tipo, Mensagem) VALUES (?, ?, ?, ?)',
                                                 [Usuario_id, result.insertId, 'vencimento', msgNotif],
@@ -2064,11 +2196,8 @@ app.post('/solicitacao/:id/aprovar', (req, res) => {
                 const exemplarId = exemplares[0].Exemplar_id;
                 const hoje = new Date();
                 const dataSaida = hoje.toISOString().split('T')[0];
-                const dataPrevista = req.body.DataPrevista || (() => {
-                    const d = new Date(hoje);
-                    d.setDate(d.getDate() + 14);
-                    return d.toISOString().split('T')[0];
-                })();
+                // Regra de negócio: prazo de empréstimo de 14 dias por padrão
+                const dataPrevista = req.body.DataPrevista || calcularDataPrevista(hoje);
 
                 // Cria o empréstimo ativo
                 dbconfig.query(
@@ -2256,6 +2385,10 @@ app.patch('/admin/notificacoes/marcar-todas-lidas', (req, res) => {
 });
 
 // ── Cron interno: roda às 07h todo dia ────────────────────────
+// 1) Marca como 'atrasado' os empréstimos cujo prazo (14 dias) expirou;
+// 2) Notifica (email + banco) quem está com devolução próxima do vencimento (até 2 dias);
+// 3) Notifica (email + banco) quem já está em atraso, deixando claro que o
+//    prazo de empréstimo era de 14 dias e que a devolução está pendente.
 cron.schedule('0 7 * * *', async () => {
     console.log('[CRON 07h] Verificando emprestimos vencendo em 2 dias...');
     const sqlCron = `
@@ -2265,14 +2398,16 @@ cron.schedule('0 7 * * *', async () => {
         LEFT JOIN Exemplar ex ON e.Exemplar_id = ex.Exemplar_id
         LEFT JOIN Livro    l  ON ex.Livro_id   = l.Livro_id
         LEFT JOIN Usuario  u  ON e.Usuario_id  = u.Usuario_id
-        WHERE e.Status = 'ativo' AND DATEDIFF(e.DataPrevista, CURDATE()) = 2
+        WHERE e.Status = 'ativo' AND DATEDIFF(e.DataPrevista, CURDATE()) BETWEEN 0 AND 2
     `;
     dbconfig.query(sqlCron, async (errC, emprestimos) => {
         if (errC) { console.error('[CRON] Erro:', errC); return; }
-        if (!emprestimos.length) { console.log('[CRON] Nenhum emprestimo vencendo.'); return; }
-        for (const emp of emprestimos) {
-            await sendLoanExpiryEmail(emp.EmailUsuario, emp.NomeUsuario, emp.NomeLivro, emp.DataPrevista);
-            const msgC = `Seu empréstimo do livro "${emp.NomeLivro}" vence em 2 dias (${emp.DataPrevista}). Por favor, devolva até essa data.`;
+        if (!emprestimos.length) { console.log('[CRON] Nenhum emprestimo vencendo.'); }
+        for (const emp of (emprestimos || [])) {
+            const dataPrevistaStr = new Date(emp.DataPrevista).toISOString().split('T')[0];
+            const diasRestantes = diffDiasDatas(new Date().toISOString().split('T')[0], dataPrevistaStr);
+            await sendLoanExpiryEmail(emp.EmailUsuario, emp.NomeUsuario, emp.NomeLivro, dataPrevistaStr);
+            const msgC = montarMensagemVencimentoProximo(emp.NomeLivro, dataPrevistaStr, diasRestantes);
             dbconfig.query(
                 `INSERT INTO Notificacao (Usuario_id, Emprestimo_id, Tipo, Mensagem)
                  SELECT ?, ?, 'vencimento', ?
@@ -2284,7 +2419,17 @@ cron.schedule('0 7 * * *', async () => {
                 (errN) => { if (errN) console.error('[CRON] Erro notificacao:', errN.message); }
             );
         }
-        console.log(`[CRON] ${emprestimos.length} emprestimo(s) processado(s).`);
+        console.log(`[CRON] ${(emprestimos || []).length} emprestimo(s) proximo(s) do vencimento processado(s).`);
+
+        // Passo 2: atualiza status para 'atrasado' e notifica quem está em atraso
+        console.log('[CRON 07h] Verificando emprestimos em atraso...');
+        atualizarAtrasados((errA) => {
+            if (errA) { console.error('[CRON] Erro ao atualizar atrasados:', errA.message); return; }
+            notificarEmprestimosAtrasados((errN2, resultado) => {
+                if (errN2) { console.error('[CRON] Erro ao notificar atrasados:', errN2.message); return; }
+                console.log(`[CRON] ${resultado.total} emprestimo(s) em atraso processado(s), ${resultado.enviados} email(s) enviado(s).`);
+            });
+        });
     });
 });
 

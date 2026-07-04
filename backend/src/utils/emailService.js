@@ -201,6 +201,10 @@ export async function sendLoanExpiryEmail(email, nomeUsuario, nomeLivro, dataPre
                         </p>
                     </div>
                     <p style="color: #555; font-size: 0.9rem;">
+                        Lembrete: o prazo de empréstimo da Biblioteca Kairos é de
+                        <strong>14 dias</strong> a partir da retirada do livro.
+                    </p>
+                    <p style="color: #555; font-size: 0.9rem;">
                         Caso já tenha devolvido, desconsidere este aviso.
                     </p>
                     <p style="color: #888; font-size: 0.8rem; border-top: 1px solid #eee;
@@ -216,6 +220,75 @@ export async function sendLoanExpiryEmail(email, nomeUsuario, nomeLivro, dataPre
         return true;
     } catch (error) {
         console.error('[sendLoanExpiryEmail] ❌ Erro ao enviar email:', error.message);
+        return false;
+    }
+}
+
+// Aviso de empréstimo em atraso (prazo de 14 dias já ultrapassado)
+export async function sendLoanOverdueEmail(email, nomeUsuario, nomeLivro, dataPrevista, diasAtraso) {
+    if (!EMAIL_USER || !EMAIL_PASSWORD) {
+        console.error('[sendLoanOverdueEmail] ❌ Abortado: credenciais não configuradas no .env');
+        return false;
+    }
+
+    try {
+        const dataFormatada = new Date(dataPrevista).toLocaleDateString('pt-BR', {
+            day: '2-digit', month: 'long', year: 'numeric'
+        });
+        const diasTexto = diasAtraso === 1 ? '1 dia' : `${diasAtraso} dias`;
+
+        await transporter.sendMail({
+            from: `"Kairos Biblioteca" <${EMAIL_USER}>`,
+            to: email,
+            subject: '🔴 Devolução em atraso — Kairos Biblioteca',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto;
+                            padding: 28px; border: 1px solid #e0e0e0; border-radius: 10px; background: #ffffff;">
+                    <div style="text-align:center; margin-bottom: 24px;">
+                        <span style="font-size: 2.5rem;">📚</span>
+                        <h2 style="color: #1a1a2e; margin-top: 8px; font-size: 1.4rem;">Devolução Pendente</h2>
+                        <p style="color: #666; font-size: 0.9rem;">Biblioteca Kairos</p>
+                    </div>
+                    <p style="font-size: 1rem; color: #333;">Olá, <strong>${nomeUsuario}</strong>!</p>
+                    <p style="color: #555;">
+                        O prazo de devolução do livro abaixo já foi ultrapassado e a devolução
+                        está <strong>pendente</strong>.
+                    </p>
+                    <div style="background: #fef9ec; border-left: 4px solid #f59e0b;
+                                border-radius: 6px; padding: 16px 20px; margin: 20px 0;">
+                        <p style="margin: 0; font-size: 0.85rem; color: #92400e;
+                                  text-transform: uppercase; font-weight: 600;">Livro</p>
+                        <p style="margin: 4px 0 12px; font-size: 1.1rem; font-weight: bold;
+                                  color: #1a1a2e;">${nomeLivro}</p>
+                        <p style="margin: 0; font-size: 0.85rem; color: #92400e;
+                                  text-transform: uppercase; font-weight: 600;">Data prevista de devolução</p>
+                        <p style="margin: 4px 0 0; font-size: 1rem; font-weight: bold;
+                                  color: #d97706;">📅 ${dataFormatada}</p>
+                    </div>
+                    <div style="background: #fef2f2; border-radius: 6px; padding: 14px 18px;
+                                border: 1px solid #fecaca; margin-bottom: 20px;">
+                        <p style="margin: 0; color: #b91c1c; font-size: 0.95rem;">
+                            🔴 <strong>Atraso de ${diasTexto}.</strong>
+                            O prazo de empréstimo da Biblioteca Kairos é de <strong>14 dias</strong>
+                            a partir da retirada do livro. Por favor, realize a devolução o quanto antes.
+                        </p>
+                    </div>
+                    <p style="color: #555; font-size: 0.9rem;">
+                        Caso já tenha devolvido, desconsidere este aviso.
+                    </p>
+                    <p style="color: #888; font-size: 0.8rem; border-top: 1px solid #eee;
+                              padding-top: 14px;">
+                        Obrigado por usar a <strong>Biblioteca Kairos</strong>. 🏛️<br/>
+                        Este é um email automático — não responda a esta mensagem.
+                    </p>
+                </div>
+            `
+        });
+
+        console.log(`[sendLoanOverdueEmail] ✅ Aviso de atraso enviado para: ${email} (${nomeLivro})`);
+        return true;
+    } catch (error) {
+        console.error('[sendLoanOverdueEmail] ❌ Erro ao enviar email:', error.message);
         return false;
     }
 }
